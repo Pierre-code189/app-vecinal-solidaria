@@ -330,7 +330,7 @@ async function cargarLista({ append = false } = {}) {
     const etiqueta = { servicio: "servicios", producto: "productos", "": "publicaciones" }[S.tipo] || "publicaciones";
     $("#orden-info").textContent = S.lat
       ? `${d.total} ${etiqueta} en ${S.zona}, del más cercano al más lejano`
-      : `${d.total} ${etiqueta} en ${S.zona} · toca 📍 arriba para ordenar por cercanía`;
+      : `${d.total} ${etiqueta} en ${S.zona} · 📍 arriba para ordenar por cercanía`;
     localStorage.setItem("vecinal-cache-local", JSON.stringify({ items: d.items, cuando: Date.now() }));
   } catch (e) {
     const cache = JSON.parse(localStorage.getItem("vecinal-cache-local") || "null");
