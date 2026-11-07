@@ -662,19 +662,42 @@ function comprimir(file) {
       URL.revokeObjectURL(url);
       resolve(c.toDataURL("image/jpeg", 0.68));
     };
-    img.onerror = reject;
+    img.onerror = () => reject(new Error("tu navegador no puede leer este formato"));
     img.src = url;
   });
 }
 
 async function subirFotos(files) {
-  const lista = Array.from(files).slice(0, 3 - S.fotos.length);
-  for (const f of lista) {
+  const estado = $("#fotos-estado");
+  const wrap = document.querySelector(".filewrap");
+  const lista = Array.from(files || []).slice(0, 3 - S.fotos.length);
+  if (!lista.length) return;
+  wrap.classList.add("subiendo");
+  for (let i = 0; i < lista.length; i++) {
+    const f = lista[i];
+    estado.classList.remove("error");
+    estado.textContent = `Subiendo foto ${i + 1} de ${lista.length}…`;
+    if (!f.type.startsWith("image/")) {
+      estado.classList.add("error");
+      estado.textContent = "Ese archivo no es una imagen. Elige JPG, PNG o HEIC desde la galería.";
+      continue;
+    }
     try {
       const data = await comprimir(f);
       const r = await api("/api/fotos", { method: "POST", body: JSON.stringify({ data }) });
       S.fotos.push(r.url);
-    } catch (e) { toast("No pudimos subir una foto: " + e.message, "err"); }
+      estado.textContent = `${S.fotos.length} de 3 fotos listas.`;
+    } catch (e) {
+      estado.classList.add("error");
+      estado.textContent = e.message === "SIN_CONEXION"
+        ? "Sin conexión: la foto se perderá. Conéctate y vuelve a intentarlo."
+        : `No pudimos subir esa foto (${e.message}). Prueba con otra o más liviana.`;
+      toast("No se pudo subir la foto", "err");
+    }
+  }
+  wrap.classList.remove("subiendo");
+  if (!estado.classList.contains("error") && S.fotos.length) {
+    estado.textContent = `${S.fotos.length} de 3 fotos listas.`;
   }
   pintarFotos();
 }

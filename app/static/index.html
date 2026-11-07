@@ -400,9 +400,11 @@
         <select id="f-zona"></select>
 
         <label>Fotos (opcional, máximo 3)</label>
-        <input id="f-fotos" type="file" accept="image/*" multiple class="sr-only">
-        <label for="f-fotos" class="btn filebtn"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>Agregar fotos</label>
-        <p class="hint">Se reducen en tu teléfono antes de subirlas y se borran los datos de ubicación de la foto.</p>
+        <div class="filewrap">
+          <input id="f-fotos" type="file" accept="image/*" multiple aria-label="Agregar fotos">
+          <span class="filebtn-face"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>Agregar fotos</span>
+        </div>
+        <p class="hint" id="fotos-estado" role="status" aria-live="polite">Se reducen en tu teléfono antes de subirlas y se borran los datos de ubicación de la foto.</p>
         <div id="fotos-prev" class="fotos-prev"></div>
 
         <label class="check"><input type="checkbox" id="f-emerg"> También disponible en emergencias</label>

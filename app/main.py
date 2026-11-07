@@ -1608,8 +1608,8 @@ def subir_foto(request: Request, payload: dict):
         binario = base64.b64decode(b64)
     except Exception:
         raise HTTPException(400, "No pudimos leer la imagen")
-    if len(binario) > 400_000:
-        raise HTTPException(400, "La imagen es muy grande: máximo 400 KB")
+    if len(binario) > 700_000:
+        raise HTTPException(400, "La imagen es muy grande: máximo 700 KB")
     ext = "png" if "png" in cabecera else "jpg"
     nombre = f"{uuid.uuid4().hex}.{ext}"
     destino = FOTOS_DIR / nombre

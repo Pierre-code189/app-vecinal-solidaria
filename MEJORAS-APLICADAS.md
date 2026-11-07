@@ -237,3 +237,26 @@ con más contraste y etiqueta de emergencia sobria (borde y texto rojo, sin rell
 usuarios demo ahora tienen nombres corrientes (Juan Quispe, Ana Morales, Pedro
 Chunga, Lucía Yarlequé, María Panta, Rosa Huamán). El script de verificación usa
 una cuenta fija y borra lo que crea, para no ensuciar el directorio.
+
+## Carga de fotos: qué fallaba y qué se corrigió
+
+El síntoma: al tocar «Agregar fotos» no aparecía nada y no se veía ningún error.
+
+Causa: el `<input type="file">` estaba oculto con la clase `sr-only` (recortado a
+1 px) y se abría solo por el `for` de la etiqueta. Varios navegadores móviles no
+disparan el selector en esa combinación, y como no había mensaje de estado, el
+fallo era invisible.
+
+Correcciones:
+
+1. El campo de archivo ahora **cubre el botón** (posición absoluta, opacidad 0,
+   z-index superior). El toque cae directamente sobre el input, sin depender del
+   `for`. Verificado con un toque real: `elementFromPoint` devuelve el propio input.
+2. **Estado visible**: «Subiendo foto 1 de 3…», «1 de 3 fotos listas» o un error
+   concreto en rojo. Ya no hay fallos silenciosos.
+3. Mensajes específicos: archivo que no es imagen, formato que el navegador no
+   puede leer (HEIC en Android), o falta de conexión.
+4. Límites ampliados: servidor a 700 KB por imagen y `client_max_body_size 6m`
+   en Nginx, para que una foto grande no sea rechazada antes de llegar.
+5. Prueba real: PNG de 18 MB y 3000×2000 → se comprime, sube y muestra; archivo
+   de texto → mensaje de error claro.
