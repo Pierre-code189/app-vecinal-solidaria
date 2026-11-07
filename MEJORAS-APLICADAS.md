@@ -198,3 +198,42 @@ evita que en un teléfono sin fuente de emojis aparezcan cuadros vacíos.
 
 El gris terciario (2,95:1) se retiró de cualquier texto pequeño y solo queda en
 elementos decorativos, como la atribución del mapa.
+
+---
+
+## Refinamiento de interfaz (v3.2)
+
+Objetivo: que la app no se sienta "de plantilla" y que los controles del sistema
+(desplegables, buscador, casillas) formen parte del diseño.
+
+**Controles.** Todos comparten alto (46 px), radio (11 px), borde y foco. Los
+`select` nativos llevan `appearance:none` y un chevrón SVG propio; el buscador
+lleva la lupa dentro del campo. Nada queda con el aspecto gris del navegador.
+
+**Tarjetas.** El borde reemplaza la sombra fuerte; la categoría es una píldora
+verde con su icono; el precio es el elemento dominante y usa cifras tabulares; el
+pie (avatar con inicial, nombre y sector) está anclado al fondo con una línea
+fina, así que todas las tarjetas de una fila quedan perfectamente alineadas
+(medido: 618 px en las tres). La descripción se recorta por palabras, no por
+caracteres.
+
+**Ordenar.** El texto "toca el pin de arriba" desapareció: ahora hay un control
+real «Ordenar por: Más cercano / Más reciente / Mejor valorado», con el parámetro
+`orden` en la API.
+
+**Cabecera en móvil.** Se quitó "Salir" (vive en el perfil), el nombre se
+reemplazó por el avatar con inicial y la marca se acorta a "Vecinal". Queda:
+marca, sector, campana, avatar.
+
+**Detalle.** Las acciones se agrupan: una principal a todo el ancho y dos
+secundarias parejas, fijas al fondo del modal mientras se desplaza; "Reportar"
+pasó a enlace discreto.
+
+**Otros.** Botones de 44-46 px (objetivo táctil), foco visible en todo, estados
+vacíos con icono y acción, esqueletos con la forma de la tarjeta, aviso de pago
+con más contraste y etiqueta de emergencia sobria (borde y texto rojo, sin relleno).
+
+**Datos de demostración.** Se limpiaron publicaciones de prueba duplicadas y los
+usuarios demo ahora tienen nombres corrientes (Juan Quispe, Ana Morales, Pedro
+Chunga, Lucía Yarlequé, María Panta, Rosa Huamán). El script de verificación usa
+una cuenta fija y borra lo que crea, para no ensuciar el directorio.

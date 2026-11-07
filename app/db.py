@@ -222,13 +222,13 @@ def migrate(con: sqlite3.Connection) -> list[str]:
 
 
 SEED_USERS = [
-    ("u-mod", "María Moderadora", "Piura Centro", "999000001", "mod@app.local", "mod123", "moderador", "999000001"),
-    ("u-gas", "Juan Gasfitero", "Piura Centro", "999000002", "juan@app.local", "gas123", "vecino", "999000002"),
-    ("u-carp", "Ana Carpintera", "Urb. Miraflores (Castilla)", "999000003", "ana@app.local", "carp123", "vecino", "999000003"),
-    ("u-vec", "Pedro Vecino", "Piura Centro", "999000004", "pedro@app.local", "pedro123", "vecino", None),
-    ("u-vec2", "Lucía Vecina", "Urb. Santa Isabel", "999000005", "lucia@app.local", "lucia123", "vecino", "999000005"),
+    ("u-mod", "María Panta", "Piura Centro", "999000001", "mod@app.local", "mod123", "moderador", "999000001"),
+    ("u-gas", "Juan Quispe", "Piura Centro", "999000002", "juan@app.local", "gas123", "vecino", "999000002"),
+    ("u-carp", "Ana Morales", "Urb. Miraflores (Castilla)", "999000003", "ana@app.local", "carp123", "vecino", "999000003"),
+    ("u-vec", "Pedro Chunga", "Piura Centro", "999000004", "pedro@app.local", "pedro123", "vecino", None),
+    ("u-vec2", "Lucía Yarlequé", "Urb. Santa Isabel", "999000005", "lucia@app.local", "lucia123", "vecino", "999000005"),
     # Moderador suplente: si el titular no está, la moderación y la emergencia siguen
-    ("u-mod2", "Rosa Suplente", "Piura Centro", "999000006", "mod2@app.local", "mod2-123", "moderador", "999000006"),
+    ("u-mod2", "Rosa Huamán", "Piura Centro", "999000006", "mod2@app.local", "mod2-123", "moderador", "999000006"),
 ]
 
 # Centros de sector (misma lista que app/main.py) para ubicar la semilla.

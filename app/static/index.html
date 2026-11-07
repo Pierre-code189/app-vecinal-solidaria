@@ -56,7 +56,7 @@
 <a class="skip" href="#main">Saltar al contenido</a>
 
 <header class="topbar">
-  <div class="brand"><svg class="ic ic-lg brand-icon" aria-hidden="true"><use href="#i-home"/></svg><strong>Vecinal Solidaria</strong> <span class="brand-sub">Piura</span></div>
+  <div class="brand"><svg class="ic ic-lg brand-icon" aria-hidden="true"><use href="#i-home"/></svg><strong><span class="brand-full">Vecinal Solidaria</span><span class="brand-mini">Vecinal</span></strong> <span class="brand-sub">Piura</span></div>
   <div class="topbar-actions">
     <button type="button" id="btn-zona" class="chip-zona" title="Cambiar sector"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg><span id="zona-actual">Piura Centro</span></button>
     <button type="button" id="btn-campana" class="campana" aria-label="Avisos">
@@ -122,7 +122,17 @@
       <button type="button" class="btn primary" id="btn-publicar">+ Publicar</button>
     </div>
 
-    <p id="orden-info" class="hint" hidden></p>
+    <div class="orden">
+      <span id="orden-info" class="hint"></span>
+      <div class="orden-ctl">
+        <label for="orden" class="orden-lbl">Ordenar por</label>
+      <select id="orden">
+        <option value="cercania">Más cercano</option>
+        <option value="reciente">Más reciente</option>
+        <option value="vistos">Mejor valorado</option>
+      </select>
+      </div>
+    </div>
     <div id="list" class="grid" aria-live="polite"></div>
     <div class="more"><button type="button" class="btn" id="btn-more" hidden>Cargar más</button></div>
   </section>

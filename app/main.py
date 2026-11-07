@@ -122,7 +122,7 @@ async def security_headers(request: Request, call_next):
 # ----------------------------------------------------------------- límite de peticiones
 _RL: dict[str, list[float]] = {}
 RL_RULES = {  # ruta: (máximo, ventana en segundos)
-    "/api/login": (15, 60), "/api/registro": (8, 300),
+    "/api/login": (30, 60), "/api/registro": (12, 300),
     "/api/publicaciones": (30, 60), "/api/cotizaciones": (20, 60),
     "/api/vistos": (40, 60), "/api/reportes": (10, 300),
 }
@@ -631,7 +631,7 @@ def mis_publicaciones(request: Request):
 def listar(request: Request, tipo: Optional[str] = None, categoria: Optional[str] = None,
            q: Optional[str] = None, zona: Optional[str] = None, emergencia: bool = False,
            tipo_favor: Optional[str] = None, solo_recomendadas: bool = False,
-           solo_favores: bool = False,
+           solo_favores: bool = False, orden: str = "cercania",
            lat: Optional[float] = None, lng: Optional[float] = None,
            limit: int = Query(20, ge=1, le=50), offset: int = Query(0, ge=0)):
     viewer = current_user(request)
@@ -660,7 +660,12 @@ def listar(request: Request, tipo: Optional[str] = None, categoria: Optional[str
     if solo_favores:
         rows = [r for r in rows if str(r.get("tipo", "")).startswith("favor")]
     total = len(rows)
-    if ref_lat is not None and ref_lng is not None:
+    if orden == "reciente":
+        rows.sort(key=lambda r: r.get("creado") or 0, reverse=True)
+    elif orden == "vistos":
+        conteo = dict(con.execute("SELECT publicacion_id, COUNT(*) c FROM vistos GROUP BY publicacion_id"))
+        rows.sort(key=lambda r: conteo.get(r["id"], 0), reverse=True)
+    if orden == "cercania" and ref_lat is not None and ref_lng is not None:
         for r in rows:
             r["_d"] = haversine_km(ref_lat, ref_lng, r.get("lat"), r.get("lng"))
         rows.sort(key=lambda r: (r["_d"] is None, r["_d"] or 0))

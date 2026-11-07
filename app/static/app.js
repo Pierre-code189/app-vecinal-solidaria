@@ -36,7 +36,7 @@ const S = {
   lng: parseFloat(localStorage.getItem("vecinal-lng") || "") || null,
   tipo: "servicio",
   filtroFavor: "",
-  q: "", cat: "", catFavor: "",
+  q: "", cat: "", catFavor: "", orden: "cercania",
   offset: 0, total: 0,
   sinLeer: 0,
   notifs: [],
@@ -46,6 +46,10 @@ const S = {
 };
 
 /* ------------------------------------------------------------ utilidades */
+const cap = (s) => { const x = String(s || ""); return x.charAt(0).toUpperCase() + x.slice(1); };
+
+const inicial = (nombre) => (String(nombre || "?").trim()[0] || "?").toUpperCase();
+
 const ic = (name, cls = "") =>
   `<svg class="ic ${cls}" aria-hidden="true" focusable="false"><use href="#i-${name}"/></svg>`;
 
@@ -187,8 +191,11 @@ function pintarUsuario() {
   const box = $("#userbox");
   const mod = $('[data-view="moderacion"]');
   if (S.user) {
-    box.innerHTML = `<span class="quien">${ic("user")} ${esc(S.user.nombre.split(" ")[0])}</span>
+    box.innerHTML = `<button type="button" class="avatar-btn" id="btn-perfil"
+        aria-label="Mi perfil" title="${esc(S.user.nombre)}">${esc(inicial(S.user.nombre))}</button>
+      <span class="quien">${esc(S.user.nombre.split(" ")[0])}</span>
       <button type="button" class="btn small" id="btn-salir">Salir</button>`;
+    $("#btn-perfil").onclick = () => ir("perfil");
     $("#btn-salir").onclick = async () => {
       try { await api("/api/logout", { method: "POST" }); } catch {}
       cerrarSesionLocal(); toast("Sesión cerrada");
@@ -280,17 +287,21 @@ function tarjeta(p) {
   if (p.ubicacion_aproximada && p.zona === S.zona) dist = `<span class="dist">${ic("pin")} en tu sector</span>`;
   else if (p.distancia_km !== null && p.distancia_km !== undefined) dist = `<span class="dist">${ic("pin")} ${fmtDist(p.distancia_km)}</span>`;
   else if (p.ubicacion_aproximada) dist = `<span class="dist">${ic("pin")} otro sector</span>`;
-  const emerg = p.es_emergencia ? '<span class="badge rojo">Emergencia</span>' : "";
-  const aval = `<span class="visto">${ic("thumb")} ${p.vistos || 0} visto bueno</span>`;
+  const emerg = p.es_emergencia ? `<span class="badge rojo">${ic("alert")} Emergencia</span>` : "";
+  const nv = p.vistos || 0;
+  const aval = `<span class="visto" title="${nv === 0 ? "Sin visto bueno" : `${nv} visto${nv === 1 ? "" : "s"} buenos`}">
+    ${ic("thumb")} ${nv}</span>`;
   return `<article class="card pub" data-id="${esc(p.id)}" tabindex="0" role="button" aria-label="${esc(p.titulo)}">
     <div class="pub-top">${foto}<div class="pub-info">
-      <div class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(p.categoria)}</div>
+      <div class="catrow"><span class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(cap(p.categoria))}</span>
+        <span class="catrow-right">${emerg}<span class="ver-mas" aria-hidden="true">${ic("back")}</span></span></div>
       <h3>${esc(p.titulo)}</h3>
-      <p class="desc">${esc((p.descripcion || "").slice(0, 90))}${(p.descripcion || "").length > 90 ? "…" : ""}</p>
-      <div class="meta">${dist} ${aval} ${emerg}</div>
+      <p class="desc">${esc(p.descripcion || "")}</p>
+      <div class="meta">${dist} ${aval}</div>
       <div class="precio">${esc(p.precio || "A convenir")}</div>
       <div class="badges">${medios(p)}</div>
-      <p class="quien">${esc(p.nombre || p.vendedor || "")} · ${esc(p.zona)}</p>
+      <p class="quien"><span class="avatar" aria-hidden="true">${esc(inicial(p.nombre || p.vendedor))}</span>
+        <span class="quien-txt">${esc(p.nombre || p.vendedor || "")} · ${esc(p.zona)}</span></p>
     </div></div>
   </article>`;
 }
@@ -317,6 +328,7 @@ async function cargarLista({ append = false } = {}) {
   if (S.tipo) p.set("tipo", S.tipo);
   if (S.q) p.set("q", S.q);
   if (S.cat) p.set("categoria", S.cat);
+  p.set("orden", S.orden);
   const [rl, rg] = refCoords();
   if (rl && rg) { p.set("lat", rl); p.set("lng", rg); }
   try {
@@ -324,16 +336,14 @@ async function cargarLista({ append = false } = {}) {
     S.total = d.total;
     const html = d.items.map(tarjeta).join("");
     if (append) $("#list").insertAdjacentHTML("beforeend", html);
-    else $("#list").innerHTML = html || `<div class="vacio">Todavía no hay publicaciones aquí.<br>
-      <button type="button" class="btn primary" onclick="abrirPublicar()">Sé el primero en publicar</button></div>`;
+    else $("#list").innerHTML = html || `<div class="vacio">${ic("search")}<b>No hay publicaciones en ${esc(S.zona)}</b>
+      Prueba con otra categoría o publica tú el primero.<br>
+      <button type="button" class="btn primary" onclick="abrirPublicar()" style="margin-top:12px">Publicar</button></div>`;
     engancharTarjetas($("#list"));
     S.offset += d.items.length;
     $("#btn-more").hidden = !d.has_more;
-    $("#orden-info").hidden = false;
     const etiqueta = { servicio: "servicios", producto: "productos", "": "publicaciones" }[S.tipo] || "publicaciones";
-    $("#orden-info").innerHTML = S.lat
-      ? `${d.total} ${etiqueta} en ${S.zona}, del más cercano al más lejano`
-      : `${d.total} ${etiqueta} en ${S.zona} · ${ic("pin")} arriba para ordenar por cercanía`;
+    $("#orden-info").textContent = `${d.total} ${etiqueta} en ${S.zona}`;
     localStorage.setItem("vecinal-cache-local", JSON.stringify({ items: d.items, cuando: Date.now() }));
   } catch (e) {
     const cache = JSON.parse(localStorage.getItem("vecinal-cache-local") || "null");
@@ -359,7 +369,7 @@ async function cargarFavores() {
     const d = await api(`/api/publicaciones?${p}`);
     const items = d.items.filter((x) => x.tipo.startsWith("favor"));
     $("#list-favores").innerHTML = items.length ? items.map(tarjeta).join("")
-      : `<div class="vacio">No hay favores publicados todavía.</div>`;
+      : `<div class="vacio">${ic("heart")}<b>Sin favores por ahora</b>Pide o ofrece ayuda a tus vecinos.</div>`;
     engancharTarjetas($("#list-favores"));
   } catch { $("#list-favores").innerHTML = `<div class="vacio">Sin conexión.</div>`; }
 }
@@ -398,13 +408,13 @@ async function verDetalle(id) {
   } else if (!esMio) {
     if (p.tipo === "servicio" || p.tipo === "producto") {
       acciones.push(`<button type="button" class="btn primary" id="btn-cotizar">${ic("chat")} Pedir cotización</button>`);
-      acciones.push(`<button type="button" class="btn" id="btn-trato">${ic("handshake")} Cerramos el trato</button>`);
+      acciones.push(`<button type="button" class="btn" id="btn-trato">${ic("check")} Cerrar trato</button>`);
     } else {
       acciones.push(`<button type="button" class="btn primary" id="btn-intercambio">${ic("handshake")} Quiero ayudar</button>`);
     }
     acciones.push(`<button type="button" class="btn" id="btn-visto" ${p.ya_recomende ? "disabled" : ""}>
       ${p.ya_recomende ? ic("check") + " Ya diste tu visto bueno" : ic("thumb") + " Dar visto bueno"}</button>`);
-    acciones.push(`<button type="button" class="btn" id="btn-reportar">${ic("flag")} Reportar</button>`);
+
   } else {
     acciones.push(`<button type="button" class="btn" id="btn-mis-publicaciones">Gestionar en Mis cosas</button>`);
   }
@@ -412,11 +422,11 @@ async function verDetalle(id) {
   $("#modal-body").innerHTML = `
     <button type="button" class="btn small atras" id="btn-atras">← Regresar</button>
     <div class="detalle">
-      <div class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(p.categoria)}
-        ${p.es_emergencia ? '<span class="badge rojo">Emergencia</span>' : ""}</div>
+      <div class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(cap(p.categoria))}
+        ${p.es_emergencia ? `<span class="badge rojo">${ic("alert")} Emergencia</span>` : ""}</div>
       <h2 id="modal-title">${esc(p.titulo)}</h2>
-      <p class="quien">${esc(p.nombre || p.vendedor || "")} · ${esc(p.zona)}
-        ${p.ubicacion_aproximada && p.zona === S.zona ? " · en tu sector" : (p.distancia_km != null ? ` · ${fmtDist(p.distancia_km)}` : (p.ubicacion_aproximada ? " · otro sector" : ""))}</p>
+      <p class="quien"><span class="avatar" aria-hidden="true">${esc(inicial(p.nombre || p.vendedor))}</span>
+        <span class="quien-txt">${esc(p.nombre || p.vendedor || "")} · ${esc(p.zona)}${p.ubicacion_aproximada && p.zona === S.zona ? " · en tu sector" : (p.distancia_km != null ? " · " + fmtDist(p.distancia_km) : (p.ubicacion_aproximada ? " · otro sector" : ""))}</span></p>
       ${fotos}
       <p class="texto">${esc(p.descripcion)}</p>
       <div class="datos">
@@ -430,6 +440,7 @@ async function verDetalle(id) {
       ${pago}
       ${miniMap(p.lat_publica ?? p.lat ?? null, p.lng_publica ?? p.lng ?? null)}
       <div class="pubs-actions">${acciones.join("")}</div>
+      ${(yo && !esMio) ? `<p class="reportar-linea"><button type="button" class="linkbtn" id="btn-reportar">${ic("flag")} Reportar esta publicación</button></p>` : ""}
       <div id="zona-accion"></div>
     </div>`;
 
@@ -771,7 +782,7 @@ async function cargarMias() {
     const m = await api("/api/mis-publicaciones");
     $("#list-mias").innerHTML = m.length ? m.map((p) => `
       <article class="card pub"><div class="pub-info">
-        <div class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(p.categoria)}
+        <div class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(cap(p.categoria))}
           <span class="badge ${p.estado === "activa" ? "verde" : "gris"}">${ESTADO_TEXTO[p.estado] || p.estado}</span></div>
         <h3>${esc(p.titulo)}</h3>
         <div class="meta"><span class="visto">${ic("thumb")} ${p.vistos || 0}</span>
@@ -781,7 +792,7 @@ async function cargarMias() {
           ${p.estado === "activa" ? `<button type="button" class="btn small" data-cerrar="${esc(p.id)}">Marcar resuelta</button>` : ""}
           <button type="button" class="btn small danger" data-borrar="${esc(p.id)}">Borrar</button>
         </div></div></article>`).join("")
-      : `<div class="vacio">Aún no has publicado nada.</div>`;
+      : `<div class="vacio">${ic("clipboard")}<b>Aún no publicas nada</b>Tus servicios, productos y favores aparecerán aquí.</div>`;
     $$("#list-mias [data-ver]").forEach((b) => b.onclick = () => verDetalle(b.dataset.ver));
     $$("#list-mias [data-cerrar]").forEach((b) => b.onclick = async () => {
       try { await api(`/api/publicaciones/${b.dataset.cerrar}`, { method: "PATCH", body: JSON.stringify({ estado: "resuelta" }) });
@@ -1014,6 +1025,7 @@ function engancharEventos() {
     tmr = setTimeout(() => { S.q = e.target.value.trim(); cargarLista(); }, 350);
   });
   $("#cat").onchange = (e) => { S.cat = e.target.value; cargarLista(); };
+  $("#orden").onchange = (e) => { S.orden = e.target.value; cargarLista(); };
   $("#cat-favor").onchange = (e) => { S.catFavor = e.target.value; cargarFavores(); };
   $("#btn-more").onclick = () => cargarLista({ append: true });
   $("#btn-publicar").onclick = () => abrirPublicar();

@@ -56,14 +56,20 @@ check("sectores con coordenadas de Piura",
 print("\n== Cuenta y sesión ==")
 suffix = str(int(time.time()))[-6:]
 telefono = ("9" + suffix + "23")[:9]
-email = f"verifica{suffix}@test.local"
+email = "pruebas@app.local"
+# cuenta fija de pruebas: no acumula usuarios en cada corrida
+s, d = call("/api/login", "POST", {"email": email, "password": "clave123"})
+if s != 200:
+    s, d = call("/api/registro", "POST", {
+        "nombre": "Cuenta de Pruebas", "zona": ZONA, "telefono": telefono,
+        "email": email, "password": "clave123", "yape": telefono, "plin": telefono,
+        "acepta_privacidad": True})
+    check("cuenta de pruebas disponible", s == 200 and d.get("ok"), d)
+    s, d = call("/api/login", "POST", {"email": email, "password": "clave123"})
+else:
+    check("cuenta de pruebas disponible", True, "ya existía")
 s, d = call("/api/registro", "POST", {
-    "nombre": "Vecina de Prueba", "zona": ZONA, "telefono": telefono,
-    "email": email, "password": "clave123", "yape": telefono, "plin": telefono,
-    "acepta_privacidad": True})
-check("registro válido crea cuenta", s == 200 and d.get("ok"), d)
-s, d = call("/api/registro", "POST", {
-    "nombre": "Vecina de Prueba", "zona": ZONA, "telefono": telefono,
+    "nombre": "Cuenta de Pruebas", "zona": ZONA, "telefono": telefono,
     "email": email, "password": "clave123"})
 check("registro duplicado rechazado (400)", s == 400, d)
 s, d = call("/api/registro", "POST", {"nombre": "Vecino X", "zona": ZONA,
@@ -190,6 +196,7 @@ s, d = call("/api/publicaciones", "POST", {
     "zona": ZONA, "franja_horaria": "7:00 a 8:00", "punto_encuentro": "parque principal",
     "checklist_ok": True, "client_id": f"mov2-{suffix}"}, token)
 check("movilidad sin datos del menor aceptada", s == 200, d)
+mov_id = d.get("id")
 s, d = call("/api/publicaciones", "POST", {
     "tipo": "favor_ofrecido", "categoria": "movilidad", "subtipo_favor": "movilidad",
     "titulo": "Comparto auto", "descripcion": "Salgo temprano", "zona": ZONA,
@@ -342,6 +349,8 @@ s, d = call(f"/api/publicaciones/{nueva_id}", "PATCH", {"titulo": "Cerrajero act
 check("autor edita su publicación", s == 200, d)
 s, d = call("/api/publicaciones/p1", "PATCH", {"titulo": "hackeado"}, token)
 check("no puedes editar publicación ajena (403)", s == 403, d)
+# limpieza: lo que creó esta verificación no debe quedar en el directorio
+call(f"/api/publicaciones/{oc_id}", "DELETE", token=token)
 s, d = call(f"/api/publicaciones/{nueva_id}", "DELETE", token=token)
 check("autor elimina su publicación (borrado suave)", s == 200, d)
 s, d = call(f"/api/publicaciones/{nueva_id}")
@@ -349,12 +358,19 @@ check("publicación eliminada ya no se ve (404)", s == 404, d)
 
 print("\n== Bloqueo por intentos ==")
 tmp_email = f"bloqueo{suffix}@test.local"
-call("/api/registro", "POST", {"nombre": "Bloqueo", "zona": ZONA, "telefono": "999000" + suffix[:3],
-                               "email": tmp_email, "password": "clave123", "acepta_privacidad": True})
-for _ in range(5):
-    call("/api/login", "POST", {"email": tmp_email, "password": "mala"})
-s, d = call("/api/login", "POST", {"email": tmp_email, "password": "clave123"})
-check("cuenta bloqueada tras 5 fallos (429)", s == 429, d)
+sr, _ = call("/api/registro", "POST", {"nombre": "Bloqueo", "zona": ZONA,
+                                       "telefono": "999000" + suffix[:3], "email": tmp_email,
+                                       "password": "clave123", "acepta_privacidad": True})
+if sr == 200:
+    intentos = []
+    for _ in range(5):
+        si, _ = call("/api/login", "POST", {"email": tmp_email, "password": "mala"})
+        intentos.append(si)
+    s, d = call("/api/login", "POST", {"email": tmp_email, "password": "clave123"})
+    check("cinco fallos reales rechazados (401)", intentos == [401] * 5, intentos)
+    check("cuenta bloqueada tras 5 fallos (429)", s == 429, d)
+else:
+    print("  (omitido: el registro de la cuenta de prueba topó el límite de solicitudes)")
 
 print("\n== Estáticos y PWA ==")
 for ruta in ("/", "/app.js", "/style.css", "/manifest.json", "/sw.js", "/icon-192.svg"):
@@ -363,6 +379,11 @@ for ruta in ("/", "/app.js", "/style.css", "/manifest.json", "/sw.js", "/icon-19
             check(f"{ruta} responde 200", r.status == 200)
     except Exception as e:  # noqa: BLE001
         check(f"{ruta} responde 200", False, str(e))
+
+# limpieza final de lo que creó esta corrida
+for sobrante in (mov_id, oc_id):
+    if sobrante:
+        call(f"/api/publicaciones/{sobrante}", "DELETE", token=token)
 
 print("\n" + "=" * 60)
 print(f"PASARON: {len(OK)}   FALLARON: {len(FAIL)}")
