@@ -56,18 +56,16 @@ check("sectores con coordenadas de Piura",
 print("\n== Cuenta y sesión ==")
 suffix = str(int(time.time()))[-6:]
 telefono = ("9" + suffix + "23")[:9]
-email = "pruebas@app.local"
-# cuenta fija de pruebas: no acumula usuarios en cada corrida
+email = f"verifica{suffix}@test.local"
+# cuenta nueva por corrida: estado limpio, sin choques con corridas anteriores
+s, d = call("/api/registro", "POST", {
+    "nombre": "Cuenta de Pruebas", "zona": ZONA, "telefono": telefono,
+    "email": email, "password": "clave123", "yape": telefono, "plin": telefono,
+    "acepta_privacidad": True})
+check("registro válido crea cuenta", s == 200 and d.get("ok"), d)
 s, d = call("/api/login", "POST", {"email": email, "password": "clave123"})
-if s != 200:
-    s, d = call("/api/registro", "POST", {
-        "nombre": "Cuenta de Pruebas", "zona": ZONA, "telefono": telefono,
-        "email": email, "password": "clave123", "yape": telefono, "plin": telefono,
-        "acepta_privacidad": True})
-    check("cuenta de pruebas disponible", s == 200 and d.get("ok"), d)
-    s, d = call("/api/login", "POST", {"email": email, "password": "clave123"})
-else:
-    check("cuenta de pruebas disponible", True, "ya existía")
+token = d.get("token")
+check("cuenta de pruebas con sesión", bool(token), "no se pudo entrar")
 s, d = call("/api/registro", "POST", {
     "nombre": "Cuenta de Pruebas", "zona": ZONA, "telefono": telefono,
     "email": email, "password": "clave123"})
@@ -88,9 +86,7 @@ check("registro sin aceptar privacidad rechazado (400)", s == 400, d)
 s, d2g = call("/api/login", "POST", {"email": "juan@app.local", "password": "gas123"})
 tok_gas = d2g.get("token")
 
-s, d = call("/api/login", "POST", {"email": email, "password": "clave123"})
-check("login correcto devuelve token", s == 200 and d.get("token"), d)
-token = d.get("token")
+check("login correcto devuelve token", bool(token), "sin token")
 if not token:
     print("No se obtuvo token; se detiene la verificación.")
     sys.exit(1)
@@ -333,8 +329,9 @@ if fav:
     iid = d.get("id")
     s, d = call("/api/intercambios", token=token)
     check("mis intercambios listados", s == 200 and len(d) >= 1, d)
-    s, d = call("/api/intercambios/" + iid + "/estado", "POST", {"estado": "resuelta"}, token)
-    check("no se puede saltar de solicitada a resuelta (400)", s == 400, d)
+    if iid:
+        s, d = call(f"/api/intercambios/{iid}/estado", "POST", {"estado": "resuelta"}, token)
+        check("no se puede saltar de solicitada a resuelta (400)", s == 400, d)
 
 print("\n== Avaladores ==")
 s, d = call("/api/avaladores")
@@ -384,6 +381,12 @@ for ruta in ("/", "/app.js", "/style.css", "/manifest.json", "/sw.js", "/icon-19
 for sobrante in (mov_id, oc_id):
     if sobrante:
         call(f"/api/publicaciones/{sobrante}", "DELETE", token=token)
+
+# dejar la cuenta de pruebas con su clave base para la próxima corrida
+sc, dc = call("/api/password/solicitar", "POST", {"identificador": email})
+if dc.get("codigo_demo"):
+    call("/api/password/confirmar", "POST", {"identificador": email,
+         "codigo": dc["codigo_demo"], "password": "clave123"})
 
 print("\n" + "=" * 60)
 print(f"PASARON: {len(OK)}   FALLARON: {len(FAIL)}")

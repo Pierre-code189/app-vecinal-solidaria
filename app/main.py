@@ -1082,6 +1082,13 @@ def crear_cotizacion(body: CotizacionIn, request: Request):
     if pub["autor_id"] == user["id"]:
         con.close()
         raise HTTPException(400, "No puedes cotizar tu propia publicación")
+    repetida = con.execute(
+        "SELECT 1 FROM cotizaciones WHERE publicacion_id=? AND comprador_id=? AND estado='enviada'",
+        (body.publicacion_id, user["id"])).fetchone()
+    if repetida:
+        con.close()
+        raise HTTPException(400, "Ya tienes una cotización esperando respuesta en esta publicación. "
+                                "El vecino te avisará cuando la responda.")
     abiertas = con.execute(
         "SELECT COUNT(*) c FROM cotizaciones WHERE comprador_id=? AND estado='enviada'",
         (user["id"],)).fetchone()["c"]
@@ -1092,7 +1099,7 @@ def crear_cotizacion(body: CotizacionIn, request: Request):
     cid = str(uuid.uuid4())
     now = int(time.time())
     con.execute(
-        "INSERT INTO cotizaciones(id,publicacion_id,comprador_id,descripcion,medida,urgencia,creado,expira)"
+        "INSERT OR IGNORE INTO cotizaciones(id,publicacion_id,comprador_id,descripcion,medida,urgencia,creado,expira)"
         " VALUES(?,?,?,?,?,?,?,?)",
         (cid, body.publicacion_id, user["id"], clean_txt(body.descripcion, 500),
          clean_txt(body.medida, 100), body.urgencia or "normal", now, now + 7 * 86400),

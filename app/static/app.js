@@ -1180,12 +1180,28 @@ function engancharEventos() {
   window.addEventListener("offline", () => banner("Sin conexión: puedes seguir viendo lo cargado y publicar; se enviará al volver la señal.", "warn"));
 }
 
+/* El botón flotante se aparta al bajar: deja leer la lista sin que tape texto. */
+function fabInteligente() {
+  const fab = $("#fab-publicar");
+  if (!fab) return;
+  let ultimo = window.scrollY;
+  window.addEventListener("scroll", () => {
+    const y = window.scrollY;
+    const bajando = y > ultimo + 8;
+    const subiendo = y < ultimo - 8;
+    if (bajando && y > 120) fab.classList.add("oculto");
+    if (subiendo || y < 80) fab.classList.remove("oculto");
+    ultimo = y;
+  }, { passive: true });
+}
+
 async function arrancar() {
   try { S.zonas = await api("/api/zonas"); } catch { S.zonas = []; }
   llenarZonas();
   if (S.user === null) await cargarPerfil();
   pintarZona();
   engancharEventos();
+  fabInteligente();
   pintarAuth();
   await cargarLista();
   pintarCola();
