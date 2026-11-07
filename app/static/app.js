@@ -563,15 +563,26 @@ function reportar(p) {
 
 /* ------------------------------------------------------------ publicar */
 function abrirPublicar(tipoPre = "") {
-  if (!S.user) { toast("Entra a tu cuenta para publicar.", "warn"); ir("perfil"); return; }
   $("#pubmodal").hidden = false;
   document.body.style.overflow = "hidden";
+  if (!S.user) { mostrarPuerta(); return; }
+  $("#pub-gate").hidden = true;
+  $("#form-pub").hidden = false;
+  $$("#pubmodal .steps").forEach((s) => { s.hidden = false; });
+  S.quieroPublicar = true;
   S.paso = 1;
   pintarPaso(1);
   if (tipoPre) { $("#f-tipo").value = tipoPre; ajustarTipo(); }
   pintarPills();
   llenarZonas();
   restaurarBorrador();
+}
+
+function mostrarPuerta() {
+  S.quieroPublicar = true;
+  $("#pub-gate").hidden = false;
+  $("#form-pub").hidden = true;
+  $$("#pubmodal .steps").forEach((s) => { s.hidden = true; });
 }
 
 function pintarPaso(n) {
@@ -1052,6 +1063,10 @@ function engancharEventos() {
   $("#cat-favor").onchange = (e) => { S.catFavor = e.target.value; cargarFavores(); };
   $("#btn-more").onclick = () => cargarLista({ append: true });
   $("#btn-publicar").onclick = () => abrirPublicar();
+  $("#gate-crear").onclick = () => { $("#pubmodal").hidden = true; document.body.style.overflow = ""; ir("perfil");
+    setTimeout(() => { $("#r-nombre").focus(); }, 300); };
+  $("#gate-entrar").onclick = () => { $("#pubmodal").hidden = true; document.body.style.overflow = ""; ir("perfil");
+    setTimeout(() => { $("#l-email").focus(); }, 300); };
   $("#fab-publicar").onclick = () => abrirPublicar();
   $("#btn-publicar-favor").onclick = () => abrirPublicar("favor_solicitado");
   $("#btn-reportar-necesidad").onclick = () => abrirPublicar("favor_solicitado");
@@ -1134,6 +1149,7 @@ function engancharEventos() {
       await cargarPerfil();
       toast(`Bienvenido${S.user ? ", " + S.user.nombre.split(" ")[0] : ""}. Ya puedes publicar.`);
       ir("local");
+      if (S.quieroPublicar) setTimeout(() => abrirPublicar(), 400);
     } catch (e2) { err.textContent = e2.message; }
   });
 
@@ -1148,6 +1164,7 @@ function engancharEventos() {
       await cargarPerfil();
       toast("Entraste. ¡Bienvenido!");
       cargarAvisos(); ir("local");
+      if (S.quieroPublicar) setTimeout(() => abrirPublicar(), 400);
     } catch (e2) { err.textContent = e2.message; }
   });
 

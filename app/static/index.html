@@ -323,6 +323,18 @@
   <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="pub-title">
     <button type="button" class="close" data-close aria-label="Cerrar"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
     <h2 id="pub-title">Publicar</h2>
+    <div id="pub-gate" class="gate" hidden>
+      <div class="gate-icon"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-user"/></svg></div>
+      <h3>Necesitas una cuenta para publicar</h3>
+      <p class="hint">Es gratis y solo se usa para que tus vecinos sepan con quién tratan.
+        Tu número no se muestra a quien no haya entrado.</p>
+      <div class="pubs-actions">
+        <button type="button" class="btn primary wide" id="gate-crear">Crear mi cuenta</button>
+        <button type="button" class="btn wide" id="gate-entrar">Ya tengo cuenta</button>
+      </div>
+      <p class="hint" style="text-align:center">Lo que ibas a publicar no se pierde: vuelves aquí al entrar.</p>
+    </div>
+
     <div class="steps" aria-hidden="true">
       <span class="step on" data-step="1">1. Tipo</span>
       <span class="step" data-step="2">2. Datos</span>

@@ -319,6 +319,12 @@ label{display:block;font-size:.82rem;font-weight:600;margin:14px 0 6px;color:var
 .minimapa .credito{position:absolute;right:4px;bottom:2px;font-size:.62rem;color:var(--ink);background:rgba(255,255,255,.75);padding:0 4px;border-radius:3px}
 
 /* ---------- publicar ---------- */
+.gate{text-align:center;padding:8px 4px 4px}
+.gate-icon{width:56px;height:56px;border-radius:50%;background:var(--brand-50);color:var(--brand-700);
+  display:flex;align-items:center;justify-content:center;margin:6px auto 10px}
+.gate-icon .ic{width:26px;height:26px}
+.gate h3{font-size:1.05rem;margin-bottom:6px}
+.gate .pubs-actions{flex-direction:column;gap:8px;margin-top:14px}
 .steps{display:flex;gap:6px;margin:6px 0 14px;font-size:.78rem;color:var(--muted)}
 .steps .step{padding:4px 9px;border-radius:999px;background:var(--surface-3)}
 .steps .step.on{background:var(--brand-600);color:#fff;font-weight:600}
