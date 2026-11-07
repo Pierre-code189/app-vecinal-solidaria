@@ -1,43 +1,355 @@
-<link rel="icon" href="data:,">
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>App Vecinal Solidaria</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"></head>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b6e4f">
+<title>App Vecinal Solidaria</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏘️</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
 <body>
-<header><div class="logo">🏘️ App Vecinal Solidaria</div><div id="userbox" class="userbox"></div></header>
-<div id="banner" class="banner" style="display:none"></div>
-<nav id="nav">
-<button data-v="local" class="on">🏪 Economía Local</button>
-<button data-v="favores">🤝 Favores</button>
-<button data-v="emergencia">🚨 Emergencia</button>
-<button data-v="tutorial">📚 Tutorial</button>
-<button data-v="perfil">👤 Mi perfil</button>
+
+<a class="skip" href="#main">Saltar al contenido</a>
+
+<header class="topbar">
+  <div class="brand">🏘️ <strong>App Vecinal Solidaria</strong></div>
+  <div id="userbox" class="userbox"></div>
+</header>
+
+<div id="banner" class="banner" role="status" aria-live="polite" hidden></div>
+
+<nav class="tabs" aria-label="Secciones">
+  <button type="button" data-view="local" class="on">🏪 Economía Local</button>
+  <button type="button" data-view="favores">🤝 Favores</button>
+  <button type="button" data-view="emergencia">🚨 Emergencia</button>
+  <button type="button" data-view="mias" data-auth="1">📋 Mis publicaciones</button>
+  <button type="button" data-view="perfil">👤 Mi perfil</button>
+  <button type="button" data-view="tutorial">📚 Tutorial</button>
+  <button type="button" data-view="moderacion" data-moderador="1" hidden>🛡️ Moderación</button>
 </nav>
-<main>
-<section id="view-local" class="view on">
-<h1>Economía Local <span class="sub">Productos y servicios cerca de ti, con visto bueno vecinal</span></h1>
-<div class="tabs"><button id="tab-prod" onclick="setTab('producto')">Productos</button><button id="tab-serv" class="on" onclick="setTab('servicio')">Servicios</button><button onclick="setTab('')">Todos</button></div>
-<div class="toolbar"><input id="q" placeholder="🔍 Buscar gasfitero, pastelitos..." oninput="load()"><select id="cat" onchange="load()"><option value="">Todas las categorías</option><option>gasfitería</option><option>carpintería</option><option>electricidad</option><option>cerrajería</option><option>clases</option><option>alimentos</option><option>herramientas</option><option>movilidad</option><option>préstamo</option></select><button class="primary" onclick="showPub()">+ Publicar</button><button onclick="toggleMap()">🗺️ Mapa</button></div>
-<div id="map" class="map" style="display:none"><p>📍 Mapa vecinal (lista por distancia como respaldo sin internet)</p><div id="maplist"></div></div>
-<div id="list" class="grid"></div>
-</section>
-<section id="view-favores" class="view"><h1>Economía Solidaria <span class="sub">Muro de favores sin dinero: necesito / ofrezco</span></h1>
-<div class="tabs"><button onclick="fav('favor_solicitado')">Necesito</button><button onclick="fav('favor_ofrecido')">Ofrezco</button><button onclick="fav('')">Todos</button></div>
-<div class="toolbar"><button class="primary" onclick="showPub('favor')">+ Publicar favor</button><button onclick="toggleMap()">🗺️ Mapa</button></div>
-<div id="list2" class="grid"></div></section>
-<section id="view-emergencia" class="view"><h1>🚨 Emergencia <span class="sub">Tablero vecinal no oficial. Ante riesgo vital: 105 Policía · 116 Bomberos · 115 Defensa Civil · 106 SAMU</span></h1>
-<div id="emergbox"></div><div id="list3" class="grid"></div></section>
-<section id="view-tutorial" class="view"><h1>Tutorial <span class="sub">Cómo usar la aplicación en 5 pasos</span></h1>
-<div class="card"><p><b>1.</b> Crea tu cuenta con tu teléfono.</p><p><b>2.</b> Publica en 3 pantallas: tipo, datos, confirmar.</p><p><b>3.</b> Busca cerca de tu zona y contacta por WhatsApp.</p><p><b>4.</b> Recomienda con visto bueno lo que ya usaste.</p><p><b>5.</b> En emergencia, reporta tu necesidad y ofrece recursos críticos.</p><p>📴 Sin internet ves lo guardado con la hora de actualización.</p></div></section>
-<section id="view-perfil" class="view"><h1>Mi perfil</h1><div id="perfilbox" class="card"><p>Inicia sesión para ver tu perfil, teléfono y Yape.</p></div>
-<h2>Crear cuenta / Iniciar sesión</h2><div class="card">
-<label for="reg-nombre">Nombre</label><input id="reg-nombre" placeholder="Nombre"><input id="reg-zona" placeholder="Zona (ej: Zona Centro)"><input id="reg-tel" placeholder="Teléfono 9 dígitos"><input id="reg-email" placeholder="Correo"><input id="reg-pass" type="password" placeholder="Contraseña"><input id="reg-yape" placeholder="Yape (opcional)">
-<button class="primary" onclick="registro()">Crear cuenta</button><hr>
-<label for="log-email">Correo</label><input id="log-email" placeholder="Correo"><input id="log-pass" type="password" placeholder="Contraseña"><button onclick="login()">Iniciar sesión</button>
-<p class="hint">Cuentas de demostración en la documentación del proyecto (no en la app pública).</p></div></section>
+
+<main id="main">
+
+  <section id="view-local" class="view on" aria-labelledby="h-local">
+    <h1 id="h-local">Economía Local
+      <span class="sub">Productos y servicios cerca de ti, avalados por vecinos</span>
+    </h1>
+
+    <div class="segmented" role="tablist" aria-label="Tipo de publicación">
+      <button type="button" role="tab" data-tipo="servicio" class="on">Servicios</button>
+      <button type="button" role="tab" data-tipo="producto">Productos</button>
+      <button type="button" role="tab" data-tipo="">Todo</button>
+    </div>
+
+    <div class="toolbar">
+      <label class="sr-only" for="q">Buscar</label>
+      <input id="q" type="search" placeholder="Buscar: gasfitero, pastelitos, clases…" autocomplete="off">
+      <label class="sr-only" for="cat">Categoría</label>
+      <select id="cat">
+        <option value="">Todas las categorías</option>
+        <option>gasfitería</option><option>carpintería</option><option>electricidad</option>
+        <option>cerrajería</option><option>clases</option><option>alimentos</option>
+        <option>paseo de mascotas</option><option>herramientas</option><option>movilidad</option>
+        <option>préstamo</option><option>otros</option>
+      </select>
+      <label class="sr-only" for="zona">Zona</label>
+      <select id="zona">
+        <option value="">Todas las zonas</option>
+        <option>Zona Centro</option><option>Zona Norte</option><option>Zona Sur</option>
+        <option>Zona Este</option><option>Zona Oeste</option>
+      </select>
+      <button type="button" class="btn primary" id="btn-publicar">+ Publicar</button>
+      <button type="button" class="btn" id="btn-ubicacion">📍 Cerca de mí</button>
+    </div>
+
+    <p id="orden-info" class="hint" hidden></p>
+    <div id="list" class="grid" aria-live="polite"></div>
+    <div class="more"><button type="button" class="btn" id="btn-more" hidden>Cargar más</button></div>
+  </section>
+
+  <section id="view-favores" class="view" aria-labelledby="h-fav">
+    <h1 id="h-fav">Economía Solidaria
+      <span class="sub">Muro de favores sin dinero: pide o ofrece ayuda a tus vecinos</span>
+    </h1>
+    <div class="segmented" role="tablist" aria-label="Necesito u ofrezco">
+      <button type="button" role="tab" data-filtro="" class="on">Todos</button>
+      <button type="button" role="tab" data-filtro="favor_solicitado">Necesito</button>
+      <button type="button" role="tab" data-filtro="favor_ofrecido">Ofrezco</button>
+    </div>
+    <div class="toolbar">
+      <label class="sr-only" for="cat-favor">Tipo de favor</label>
+      <select id="cat-favor">
+        <option value="">Todos los tipos</option>
+        <option value="prestamo">Préstamo de herramientas u objetos</option>
+        <option value="ayuda_temporal">Ayuda temporal</option>
+        <option value="donacion">Donación de materiales</option>
+        <option value="intercambio_habilidades">Intercambio de habilidades</option>
+        <option value="movilidad">Movilidad solidaria</option>
+      </select>
+      <button type="button" class="btn primary" id="btn-publicar-favor">+ Publicar favor</button>
+    </div>
+    <div id="list-favores" class="grid" aria-live="polite"></div>
+  </section>
+
+  <section id="view-emergencia" class="view" aria-labelledby="h-emerg">
+    <h1 id="h-emerg">Emergencia
+      <span class="sub">Tablero vecinal. No es un canal oficial de emergencias.</span>
+    </h1>
+
+    <div class="numeros" role="note">
+      <strong>Ante riesgo vital llama:</strong>
+      <a href="tel:105">105 Policía</a> · <a href="tel:116">116 Bomberos</a> ·
+      <a href="tel:115">115 Defensa Civil</a> · <a href="tel:106">106 SAMU</a>
+    </div>
+
+    <div id="emerg-box"></div>
+
+    <div class="toolbar">
+      <button type="button" class="btn primary" id="btn-reportar-necesidad">+ Reportar una necesidad</button>
+      <button type="button" class="btn" id="btn-ofrecer-recurso">+ Ofrecer un recurso</button>
+    </div>
+
+    <h2 class="h2">Directorio de apoyo del barrio</h2>
+    <div id="directorio" class="grid small"></div>
+
+    <h2 class="h2">Reportes de la zona</h2>
+    <div id="list-emergencia" class="grid" aria-live="polite"></div>
+  </section>
+
+  <section id="view-mias" class="view" aria-labelledby="h-mias">
+    <h1 id="h-mias">Mis publicaciones
+      <span class="sub">Edita, pausa o cierra lo que publicaste</span>
+    </h1>
+    <div id="list-mias" class="grid"></div>
+
+    <h2 class="h2">Mis cotizaciones</h2>
+    <div id="list-cotizaciones" class="grid small"></div>
+
+    <h2 class="h2">Mis intercambios</h2>
+    <div id="list-intercambios" class="grid small"></div>
+  </section>
+
+  <section id="view-perfil" class="view" aria-labelledby="h-perfil">
+    <h1 id="h-perfil">Mi perfil</h1>
+
+    <div id="perfil-card" class="card"></div>
+
+    <div id="auth-box" class="card">
+      <h2 class="h2">Crear cuenta</h2>
+      <form id="form-registro" novalidate>
+        <label for="r-nombre">Nombre y apellido</label>
+        <input id="r-nombre" autocomplete="name" required>
+        <label for="r-zona">Zona donde vives</label>
+        <select id="r-zona" required>
+          <option value="">Elige tu zona</option>
+          <option>Zona Centro</option><option>Zona Norte</option><option>Zona Sur</option>
+          <option>Zona Este</option><option>Zona Oeste</option>
+        </select>
+        <label for="r-tel">Teléfono (9 dígitos)</label>
+        <input id="r-tel" inputmode="numeric" maxlength="9" autocomplete="tel" required>
+        <label for="r-email">Correo electrónico</label>
+        <input id="r-email" type="email" autocomplete="email" required>
+        <label for="r-pass">Contraseña (mínimo 6 caracteres)</label>
+        <input id="r-pass" type="password" autocomplete="new-password" required>
+        <label for="r-yape">Número de Yape (opcional)</label>
+        <input id="r-yape" inputmode="numeric" maxlength="9" placeholder="Para recibir pagos">
+        <label class="check"><input type="checkbox" id="r-priv" checked>
+          Acepto el aviso de privacidad: mis datos se usan solo para coordinar servicios con vecinos.</label>
+        <p class="error" id="err-registro" role="alert"></p>
+        <button type="submit" class="btn primary wide">Crear cuenta</button>
+      </form>
+
+      <hr>
+      <h2 class="h2">Iniciar sesión</h2>
+      <form id="form-login" novalidate>
+        <label for="l-email">Correo</label>
+        <input id="l-email" type="email" autocomplete="email" required>
+        <label for="l-pass">Contraseña</label>
+        <input id="l-pass" type="password" autocomplete="current-password" required>
+        <p class="error" id="err-login" role="alert"></p>
+        <button type="submit" class="btn primary wide">Entrar</button>
+      </form>
+      <p class="hint">Las cuentas de prueba están en <code>DOCUMENTACION-WEB.md</code> del repositorio.</p>
+    </div>
+
+    <div id="perfil-edit" class="card" hidden>
+      <h2 class="h2">Editar mis datos</h2>
+      <form id="form-perfil">
+        <label for="p-nombre">Nombre</label><input id="p-nombre">
+        <label for="p-zona">Zona</label>
+        <select id="p-zona">
+          <option>Zona Centro</option><option>Zona Norte</option><option>Zona Sur</option>
+          <option>Zona Este</option><option>Zona Oeste</option>
+        </select>
+        <label for="p-desc">Sobre mí</label><textarea id="p-desc" rows="2"></textarea>
+        <label for="p-ofi">Mis oficios</label><input id="p-ofi" placeholder="Gasfitería, electricidad…">
+        <label for="p-yape">Número de Yape</label><input id="p-yape" inputmode="numeric" maxlength="9">
+        <p class="error" id="err-perfil" role="alert"></p>
+        <button type="submit" class="btn primary">Guardar cambios</button>
+        <button type="button" class="btn" id="btn-logout">Cerrar sesión</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="view-tutorial" class="view" aria-labelledby="h-tut">
+    <h1 id="h-tut">Tutorial
+      <span class="sub">Cómo usar la aplicación en 5 pasos</span>
+    </h1>
+    <div class="card">
+      <ol class="pasos">
+        <li><strong>Crea tu cuenta</strong> con tu nombre, zona, teléfono y correo. El teléfono debe tener 9 dígitos.</li>
+        <li><strong>Publica en 3 pasos</strong>: elige el tipo, escribe los datos y confirma.</li>
+        <li><strong>Busca cerca</strong> de tu zona y contacta por WhatsApp. Antes puedes pedir una cotización con foto y medidas.</li>
+        <li><strong>Recomienda</strong> con el Visto Bueno a quien te atendió bien. Nadie puede recomendar su propia publicación.</li>
+        <li><strong>En una emergencia</strong>, reporta tu necesidad y ofrece recursos. Ante riesgo vital, llama al 105, 116, 115 o 106.</li>
+      </ol>
+      <div class="tips">
+        <p>📴 <strong>Sin internet:</strong> verás lo último que cargaste, con la hora de actualización.</p>
+        <p>🔒 <strong>Privacidad:</strong> tu teléfono y tu ubicación exacta solo los ven usuarios con sesión iniciada.</p>
+        <p>👵 <strong>Paso a paso:</strong> todos los botones son grandes y están nombrados. Si te pierdes, vuelve a esta pantalla.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-moderacion" class="view" aria-labelledby="h-mod">
+    <h1 id="h-mod">Moderación
+      <span class="sub">Reportes pendientes e indicadores del barrio</span>
+    </h1>
+    <div id="metricas" class="grid small"></div>
+    <h2 class="h2">Reportes pendientes</h2>
+    <div id="list-reportes" class="grid"></div>
+    <h2 class="h2">Modo emergencia</h2>
+    <div class="card">
+      <label for="motivo-emerg">Motivo (queda registrado)</label>
+      <input id="motivo-emerg" placeholder="Ej.: sismo sentido, inundación en la zona sur">
+      <div class="pubs-actions">
+        <button type="button" class="btn danger" id="btn-emerg-on">🚨 Activar emergencia</button>
+        <button type="button" class="btn" id="btn-emerg-off">Desactivar</button>
+      </div>
+    </div>
+  </section>
 </main>
-<div id="modal" class="modal" style="display:none"><div class="modalbox"><button class="close" onclick="closeModal()">✕</button><div id="modalcontent"></div></div></div>
-<div id="pubmodal" class="modal" style="display:none"><div class="modalbox"><button class="close" onclick="document.getElementById('pubmodal').style.display='none'">✕</button>
-<h2>Publicar (3 pantallas)</h2><p>Pantalla 1 — Tipo</p><select id="p-tipo"><option value="servicio">Servicio</option><option value="producto">Producto</option><option value="favor_solicitado">Favor: necesito</option><option value="favor_ofrecido">Favor: ofrezco</option></select>
-<p>Pantalla 2 — Datos</p><input id="p-cat" placeholder="Categoría (gasfitería, alimentos...)"><input id="p-titulo" placeholder="Título"><textarea id="p-desc" placeholder="Descripción"></textarea><input id="p-precio" placeholder="Precio: S/ 20, A convenir, o Intercambio / sin dinero"><input id="p-zona" placeholder="Zona">
-<label><input type="checkbox" id="p-emerg"> También en emergencia</label>
-<p>Pantalla 3 — Confirmar</p><button class="primary" onclick="publicar()">✅ Confirmar publicación</button><p id="pubmsg"></p></div></div>
-<script src="app.js"></script></body></html>
+
+<div id="modal" class="modal" hidden>
+  <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <button type="button" class="close" data-close aria-label="Cerrar">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="pubmodal" class="modal" hidden>
+  <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="pub-title">
+    <button type="button" class="close" data-close aria-label="Cerrar">✕</button>
+    <h2 id="pub-title">Publicar</h2>
+    <div class="steps" aria-hidden="true">
+      <span class="step on" data-step="1">1. Tipo</span>
+      <span class="step" data-step="2">2. Datos</span>
+      <span class="step" data-step="3">3. Confirmar</span>
+    </div>
+
+    <form id="form-pub" novalidate>
+      <fieldset class="paso" data-paso="1">
+        <legend class="sr-only">Paso 1: tipo de publicación</legend>
+        <label for="f-tipo">¿Qué quieres publicar?</label>
+        <select id="f-tipo">
+          <option value="servicio">Un servicio que ofrezco</option>
+          <option value="producto">Un producto que vendo</option>
+          <option value="favor_solicitado">Un favor que necesito</option>
+          <option value="favor_ofrecido">Un favor que ofrezco</option>
+        </select>
+        <div id="bloque-favor" hidden>
+          <label for="f-subtipo">Tipo de favor</label>
+          <select id="f-subtipo">
+            <option value="prestamo">Préstamo de herramientas u objetos</option>
+            <option value="ayuda_temporal">Ayuda temporal</option>
+            <option value="donacion">Donación de materiales</option>
+            <option value="intercambio_habilidades">Intercambio de habilidades</option>
+            <option value="movilidad">Movilidad solidaria</option>
+          </select>
+          <label for="f-cat-favor">Categoría</label>
+          <select id="f-cat-favor">
+            <option>préstamo</option><option>herramientas</option><option>movilidad</option><option>otros</option>
+          </select>
+        </div>
+        <div id="bloque-normal">
+          <label for="f-cat">Categoría</label>
+          <select id="f-cat">
+            <option value="">Elige una categoría</option>
+            <option>gasfitería</option><option>carpintería</option><option>electricidad</option>
+            <option>cerrajería</option><option>clases</option><option>alimentos</option>
+            <option>paseo de mascotas</option><option>otros</option>
+          </select>
+        </div>
+        <p class="error" id="err-paso1" role="alert"></p>
+        <div class="pubs-actions">
+          <button type="button" class="btn primary" data-next="2">Siguiente →</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="paso" data-paso="2" hidden>
+        <legend class="sr-only">Paso 2: datos</legend>
+        <label for="f-titulo">Título corto</label>
+        <input id="f-titulo" maxlength="120" placeholder="Ej.: Gasfitero para fugas y destapes">
+        <label for="f-desc">Descripción (qué incluye, cuándo atiendes)</label>
+        <textarea id="f-desc" rows="3" maxlength="2000"></textarea>
+
+        <div id="bloque-movilidad" hidden>
+          <label for="f-franja">Franja horaria</label>
+          <input id="f-franja" placeholder="Ej.: 7:00 a 8:00">
+          <label for="f-punto">Punto de encuentro público</label>
+          <input id="f-punto" placeholder="Ej.: parque principal, bodega de la esquina">
+          <label class="check"><input type="checkbox" id="f-check-mov">
+            Confirmo que no publico el nombre del colegio, la dirección exacta ni datos del menor,
+            y que no cobro por llevar al colegio.</label>
+        </div>
+
+        <label for="f-precio">Precio (opcional)</label>
+        <input id="f-precio" placeholder="S/ 20 · A convenir · Intercambio / sin dinero">
+        <label for="f-pagos">¿Cómo aceptas el pago?</label>
+        <select id="f-pagos">
+          <option value="">Sin cobro (intercambio)</option>
+          <option value="yape,efectivo">Yape y efectivo</option>
+          <option value="yape">Solo Yape</option>
+          <option value="efectivo">Solo efectivo contra entrega</option>
+          <option value="transferencia,efectivo">Transferencia y efectivo</option>
+          <option value="intercambio">Intercambio por otro servicio</option>
+        </select>
+        <label for="f-politica">Acuerdo de pago</label>
+        <select id="f-politica">
+          <option value="contra_entrega">Pago contra entrega o al terminar</option>
+          <option value="mitad_mitad">50 % al empezar y 50 % al terminar</option>
+          <option value="al_terminar">Todo al terminar</option>
+        </select>
+        <label for="f-zona">Zona</label>
+        <select id="f-zona">
+          <option>Zona Centro</option><option>Zona Norte</option><option>Zona Sur</option>
+          <option>Zona Este</option><option>Zona Oeste</option>
+        </select>
+        <label class="check"><input type="checkbox" id="f-emerg"> También disponible en emergencias</label>
+        <p class="error" id="err-paso2" role="alert"></p>
+        <div class="pubs-actions">
+          <button type="button" class="btn" data-prev="1">← Atrás</button>
+          <button type="button" class="btn primary" data-next="3">Siguiente →</button>
+        </div>
+      </fieldset>
+
+      <fieldset class="paso" data-paso="3" hidden>
+        <legend class="sr-only">Paso 3: confirmar</legend>
+        <div id="resumen" class="resumen"></div>
+        <p class="error" id="err-paso3" role="alert"></p>
+        <div class="pubs-actions">
+          <button type="button" class="btn" data-prev="2">← Atrás</button>
+          <button type="submit" class="btn primary">✅ Publicar</button>
+        </div>
+      </fieldset>
+    </form>
+  </div>
+</div>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
