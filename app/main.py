@@ -1,4 +1,5 @@
-import sqlite3, hashlib, uuid, time, os
+import sqlite3, hashlib, uuid, time, os, threading
+LOCK=threading.Lock()
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.responses import FileResponse, JSONResponse
@@ -13,7 +14,8 @@ DB=Path("/root/app-vecinal-solidaria/data/app.db")
 DB.parent.mkdir(parents=True, exist_ok=True)
 def db():
     c=sqlite3.connect(DB, timeout=30, check_same_thread=False); c.row_factory=sqlite3.Row
-    c.execute("PRAGMA journal_mode=WAL"); c.execute("PRAGMA busy_timeout=30000"); return c
+    c.execute("PRAGMA journal_mode=WAL"); c.execute("PRAGMA busy_timeout=30000")
+    return c
 def init():
     c=db(); cur=c.cursor()
     cur.executescript("""
@@ -53,7 +55,7 @@ app=FastAPI(title="App Vecinal Solidaria")
 async def log_req(request:Request, call_next):
     print(f"{request.method} {request.url.path}", flush=True)
     resp=await call_next(request)
-    resp.headers["Content-Security-Policy"]="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'"
+    resp.headers["Content-Security-Policy"]="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'; img-src 'self' data:; connect-src 'self'"
     resp.headers["X-Content-Type-Options"]="nosniff"; resp.headers["X-Frame-Options"]="DENY"
     return resp
 
@@ -150,7 +152,7 @@ def emerg():
 def emerg_act(e:Emerg, request:Request):
     uid=auth(request); c=db(); u=c.execute("SELECT rol FROM usuarios WHERE id=?",(uid,)).fetchone()
     if u["rol"]!="moderador": raise HTTPException(403,"Solo el moderador activa la emergencia")
-    c.execute("UPDATE config_emergencia SET activa=?, activada_por=?, activada_en=?, motivo=? WHERE id='global'",(1 if e.activa else 0,uid,int(time.time()),e.motivo)); c.commit(); c.close(); return {"ok":True}
+    c.execute("UPDATE config_emergencia SET activa=?, activada_por=?, activada_en=?, motivo=? WHERE id='global'",(1 if e.activa else 0,uid,int(time.time()),clean_txt(e.motivo or ""))); c.commit(); c.close(); return {"ok":True}
 @app.get("/api/salud")
 def salud(): return {"ok":True,"app":"App Vecinal Solidaria","docs":"/docs"}
 static=Path(__file__).parent/"static"
