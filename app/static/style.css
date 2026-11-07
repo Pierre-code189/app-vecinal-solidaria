@@ -87,6 +87,10 @@ a{color:var(--brand-600);text-underline-offset:2px;border-radius:3px}
 }
 .userbox{display:flex;align-items:center;gap:8px;font-size:.85rem}
 .topbar .btn{background:transparent;border-color:transparent;color:rgba(255,255,255,.9);font-weight:500}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.35);
+  background:rgba(255,255,255,.12);color:#fff;display:inline-flex;align-items:center;
+  justify-content:center;cursor:pointer;padding:0}
+.icon-btn:hover{background:rgba(255,255,255,.24)}
 .avatar-btn{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.5);
   background:rgba(255,255,255,.16);color:#fff;font:inherit;font-size:.82rem;font-weight:700;
   cursor:pointer;display:none;align-items:center;justify-content:center;padding:0}
@@ -231,10 +235,14 @@ label{display:block;font-size:.82rem;font-weight:600;margin:14px 0 6px;color:var
 .sel-chev{color:var(--muted);transition:transform .15s}
 .sel-btn[aria-expanded="true"] .sel-chev{transform:rotate(180deg)}
 .sel-panel{
-  position:absolute;z-index:70;left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;
+  position:fixed;z-index:95;margin:0;padding:6px;
   list-style:none;background:var(--surface);border:1px solid var(--line);border-radius:12px;
   box-shadow:0 18px 44px rgba(16,40,30,.20);max-height:min(300px,60vh);overflow:auto;
 }
+.sel-panel.hoja{border-radius:16px 16px 0 0;box-shadow:0 -12px 40px rgba(16,40,30,.25);
+  padding:14px 6px max(12px,env(safe-area-inset-bottom))}
+.sel-panel.hoja::before{content:"";display:block;width:38px;height:4px;border-radius:99px;
+  background:var(--line);margin:0 auto 8px}
 .sel-op{display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:10px 12px;border-radius:8px;font-size:.93rem;color:var(--text);cursor:pointer}
 .sel-op:hover,.sel-op.activo{background:var(--surface-3)}
@@ -439,7 +447,7 @@ label{display:block;font-size:.82rem;font-weight:600;margin:14px 0 6px;color:var
   main{padding-bottom:170px}
   .tabs{display:none}
   .bottom-nav{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:0;
     position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
     z-index:50;padding:4px 0 max(4px,env(safe-area-inset-bottom));
   }
@@ -483,7 +491,7 @@ label{display:block;font-size:.82rem;font-weight:600;margin:14px 0 6px;color:var
   .topbar .quien{display:none}
   .topbar #btn-salir{display:none}
   .avatar-btn{display:inline-flex}
-  .chip-zona{max-width:44vw}
+  .chip-zona{max-width:46vw}
 }
 @media(max-width:430px){
   .brand-full{display:none}

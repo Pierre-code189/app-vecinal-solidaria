@@ -300,3 +300,22 @@ Detalles: cierre al tocar fuera o con Escape, navegación con flechas y Enter, y
 `aria-expanded` / `role="listbox"` para lectores de pantalla. Los 12 desplegables de
 la app (categorías, sector, tipo, pagos, orden, recuperación de contraseña) usan el
 mismo componente.
+
+## Correcciones v3.3.2 / v3.3.3
+
+**Desplegable dentro de un modal.** El panel del selector se dibujaba dentro del
+contenedor del modal y quedaba recortado, además de empujar la ventana. Ahora el
+panel se monta en el `body` (portal) y, cuando el campo está dentro de un modal, se
+abre como hoja inferior con asa, ancho completo y scroll propio: se ven las ocho
+opciones y no tapa el formulario de abajo.
+
+**Mapa.** OpenStreetMap bloqueó los mosaicos del servidor («403 Access blocked,
+tile usage policy»). Se cambió al espejo de OSM Francia (mismo dato y atribución),
+con respaldo a Esri y ocultado limpio si ambos fallan. Verificado: 9 de 9 mosaicos.
+
+**Navegación.** «Perfil» salió de la barra inferior (quedan Local, Favores y
+Emergencia). El acceso es el avatar cuando hay sesión y un botón de persona en la
+cabecera cuando no la hay; se acabó el «Entrar» con texto junto a la campana.
+
+**Cabecera sin sesión.** El botón de entrar no se pintaba para invitados
+(`pintarUsuario` solo corría al cargar un perfil). Corregido en el arranque.

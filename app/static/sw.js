@@ -1,7 +1,7 @@
 /* Service worker: shell primero para cargar sin internet, red primero para datos.
    Los datos se guardan en localStorage desde la app; aquí solo se cachea el shell. */
-const CACHE = 'vecinal-v10';
-const SHELL = ['./', './index.html', './style.css?v=3.3.1', './app.js?v=3.3.1', './manifest.json',
+const CACHE = 'vecinal-v13';
+const SHELL = ['./', './index.html', './style.css?v=3.3.4', './app.js?v=3.3.4', './manifest.json',
   './icon-192.svg', './icon-512.svg'];
 
 self.addEventListener('install', (event) => {
@@ -25,7 +25,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   // Mosaicos del mapa: se guardan para que el mapa siga visible sin señal.
-  if (url.hostname.endsWith('basemaps.cartocdn.com')) {
+  if (url.hostname.endsWith('tile.openstreetmap.fr') || url.hostname.endsWith('arcgisonline.com')) {
     event.respondWith(caches.open(CACHE + '-tiles').then((c) =>
       c.match(req).then((hit) => hit || fetch(req).then((res) => { c.put(req, res.clone()); return res; }))));
     return;

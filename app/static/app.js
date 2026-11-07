@@ -2,7 +2,7 @@
    Móvil primero, sin dependencias. Todo lo que se muestra pasa por esc(). */
 "use strict";
 
-const APP_VERSION = "3.3.1";   // se sube con cada despliegue que cambie JS o CSS
+const APP_VERSION = "3.3.4";   // se sube con cada despliegue que cambie JS o CSS
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -72,7 +72,7 @@ function mejoraSelect(sel) {
   panel.setAttribute("role", "listbox");
   panel.hidden = true;
   wrap.appendChild(btn);
-  wrap.appendChild(panel);
+  document.body.appendChild(panel);   // portal: no lo recorta ningún modal
 
   const etiqueta = () => {
     const o = sel.options[sel.selectedIndex];
@@ -101,6 +101,27 @@ function mejoraSelect(sel) {
   const abrir = () => {
     panel.hidden = false;
     btn.setAttribute("aria-expanded", "true");
+    // Posición calculada: cabe abajo o se voltea hacia arriba, nunca se sale de pantalla.
+    const r = btn.getBoundingClientRect();
+    const abajo = window.innerHeight - r.bottom - 12;
+    const arriba = r.top - 12;
+    panel.classList.remove("hoja");
+    // Dentro de un modal (o si no hay espacio cómodo), se abre como hoja
+    // inferior: se ve completa, con scroll propio y sin tapar el formulario.
+    const enModal = Boolean(btn.closest(".modal"));
+    if (enModal || (abajo < 220 && arriba < 260)) {
+      panel.classList.add("hoja");
+      panel.style.cssText = "left:8px;right:8px;width:auto;max-height:min(74vh,560px);top:auto;bottom:0";
+    } else {
+      const haciaArriba = abajo < 220 && arriba > abajo;
+      const ancho = Math.min(r.width, window.innerWidth - 16);
+      panel.style.width = `${ancho}px`;
+      panel.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - ancho - 8))}px`;
+      panel.style.right = "auto";
+      panel.style.maxHeight = `${Math.max(160, Math.min(300, haciaArriba ? arriba : abajo))}px`;
+      panel.style.top = haciaArriba ? "auto" : `${r.bottom + 6}px`;
+      panel.style.bottom = haciaArriba ? `${window.innerHeight - r.top + 6}px` : "auto";
+    }
     const act = panel.querySelector('[aria-selected="true"]') || panel.firstElementChild;
     act?.classList.add("activo");
     act?.scrollIntoView({ block: "nearest" });
@@ -137,7 +158,16 @@ function mejoraSelect(sel) {
   sel._sync = etiqueta;
   sel.addEventListener("change", etiqueta);
   new MutationObserver(pintar).observe(sel, { childList: true, subtree: true });
-  document.addEventListener("click", (e) => { if (!wrap.contains(e.target)) cerrar(); });
+  document.addEventListener("click", (e) => {
+    if (!wrap.contains(e.target) && !panel.contains(e.target)) cerrar();
+  });
+  const cerrarPorVista = (e) => {
+    if (panel.hidden) return;
+    if (e && e.target && panel.contains(e.target)) return;
+    cerrar();
+  };
+  window.addEventListener("scroll", cerrarPorVista, true);
+  window.addEventListener("resize", cerrarPorVista);
   pintar();
 }
 
@@ -300,7 +330,8 @@ function pintarUsuario() {
     };
     if (mod) mod.hidden = S.user.rol !== "moderador";
   } else {
-    box.innerHTML = `<button type="button" class="btn small" id="btn-entrar">Entrar</button>`;
+    box.innerHTML = `<button type="button" class="icon-btn" id="btn-entrar"
+      aria-label="Entrar a mi cuenta" title="Entrar"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-user"/></svg></button>`;
     $("#btn-entrar").onclick = () => ir("perfil");
     if (mod) mod.hidden = true;
   }
@@ -369,9 +400,10 @@ function miniMap(lat, lng, titulo = "Ubicación aproximada") {
   for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
       const x = ((xt + dx) % n + n) % n, y = yt + dy;
+      const sub = "abc"[(xt + yt) % 3];
       celdas += `<img alt="" loading="lazy" data-espejo="0"
-        src="https://tile.openstreetmap.org/${z}/${x}/${y}.png"
-        onerror="if(this.dataset.espejo==='0'){this.dataset.espejo='1';this.src='https://a.tile.openstreetmap.fr/osmfr/${z}/${x}/${y}.png';}else{this.style.visibility='hidden';}">`;
+        src="https://${sub}.tile.openstreetmap.fr/osmfr/${z}/${x}/${y}.png"
+        onerror="if(this.dataset.espejo==='0'){this.dataset.espejo='1';this.src='https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}';}else{this.style.visibility='hidden';}">`;
     }
   }
   return `<div class="minimapa" role="img" aria-label="${esc(titulo)}">
@@ -1241,7 +1273,11 @@ function engancharEventos() {
   $("#btn-publicar-favor").onclick = () => abrirPublicar("favor_solicitado");
   $("#btn-reportar-necesidad").onclick = () => abrirPublicar("favor_solicitado");
   $("#btn-ofrecer-recurso").onclick = () => abrirPublicar("favor_ofrecido");
-  $("#btn-zona").onclick = () => { $("#locmodal").hidden = false; $("#loc-sector").value = S.zona; };
+  $("#btn-zona").onclick = () => {
+    $("#locmodal").hidden = false;
+    $("#loc-sector").value = S.zona;
+    window.syncSelects && window.syncSelects();
+  };
   $("#btn-loc-ok").onclick = () => {
     S.zona = $("#loc-sector").value; localStorage.setItem("vecinal-zona", S.zona);
     S.lat = null; S.lng = null; localStorage.removeItem("vecinal-lat"); localStorage.removeItem("vecinal-lng");
@@ -1428,6 +1464,7 @@ async function arrancar() {
   engancharEventos();
   $$("select").forEach(mejoraSelect);
   fabInteligente();
+  pintarUsuario();
   pintarAuth();
   await cargarLista();
   pintarCola();

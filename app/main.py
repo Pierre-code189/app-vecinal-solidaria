@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "3.3.1"
+APP_VERSION = "3.3.4"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -108,8 +108,8 @@ async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://*.openstreetmap.fr; "
-        "connect-src 'self' https://tile.openstreetmap.org; object-src 'none'; base-uri 'self'"
+        "img-src 'self' data: blob: https://*.tile.openstreetmap.fr https://server.arcgisonline.com; "
+        "connect-src 'self' https://*.tile.openstreetmap.fr; object-src 'none'; base-uri 'self'"
     )
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
