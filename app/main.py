@@ -111,18 +111,24 @@ def lista(request:Request, tipo:Optional[str]=None, categoria:Optional[str]=None
         for r in rows: r.pop("telefono",None); r.pop("yape",None); r.pop("lat",None); r.pop("lng",None)
     return rows
 @app.get("/api/publicaciones/{pid}")
-def detalle(pid:str):
+def detalle(pid:str, request:Request):
     c=db(); r=c.execute("SELECT p.*, u.nombre autor, u.telefono, u.yape, (SELECT COUNT(*) FROM vistos WHERE publicacion_id=p.id) vistos FROM publicaciones p JOIN usuarios u ON p.autor_id=u.id WHERE p.id=?",(pid,)).fetchone(); c.close()
     if not r: raise HTTPException(404,"No encontrada")
-    return dict(r)
+    d=dict(r)
+    if not token_user(request.headers.get("authorization","")[7:] if request.headers.get("authorization","").startswith("Bearer ") else ""):
+        d.pop("telefono",None); d.pop("yape",None); d.pop("lat",None); d.pop("lng",None)
+    return d
 @app.post("/api/publicaciones")
 def crear(p:Pub, request:Request):
     uid=auth(request)
     if p.tipo not in TIPOS: raise HTTPException(400,'Tipo inválido')
-    p.titulo=clean_txt(p.titulo); p.descripcion=clean_txt(p.descripcion); p.categoria=clean_txt(p.categoria)
+    p.titulo=clean_txt(p.titulo); p.descripcion=clean_txt(p.descripcion); p.categoria=clean_txt(p.categoria); p.zona=clean_txt(p.zona); p.precio=clean_txt(p.precio or '')
     c=db(); cid=p.client_id or str(uuid.uuid4())
-    ex=c.execute("SELECT id FROM publicaciones WHERE client_id=? AND autor_id=?",(cid,uid)).fetchone()
-    if ex: c.close(); return {"ok":True,"id":ex[0],"duplicado":True}
+    ex=c.execute("SELECT id, autor_id FROM publicaciones WHERE client_id=?",(cid,)).fetchone()
+    if ex:
+        c.close()
+        if ex[1]==uid: return {"ok":True,"id":ex[0],"duplicado":True}
+        raise HTTPException(409,"Este identificador ya pertenece a otra publicación")
     pid=str(uuid.uuid4())
     c.execute("INSERT INTO publicaciones VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",(pid,uid,p.tipo,p.categoria,p.titulo,p.descripcion,p.precio,p.zona,p.lat,p.lng,'activa',1 if p.es_emergencia else 0,int(time.time()),cid)); c.commit(); c.close()
     return {"ok":True,"id":pid}
@@ -147,6 +153,8 @@ def reportar(r:Report, request:Request):
 @app.get("/api/emergencia")
 def emerg():
     c=db(); r=c.execute("SELECT * FROM config_emergencia WHERE id='global'").fetchone(); pubs=[dict(x) for x in c.execute("SELECT p.*, u.nombre autor FROM publicaciones p JOIN usuarios u ON p.autor_id=u.id WHERE p.es_emergencia=1 AND p.estado='activa'").fetchall()]; c.close()
+    if not token_user(request.headers.get("authorization","")[7:] if request.headers.get("authorization","").startswith("Bearer ") else ""):
+        for x in pubs: x.pop("lat",None); x.pop("lng",None)
     return {"activa":bool(r["activa"]),"activada_por":r["activada_por"],"motivo":r["motivo"],"reportes":pubs}
 @app.post("/api/emergencia/activar")
 def emerg_act(e:Emerg, request:Request):
