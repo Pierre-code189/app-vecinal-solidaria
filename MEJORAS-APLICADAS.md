@@ -155,3 +155,46 @@ navegador real, con capturas.
    recién entonces aparecerá habilitado el visto bueno.
 5. Apaga los datos y publica: verás el aviso de pendiente y cómo se envía solo al
    volver la conexión.
+
+---
+
+## Sistema de color e iconos (v3.1)
+
+**Problema:** la interfaz usaba 36 colores distintos sin relación (morado de Yape,
+turquesa de Plin, amarillo de aviso, seis grises casi iguales) y más de cuarenta
+emojis de sistema como iconos, que cambian de forma según el teléfono.
+
+**Regla aplicada:** una familia de marca, una rampa de neutros y dos acentos
+semánticos. Todo lo demás sale del sistema.
+
+| Familia | Uso | Escala |
+|---|---|---|
+| Verde (tono 158°) | Marca, acciones primarias, estados positivos | 50, 100, 500, 600, 700, 800, 900 |
+| Neutros tintados en el mismo tono | Fondos, texto, bordes | 5 pasos |
+| Rojo (tono 6°) | Solo peligro: emergencia, borrar, error | base, 50, borde |
+| Ámbar (tono 38°) | Solo aviso: pendiente, vencido, advertencia | base, 50, borde |
+
+Por qué funciona: los neutros comparten el tono del verde (saturación muy baja),
+así que nada "ensucia" la pantalla; el rojo y el ámbar son la única familia cálida
+y, al reservarse a semántica, el ojo los lee como señal y no como decoración.
+El morado y el turquesa desaparecieron: Yape y Plin son etiquetas neutras porque
+su color no aporta información.
+
+**Iconos:** 37 símbolos SVG en un solo sprite, trazo de 1,7 px, mismo remate
+redondeado, color heredado del texto. Los emojis quedaron en cero. Esto también
+evita que en un teléfono sin fuente de emojis aparezcan cuadros vacíos.
+
+**Contraste verificado (WCAG AA):**
+
+| Combinación | Ratio |
+|---|---|
+| Texto principal sobre blanco | 16,7:1 |
+| Texto de apoyo sobre blanco | 11,2:1 |
+| Texto secundario sobre blanco | 4,77:1 |
+| Blanco sobre verde de marca | 6,51:1 |
+| Rojo sobre su fondo claro | 6,46:1 |
+| Ámbar sobre su fondo claro | 5,40:1 |
+| Verde de marca sobre su fondo claro | 5,91:1 |
+
+El gris terciario (2,95:1) se retiró de cualquier texto pequeño y solo queda en
+elementos decorativos, como la atribución del mapa.

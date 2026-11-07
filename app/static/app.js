@@ -6,10 +6,10 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
 const CATS = [
-  ["gasfitería", "🔧"], ["carpintería", "🪚"], ["electricidad", "💡"],
-  ["cerrajería", "🔑"], ["clases", "📚"], ["alimentos", "🍲"],
-  ["paseo de mascotas", "🐕"], ["herramientas", "🧰"],
-  ["movilidad", "🚐"], ["préstamo", "📦"], ["otros", "➕"],
+  ["gasfitería", "tool"], ["carpintería", "hammer"], ["electricidad", "bolt"],
+  ["cerrajería", "key"], ["clases", "book"], ["alimentos", "food"],
+  ["paseo de mascotas", "paw"], ["herramientas", "tool"],
+  ["movilidad", "car"], ["préstamo", "box"], ["otros", "dots"],
 ];
 const CAT_ICON = Object.fromEntries(CATS);
 const NECESIDADES = [
@@ -46,6 +46,9 @@ const S = {
 };
 
 /* ------------------------------------------------------------ utilidades */
+const ic = (name, cls = "") =>
+  `<svg class="ic ${cls}" aria-hidden="true" focusable="false"><use href="#i-${name}"/></svg>`;
+
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => (
   { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
 ));
@@ -166,7 +169,7 @@ function pintarCola() {
   const div = document.createElement("div");
   div.id = "cola-pendiente";
   div.className = "card pendiente";
-  div.innerHTML = `<strong>⏳ ${c.length} publicación(es) pendiente(s) de enviar</strong>
+  div.innerHTML = `<strong>${ic("clock")} ${c.length} publicación(es) pendiente(s) de enviar</strong>
     <p class="hint">Se enviarán solas cuando vuelva la señal.</p>
     <button type="button" class="btn small" onclick="sincronizarCola()">Reintentar ahora</button>`;
   $("#view-local").prepend(div);
@@ -184,7 +187,7 @@ function pintarUsuario() {
   const box = $("#userbox");
   const mod = $('[data-view="moderacion"]');
   if (S.user) {
-    box.innerHTML = `<span class="quien">👤 ${esc(S.user.nombre.split(" ")[0])}</span>
+    box.innerHTML = `<span class="quien">${ic("user")} ${esc(S.user.nombre.split(" ")[0])}</span>
       <button type="button" class="btn small" id="btn-salir">Salir</button>`;
     $("#btn-salir").onclick = async () => {
       try { await api("/api/logout", { method: "POST" }); } catch {}
@@ -212,7 +215,7 @@ function pintarAuth() {
     $("#p-plin").value = S.user.plin || "";
     $("#p-mostrar").checked = S.user.mostrar_contacto !== false;
     $("#perfil-card").innerHTML = `
-      <div class="perfil-head">👤 <strong>${esc(S.user.nombre)}</strong></div>
+      <div class="perfil-head">${ic("user")} <strong>${esc(S.user.nombre)}</strong></div>
       <p class="hint">${esc(S.user.zona || "")} · ${esc(S.user.email || "")}</p>
       <div class="badges">${S.user.rol === "moderador" ? '<span class="badge verde">Moderador</span>' : ""}
         ${S.user.yape ? `<span class="badge">Yape ${esc(S.user.yape)}</span>` : ""}
@@ -263,7 +266,7 @@ function miniMap(lat, lng, titulo = "Ubicación aproximada") {
     }
   }
   return `<div class="minimapa" role="img" aria-label="${esc(titulo)}">
-      <div class="tiles">${celdas}</div><span class="pin">📍</span>
+      <div class="tiles">${celdas}</div><span class="pin">${ic("pin", "ic-lg")}</span>
       <span class="credito">© OpenStreetMap</span></div>
     <p class="hint">Ubicación aproximada (±400 m). El punto exacto se coordina por WhatsApp.
       <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}"
@@ -274,14 +277,14 @@ function miniMap(lat, lng, titulo = "Ubicación aproximada") {
 function tarjeta(p) {
   const foto = (p.fotos && p.fotos.length) ? `<img class="thumb" alt="" src="${esc(p.fotos[0])}">` : "";
   let dist = "";
-  if (p.ubicacion_aproximada && p.zona === S.zona) dist = '<span class="dist">📍 en tu sector</span>';
-  else if (p.distancia_km !== null && p.distancia_km !== undefined) dist = `<span class="dist">📍 ${fmtDist(p.distancia_km)}</span>`;
-  else if (p.ubicacion_aproximada) dist = '<span class="dist">📍 otro sector</span>';
+  if (p.ubicacion_aproximada && p.zona === S.zona) dist = `<span class="dist">${ic("pin")} en tu sector</span>`;
+  else if (p.distancia_km !== null && p.distancia_km !== undefined) dist = `<span class="dist">${ic("pin")} ${fmtDist(p.distancia_km)}</span>`;
+  else if (p.ubicacion_aproximada) dist = `<span class="dist">${ic("pin")} otro sector</span>`;
   const emerg = p.es_emergencia ? '<span class="badge rojo">Emergencia</span>' : "";
-  const aval = `<span class="visto">👍 ${p.vistos || 0} visto bueno</span>`;
+  const aval = `<span class="visto">${ic("thumb")} ${p.vistos || 0} visto bueno</span>`;
   return `<article class="card pub" data-id="${esc(p.id)}" tabindex="0" role="button" aria-label="${esc(p.titulo)}">
     <div class="pub-top">${foto}<div class="pub-info">
-      <div class="cat">${CAT_ICON[p.categoria] || "➕"} ${esc(p.categoria)}</div>
+      <div class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(p.categoria)}</div>
       <h3>${esc(p.titulo)}</h3>
       <p class="desc">${esc((p.descripcion || "").slice(0, 90))}${(p.descripcion || "").length > 90 ? "…" : ""}</p>
       <div class="meta">${dist} ${aval} ${emerg}</div>
@@ -328,9 +331,9 @@ async function cargarLista({ append = false } = {}) {
     $("#btn-more").hidden = !d.has_more;
     $("#orden-info").hidden = false;
     const etiqueta = { servicio: "servicios", producto: "productos", "": "publicaciones" }[S.tipo] || "publicaciones";
-    $("#orden-info").textContent = S.lat
+    $("#orden-info").innerHTML = S.lat
       ? `${d.total} ${etiqueta} en ${S.zona}, del más cercano al más lejano`
-      : `${d.total} ${etiqueta} en ${S.zona} · 📍 arriba para ordenar por cercanía`;
+      : `${d.total} ${etiqueta} en ${S.zona} · ${ic("pin")} arriba para ordenar por cercanía`;
     localStorage.setItem("vecinal-cache-local", JSON.stringify({ items: d.items, cuando: Date.now() }));
   } catch (e) {
     const cache = JSON.parse(localStorage.getItem("vecinal-cache-local") || "null");
@@ -378,7 +381,7 @@ async function verDetalle(id) {
     ? `<div class="fotos">${p.fotos.map((f) => `<img alt="" src="${esc(f)}">`).join("")}</div>` : "";
   const pago = p.contacto_visible ? `
       <div class="pagobox">
-        <h4>💜 Cómo pagar</h4>
+        <h4>${ic("wallet")} Cómo pagar</h4>
         ${p.yape_autor ? `<div class="pago-fila"><span>Yape: <b>${esc(p.yape_autor)}</b></span>
           <button type="button" class="btn small" data-copiar="${esc(p.yape_autor)}" data-etq="Yape">Copiar</button></div>` : ""}
         ${p.plin_autor ? `<div class="pago-fila"><span>Plin: <b>${esc(p.plin_autor)}</b></span>
@@ -387,21 +390,21 @@ async function verDetalle(id) {
           <a class="btn small" href="https://wa.me/51${esc(p.telefono)}?text=${encodeURIComponent("Hola, vi tu publicación en Vecinal Solidaria: " + p.titulo)}" target="_blank" rel="noopener">WhatsApp</a></div>` : ""}
         <p class="hint">Pago directo entre vecinos. La app no cobra comisión ni guarda tu dinero.
         ${esc(({ contra_entrega: "Acuerdo: pago contra entrega.", mitad_mitad: "Acuerdo: 50 % al empezar y 50 % al terminar.", al_terminar: "Acuerdo: pago al terminar." }[p.politica_pago] || ""))}</p>
-      </div>` : `<div class="pagobox aviso"><p>🔒 Este vecino decidió no mostrar su número hasta coordinar. Envía una cotización y te responderá por aquí.</p></div>`;
+      </div>` : `<div class="pagobox aviso"><p>${ic("lock")} Este vecino decidió no mostrar su número hasta coordinar. Envía una cotización y te responderá por aquí.</p></div>`;
 
   const acciones = [];
   if (!yo) {
     acciones.push(`<button type="button" class="btn primary wide" onclick="ir('perfil');cerrarModal()">Entra para contactar</button>`);
   } else if (!esMio) {
     if (p.tipo === "servicio" || p.tipo === "producto") {
-      acciones.push(`<button type="button" class="btn primary" id="btn-cotizar">💬 Pedir cotización</button>`);
-      acciones.push(`<button type="button" class="btn" id="btn-trato">🤝 Cerramos el trato</button>`);
+      acciones.push(`<button type="button" class="btn primary" id="btn-cotizar">${ic("chat")} Pedir cotización</button>`);
+      acciones.push(`<button type="button" class="btn" id="btn-trato">${ic("handshake")} Cerramos el trato</button>`);
     } else {
-      acciones.push(`<button type="button" class="btn primary" id="btn-intercambio">🤝 Quiero ayudar</button>`);
+      acciones.push(`<button type="button" class="btn primary" id="btn-intercambio">${ic("handshake")} Quiero ayudar</button>`);
     }
     acciones.push(`<button type="button" class="btn" id="btn-visto" ${p.ya_recomende ? "disabled" : ""}>
-      ${p.ya_recomende ? "✅ Ya diste tu visto bueno" : "👍 Dar visto bueno"}</button>`);
-    acciones.push(`<button type="button" class="btn" id="btn-reportar">🚩 Reportar</button>`);
+      ${p.ya_recomende ? ic("check") + " Ya diste tu visto bueno" : ic("thumb") + " Dar visto bueno"}</button>`);
+    acciones.push(`<button type="button" class="btn" id="btn-reportar">${ic("flag")} Reportar</button>`);
   } else {
     acciones.push(`<button type="button" class="btn" id="btn-mis-publicaciones">Gestionar en Mis cosas</button>`);
   }
@@ -409,7 +412,7 @@ async function verDetalle(id) {
   $("#modal-body").innerHTML = `
     <button type="button" class="btn small atras" id="btn-atras">← Regresar</button>
     <div class="detalle">
-      <div class="cat">${CAT_ICON[p.categoria] || "➕"} ${esc(p.categoria)}
+      <div class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(p.categoria)}
         ${p.es_emergencia ? '<span class="badge rojo">Emergencia</span>' : ""}</div>
       <h2 id="modal-title">${esc(p.titulo)}</h2>
       <p class="quien">${esc(p.nombre || p.vendedor || "")} · ${esc(p.zona)}
@@ -419,7 +422,7 @@ async function verDetalle(id) {
       <div class="datos">
         <div><span>Precio</span><b>${esc(p.precio || "A convenir")}</b></div>
         <div><span>Pago</span><b>${medios(p) || "Intercambio"}</b></div>
-        <div><span>Visto bueno</span><b>👍 ${p.vistos || 0}</b></div>
+        <div><span>Visto bueno</span><b>${ic("thumb")} ${p.vistos || 0}</b></div>
         <div><span>Publicado</span><b>${hace(p.creado)}</b></div>
         ${p.franja_horaria ? `<div><span>Horario</span><b>${esc(p.franja_horaria)}</b></div>` : ""}
         ${p.punto_encuentro ? `<div><span>Encuentro</span><b>${esc(p.punto_encuentro)}</b></div>` : ""}
@@ -667,7 +670,7 @@ async function subirFotos(files) {
 
 function pintarFotos() {
   $("#fotos-prev").innerHTML = S.fotos.map((f, i) =>
-    `<div class="foto-item"><img alt="" src="${esc(f)}"><button type="button" data-quitar="${i}" aria-label="Quitar">✕</button></div>`).join("");
+    `<div class="foto-item"><img alt="" src="${esc(f)}"><button type="button" data-quitar="${i}" aria-label="Quitar">${ic("close")}</button></div>`).join("");
   $$("#fotos-prev [data-quitar]").forEach((b) => b.onclick = () => { S.fotos.splice(Number(b.dataset.quitar), 1); pintarFotos(); });
 }
 
@@ -727,7 +730,7 @@ async function enviarPublicacion(e) {
       $("#pubmodal").hidden = true; document.body.style.overflow = "";
       pintarCola();
     } else { $("#err-paso3").textContent = e2.message; }
-  } finally { btn.disabled = false; btn.textContent = "✅ Publicar"; }
+  } finally { btn.disabled = false; btn.innerHTML = ic("check") + " Publicar"; }
 }
 
 /* ------------------------------------------------------------ emergencia */
@@ -735,11 +738,11 @@ async function cargarEmergencia() {
   try {
     const e = await api("/api/emergencia");
     $("#emerg-box").innerHTML = e.activa
-      ? `<div class="alerta roja"><strong>🚨 EMERGENCIA ACTIVA</strong>
+      ? `<div class="alerta roja"><strong>${ic("alert")} EMERGENCIA ACTIVA</strong>
           <p>${esc(e.motivo || "Emergencia declarada por el comité vecinal")}</p>
           <p class="hint">Activada ${hace(e.activada_en)} · Vence ${hace(e.expira)}</p>
           <p>Esto no reemplaza a las autoridades. Llama al 105, 116 o 115.</p></div>`
-      : `<div class="alerta verde"><strong>✅ Sin emergencia declarada</strong>
+      : `<div class="alerta verde"><strong>${ic("check")} Sin emergencia declarada</strong>
           <p class="hint">Si hay peligro, llama primero al 105, 116 o 115. Después reporta la necesidad aquí.</p></div>`;
     const dir = await api("/api/emergencia/directorio");
     const orgs = dir.directorio || [];
@@ -768,10 +771,10 @@ async function cargarMias() {
     const m = await api("/api/mis-publicaciones");
     $("#list-mias").innerHTML = m.length ? m.map((p) => `
       <article class="card pub"><div class="pub-info">
-        <div class="cat">${CAT_ICON[p.categoria] || "➕"} ${esc(p.categoria)}
+        <div class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(p.categoria)}
           <span class="badge ${p.estado === "activa" ? "verde" : "gris"}">${ESTADO_TEXTO[p.estado] || p.estado}</span></div>
         <h3>${esc(p.titulo)}</h3>
-        <div class="meta"><span class="visto">👍 ${p.vistos || 0}</span>
+        <div class="meta"><span class="visto">${ic("thumb")} ${p.vistos || 0}</span>
           <span>${esc(p.zona)}</span><span>${hace(p.creado)}</span></div>
         <div class="pubs-actions">
           <button type="button" class="btn small" data-ver="${esc(p.id)}">Ver</button>
@@ -828,7 +831,7 @@ async function cargarMias() {
             <button type="button" class="btn small primary" data-trato="${esc(x.id)}">${soyComprador ? "Recibí el servicio" : "Entregué el servicio"}</button>
             <button type="button" class="btn small" data-cancelar="${esc(x.id)}">Cancelar</button>
           </div>` : x.estado === "acordado" ? `<p class="hint">Esperando confirmación de la otra parte.</p>`
-          : x.estado === "cerrado" ? `<p class="hint">✅ Cerrado. Ya puedes dejar tu visto bueno en la publicación.</p>` : ""}
+          : x.estado === "cerrado" ? `<p class="hint">${ic("check")} Cerrado. Ya puedes dejar tu visto bueno en la publicación.</p>` : ""}
       </div>`;
     }).join("") : `<p class="hint">Sin tratos registrados.</p>`;
     $$("#list-tratos [data-trato]").forEach((b) => b.onclick = async () => {
@@ -870,14 +873,15 @@ async function cargarModeracion() {
   if (!S.user || S.user.rol !== "moderador") return;
   const m = await api("/api/moderacion/metricas").catch(() => null);
   if (m) {
-    const tarj = (t, v, s = "") => `<div class="card metrica"><span>${esc(t)}</span><b>${esc(v)}</b><small>${esc(s)}</small></div>`;
+    const tarj = (t, v, s = "", estado = "") =>
+      `<div class="card metrica ${estado}"><span>${esc(t)}</span><b>${esc(v)}</b><small>${esc(s)}</small></div>`;
     $("#metricas").innerHTML = [
       tarj("Ofertas activas", m.ofertas_activas, "publicaciones visibles hoy"),
       tarj("Pedidos con respuesta", `${m.cotizaciones_respondidas}/${m.cotizaciones}`, "cotizaciones atendidas"),
       tarj("Tratos cerrados", m.tratos_cerrados ?? 0, "con doble confirmación"),
       tarj("Favores resueltos", `${m.intercambios_resueltos}/${m.intercambios}`, "intercambios concretados"),
       tarj("Vecinos registrados", m.usuarios, "cuentas creadas"),
-      tarj("Reportes pendientes", m.reportes_pendientes, "por revisar"),
+      tarj("Reportes pendientes", m.reportes_pendientes, "por revisar", Number(m.reportes_pendientes) > 0 ? "alerta" : "bien"),
     ].join("");
   }
   const r = await api("/api/moderacion/reportes").catch(() => []);

@@ -6,19 +6,61 @@
 <meta name="theme-color" content="#0b6e4f">
 <title>App Vecinal Solidaria · Piura</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏘️</text></svg>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f6b4c' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 11 12 4l8 7v9H4v-9Z'/%3E%3Cpath d='M10 20v-5h4v5'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v9H4v-9Z"/><path d="M10 20v-5h4v5"/></symbol>
+    <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9h16l-1.5-5h-13L4 9Z"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20C7 16.5 4 13.6 4 10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 3.5c0 3.1-3 6-8 9.5Z"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 8.5v5"/><path d="M12 16.6v.6"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><path d="M9 4h6v3H9V4Z"/><path d="M7 5H5v15h14V5h-2"/><path d="M9 12h6M9 16h4"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M12 11.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5C7 4.4 9.8 4.6 12 6.3v13c-2.2-1.7-5-1.9-8-.8v-13Z"/><path d="M20 5.5c-3-1.1-5.8-.9-8 .8v13c2.2-1.7 5-1.9 8-.8v-13Z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 5.8v6.4c0 4.1 2.9 7.3 7 8.8 4.1-1.5 7-4.7 7-8.8V5.8L12 3Z"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18.5 16.5h-13l1.6-2.3V10a4.9 4.9 0 0 1 9.8 0v4.2l1.6 2.3Z"/><path d="M9.8 19.5a2.4 2.4 0 0 0 4.4 0"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.3 7-11.2A7 7 0 1 0 5 9.8C5 14.7 12 21 12 21Z"/><path d="M12 12.7a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 18.5a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15Z"/><path d="M16.6 16.6 21.5 21"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><path d="M9 9.5h10.5V21H9V9.5Z"/><path d="M15.5 9.5V4.5H4.5v11h3"/></symbol>
+    <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 0 1-12.6 7.4L4 20.5l1.2-4.2A8.5 8.5 0 1 1 20.5 12Z"/><path d="M9 9.4c0 3.4 2.7 6.1 6.1 6.1.7 0 1.4-.7 1.4-1.4l-2-1-1 1c-1.2-.5-2.2-1.5-2.7-2.7l1-1-1-2c-.7 0-1.4.7-1.4 1.4Z"/></symbol>
+    <symbol id="i-thumb" viewBox="0 0 24 24"><path d="M7.5 20.5V10.5l4-7 1.7 1.3-1.2 4.2h5.2a2 2 0 0 1 2 2.3l-1.1 7a2 2 0 0 1-2 1.7H7.5Z"/><path d="M7.5 20.5h-3V11h3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 20 6.5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 12H4.5"/><path d="M10.5 5.5 4 12l6.5 6.5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 13.5h9l1-13.5"/><path d="M10 10.5v7M14 10.5v7"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3.5 8.5h3.4l1.6-2.5h7l1.6 2.5h3.4V20H3.5V8.5Z"/><path d="M12 17.5a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><path d="M7.5 11V8a4.5 4.5 0 0 1 9 0v3"/><path d="M5 11h14v10H5V11Z"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3.5 7.5 5.5 4.5h13l2 3"/><path d="M3.5 7.5h17V19h-17V7.5Z"/><path d="M15.5 13.3h3"/></symbol>
+    <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5 6.5 9H3.5v6h3L11 19V5Z"/><path d="M15.5 7.5a6 6 0 0 1 0 9"/><path d="M18 4.8a9.5 9.5 0 0 1 0 14.4"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 1 0 4 4l-9.5 9.5-2-2L16.5 8.5a4 4 0 0 1-2-2Z"/></symbol>
+    <symbol id="i-hammer" viewBox="0 0 24 24"><path d="M14 4.5 19.5 10l-2.7 2.7-5.5-5.5L14 4.5Z"/><path d="M11.6 8.4 4 16l3.5 3.5 7.6-7.6"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.5 3 5.5 14H10l-1 7 8-11h-4.5l1-7Z"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><path d="M14.5 10.5a4 4 0 1 0-3.7 4L9 16.3v2.2H6.8v2.2H4v-3.7l7.8-7.8a4 4 0 0 1 2.7-1.2Z"/></symbol>
+    <symbol id="i-food" viewBox="0 0 24 24"><path d="M4 11.5h16a8 8 0 0 1-16 0Z"/><path d="M6.5 17h11"/></symbol>
+    <symbol id="i-paw" viewBox="0 0 24 24"><path d="M8 10a1.8 1.8 0 1 0 0-3.6A1.8 1.8 0 0 0 8 10Z"/><path d="M16 10a1.8 1.8 0 1 0 0-3.6A1.8 1.8 0 0 0 16 10Z"/><path d="M5.5 14.5a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2Z"/><path d="M18.5 14.5a1.6 1.6 0 1 0 0-3.2 1.6 1.6 0 0 0 0 3.2Z"/><path d="M12 21c2.6 0 4.5-1.5 4.5-3.4 0-2-2-3.1-4.5-3.1s-4.5 1.1-4.5 3.1C7.5 19.5 9.4 21 12 21Z"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M4.5 16.5h15v-4.2L17.2 7H6.8L4.5 12.3v4.2Z"/><path d="M6.5 16.5v2M17.5 16.5v2"/><path d="M7.5 12.5h9"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M4 8.2 12 4.5l8 3.7-8 3.7-8-3.7Z"/><path d="M4 8.2v7.6l8 3.7 8-3.7V8.2"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01" stroke-width="2.6"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5Z"/><path d="M8 10h8M8 13h5"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 21V4"/><path d="M6 5h12l-2 4 2 4H6"/></symbol>
+    <symbol id="i-handshake" viewBox="0 0 24 24"><path d="M3 11l4-4 3 3 2-2 2 2 3-3 4 4-4 3-3-2-2 2-3-2-6 3Z"/></symbol>
+    <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M4 10.5v3l3 .5v4h3v-3.5l9 3.5V7l-9 3.5-3 .5Z"/></symbol>
+  </defs>
+</svg>
+
 <a class="skip" href="#main">Saltar al contenido</a>
 
 <header class="topbar">
-  <div class="brand">🏘️ <strong>Vecinal Solidaria</strong> <span class="brand-sub">Piura</span></div>
+  <div class="brand"><svg class="ic ic-lg brand-icon" aria-hidden="true"><use href="#i-home"/></svg><strong>Vecinal Solidaria</strong> <span class="brand-sub">Piura</span></div>
   <div class="topbar-actions">
-    <button type="button" id="btn-zona" class="chip-zona" title="Cambiar sector">📍 <span id="zona-actual">Piura Centro</span></button>
+    <button type="button" id="btn-zona" class="chip-zona" title="Cambiar sector"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg><span id="zona-actual">Piura Centro</span></button>
     <button type="button" id="btn-campana" class="campana" aria-label="Avisos">
-      🔔<span id="campana-badge" class="campana-badge" hidden>0</span>
+      <svg class="ic ic-lg" aria-hidden="true"><use href="#i-bell"/></svg><span id="campana-badge" class="campana-badge" hidden>0</span>
     </button>
     <div id="userbox" class="userbox"></div>
   </div>
@@ -35,23 +77,23 @@
 <div id="banner" class="banner" role="status" aria-live="polite" hidden></div>
 
 <nav class="tabs" aria-label="Secciones">
-  <button type="button" data-view="local" class="on">🏪 Economía Local</button>
-  <button type="button" data-view="favores">🤝 Favores</button>
-  <button type="button" data-view="emergencia">🚨 Emergencia</button>
-  <button type="button" data-view="mias" data-auth="1">📋 Mis cosas</button>
-  <button type="button" data-view="perfil">👤 Mi perfil</button>
-  <button type="button" data-view="tutorial">📚 Tutorial</button>
-  <button type="button" data-view="moderacion" data-moderador="1" hidden>🛡️ Moderación</button>
+  <button type="button" data-view="local" class="on"><svg class="ic" aria-hidden="true"><use href="#i-store"/></svg>Economía Local</button>
+  <button type="button" data-view="favores"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg>Favores</button>
+  <button type="button" data-view="emergencia"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg>Emergencia</button>
+  <button type="button" data-view="mias" data-auth="1"><svg class="ic" aria-hidden="true"><use href="#i-clipboard"/></svg>Mis cosas</button>
+  <button type="button" data-view="perfil"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg>Mi perfil</button>
+  <button type="button" data-view="tutorial"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>Tutorial</button>
+  <button type="button" data-view="moderacion" data-moderador="1" hidden><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>Moderación</button>
 </nav>
 
 <nav class="bottom-nav" aria-label="Navegación móvil">
-  <button type="button" data-view="local" class="on">🏪<span>Local</span></button>
-  <button type="button" data-view="favores">🤝<span>Favores</span></button>
-  <button type="button" data-view="emergencia">🚨<span>Emergencia</span></button>
-  <button type="button" data-view="mias">📋<span>Mis cosas</span></button>
-  <button type="button" data-view="perfil">👤<span>Perfil</span></button>
+  <button type="button" data-view="local" class="on"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-store"/></svg><span>Local</span></button>
+  <button type="button" data-view="favores"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-heart"/></svg><span>Favores</span></button>
+  <button type="button" data-view="emergencia"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-alert"/></svg><span>Emergencia</span></button>
+  <button type="button" data-view="mias"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-clipboard"/></svg><span>Mis cosas</span></button>
+  <button type="button" data-view="perfil"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-user"/></svg><span>Perfil</span></button>
 </nav>
-<button type="button" class="fab" id="fab-publicar" aria-label="Publicar">+</button>
+<button type="button" class="fab" id="fab-publicar" aria-label="Publicar"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-plus"/></svg></button>
 
 <main id="main">
 
@@ -228,13 +270,13 @@
       <div class="idioma">
         <button type="button" class="btn small on" id="btn-idioma-es">Español</button>
         <button type="button" class="btn small" id="btn-idioma-qu">Quechua</button>
-        <button type="button" class="btn small" id="btn-leer">🔊 Leer en voz alta</button>
+        <button type="button" class="btn small" id="btn-leer"><svg class="ic" aria-hidden="true"><use href="#i-speaker"/></svg>Leer en voz alta</button>
       </div>
       <ol class="pasos" id="tutorial-pasos"></ol>
       <div class="tips">
-        <p>📴 <strong>Sin internet:</strong> verás lo último que cargaste, con la hora de actualización. Lo que publiques sin señal queda pendiente y se envía solo.</p>
-        <p>🔒 <strong>Privacidad:</strong> tu teléfono y tu Yape solo los ven vecinos con sesión, y solo si tú lo autorizas.</p>
-        <p>💜 <strong>Pagos:</strong> el pago es directo entre vecinos, con Yape o Plin. La aplicación no cobra comisión ni guarda tu dinero.</p>
+        <p><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg> <strong>Sin internet:</strong> verás lo último que cargaste, con la hora de actualización. Lo que publiques sin señal queda pendiente y se envía solo.</p>
+        <p><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg> <strong>Privacidad:</strong> tu teléfono y tu Yape solo los ven vecinos con sesión, y solo si tú lo autorizas.</p>
+        <p><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg> <strong>Pagos:</strong> el pago es directo entre vecinos, con Yape o Plin. La aplicación no cobra comisión ni guarda tu dinero.</p>
       </div>
     </div>
   </section>
@@ -251,7 +293,7 @@
       <label for="motivo-emerg">Motivo (queda registrado)</label>
       <input id="motivo-emerg" placeholder="Ej.: lluvia intensa en Veintiséis de Octubre">
       <div class="pubs-actions">
-        <button type="button" class="btn danger" id="btn-emerg-on">🚨 Activar emergencia</button>
+        <button type="button" class="btn danger" id="btn-emerg-on"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg>Activar emergencia</button>
         <button type="button" class="btn" id="btn-emerg-off">Desactivar</button>
       </div>
     </div>
@@ -261,7 +303,7 @@
 <!-- modal detalle -->
 <div id="modal" class="modal" hidden>
   <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <button type="button" class="close" data-close aria-label="Cerrar">✕</button>
+    <button type="button" class="close" data-close aria-label="Cerrar"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
     <div id="modal-body"></div>
   </div>
 </div>
@@ -269,7 +311,7 @@
 <!-- modal publicar 3 pasos -->
 <div id="pubmodal" class="modal" hidden>
   <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="pub-title">
-    <button type="button" class="close" data-close aria-label="Cerrar">✕</button>
+    <button type="button" class="close" data-close aria-label="Cerrar"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
     <h2 id="pub-title">Publicar</h2>
     <div class="steps" aria-hidden="true">
       <span class="step on" data-step="1">1. Tipo</span>
@@ -349,7 +391,7 @@
 
         <label>Fotos (opcional, máximo 3)</label>
         <input id="f-fotos" type="file" accept="image/*" multiple class="sr-only">
-        <label for="f-fotos" class="btn filebtn">📷 Agregar fotos</label>
+        <label for="f-fotos" class="btn filebtn"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>Agregar fotos</label>
         <p class="hint">Se reducen en tu teléfono antes de subirlas y se borran los datos de ubicación de la foto.</p>
         <div id="fotos-prev" class="fotos-prev"></div>
 
@@ -368,7 +410,7 @@
         <p class="error" id="err-paso3" role="alert"></p>
         <div class="pubs-actions">
           <button type="button" class="btn" data-prev="2">← Atrás</button>
-          <button type="submit" class="btn primary">✅ Publicar</button>
+          <button type="submit" class="btn primary"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Publicar</button>
         </div>
       </fieldset>
     </form>
@@ -378,8 +420,8 @@
 <!-- modal ubicación -->
 <div id="locmodal" class="modal" hidden>
   <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="loc-title">
-    <button type="button" class="close" data-close aria-label="Cerrar">✕</button>
-    <h2 id="loc-title">📍 ¿En qué sector estás?</h2>
+    <button type="button" class="close" data-close aria-label="Cerrar"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+    <h2 id="loc-title"><svg class="ic ic-lg" aria-hidden="true"><use href="#i-pin"/></svg> ¿En qué sector estás?</h2>
     <p class="hint">Lo usamos para mostrarte primero lo más cercano. Puedes cambiarlo cuando quieras.</p>
     <button type="button" class="btn primary wide" id="btn-gps">Usar mi ubicación (GPS)</button>
     <p class="hint" style="text-align:center">o elige tu sector</p>
@@ -391,7 +433,7 @@
 <!-- modal recuperar contraseña -->
 <div id="resetmodal" class="modal" hidden>
   <div class="modalbox" role="dialog" aria-modal="true" aria-labelledby="reset-title">
-    <button type="button" class="close" data-close aria-label="Cerrar">✕</button>
+    <button type="button" class="close" data-close aria-label="Cerrar"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
     <h2 id="reset-title">Recuperar contraseña</h2>
     <p class="hint">Escribe tu correo o teléfono. Te damos un código de 6 dígitos válido 15 minutos.</p>
     <label for="rs-ident">Correo o teléfono</label>
