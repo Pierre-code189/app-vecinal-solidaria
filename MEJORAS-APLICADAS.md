@@ -260,3 +260,26 @@ Correcciones:
    en Nginx, para que una foto grande no sea rechazada antes de llegar.
 5. Prueba real: PNG de 18 MB y 3000×2000 → se comprime, sube y muestra; archivo
    de texto → mensaje de error claro.
+
+## «Mi actividad» y navegación (v3.3)
+
+**Navegación.** «Mis cosas» salió de la barra: no tiene sentido ofrecer una
+sección vacía a quien no ha entrado. La barra queda en cuatro: Local, Favores,
+Emergencia, Perfil. Con sesión, el perfil muestra un botón principal «Mi
+actividad: publicaciones, tratos y cotizaciones». Sin sesión, cualquier enlace a
+esa vista cae en el perfil.
+
+**Contenido.** La pantalla dejó de ser una pila de títulos vacíos:
+
+- Cuatro indicadores arriba: publicaciones activas, cotizaciones en curso (en rojo
+  si hay alguna esperando respuesta), tratos abiertos y favores en curso. Cada uno
+  lleva a su pestaña.
+- Cinco pestañas: Publicaciones, Cotizaciones, Tratos, Favores y Privacidad.
+- Cada tarjeta muestra su estado como etiqueta (Activa, Esperando respuesta,
+  Cerrado…) y sus acciones propias.
+- Estados vacíos con icono, explicación y botón para actuar.
+
+**Fallo corregido.** Un reemplazo masivo de la versión con `sed` (los puntos
+actúan como comodín) dañó tres trazados SVG: el libro del tutorial, la llave de
+cerrajería y el apretón de manos de «Cerrar trato». Se restauraron y se
+comprobó que los 37 iconos siguen dibujándose.

@@ -2,7 +2,7 @@
    Móvil primero, sin dependencias. Todo lo que se muestra pasa por esc(). */
 "use strict";
 
-const APP_VERSION = "3.2.4";   // se sube con cada despliegue que cambie JS o CSS
+const APP_VERSION = "3.3.0";   // se sube con cada despliegue que cambie JS o CSS
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -228,7 +228,10 @@ function pintarAuth() {
       <p class="hint">${esc(S.user.zona || "")} · ${esc(S.user.email || "")}</p>
       <div class="badges">${S.user.rol === "moderador" ? '<span class="badge verde">Moderador</span>' : ""}
         ${S.user.yape ? `<span class="badge">Yape ${esc(S.user.yape)}</span>` : ""}
-        ${S.user.plin ? `<span class="badge">Plin ${esc(S.user.plin)}</span>` : ""}</div>`;
+        ${S.user.plin ? `<span class="badge">Plin ${esc(S.user.plin)}</span>` : ""}</div>
+      <button type="button" class="btn primary wide" id="ir-mias" style="margin-top:12px">
+        ${ic("clipboard")}Mi actividad: publicaciones, tratos y cotizaciones</button>`;
+    $("#ir-mias").onclick = () => ir("mias");
   }
 }
 
@@ -243,6 +246,7 @@ async function cargarPerfil() {
 
 /* ------------------------------------------------------------ navegación */
 function ir(vista) {
+  if (vista === "mias" && !S.user) vista = "perfil";
   $$(".view").forEach((v) => v.classList.toggle("on", v.id === `view-${vista}`));
   $$(".tabs button, .bottom-nav button").forEach((b) => b.classList.toggle("on", b.dataset.view === vista));
   if (vista === "mias") cargarMias();
@@ -812,107 +816,172 @@ async function cargarEmergencia() {
 }
 
 /* ------------------------------------------------------------ mis cosas */
-async function cargarMias() {
-  if (!S.user) { $("#list-mias").innerHTML = `<div class="vacio">Entra para ver tus publicaciones.</div>`; return; }
+const MIAS = { tab: "pubs" };
+
+const ETQ = {
+  activa: ["Activa", "verde"], pausada: ["Pausada", "gris"], resuelta: ["Resuelta", "gris"],
+  cerrada: ["Cerrada", "gris"], vencida: ["Vencida", "gris"],
+  enviada: ["Esperando respuesta", "gris"], respondida: ["Respondida", "verde"], expirada: ["Vencida", "gris"],
+  acordado: ["Acordado", "gris"], cerrado: ["Cerrado", "verde"], cancelado: ["Cancelado", "gris"],
+  solicitada: ["Solicitada", "gris"], aceptada: ["Aceptada", "verde"], rechazada: ["Rechazada", "gris"],
+  en_curso: ["En curso", "verde"],
+};
+const etiqueta = (e) => {
+  const [txt, tono] = ETQ[e] || [e || "", "gris"];
+  return `<span class="badge ${tono}">${esc(txt)}</span>`;
+};
+
+function statMias(n, txt, tab, tono = "") {
+  return `<button type="button" class="stat ${tono}" data-ir-tab="${tab}">
+    <b>${n}</b><span>${esc(txt)}</span></button>`;
+}
+
+async function cargarMias(tab) {
+  if (!S.user) { ir("perfil"); return; }
+  if (tab) MIAS.tab = tab;
+  $$(".tabs-mias button").forEach((b) => b.classList.toggle("on", b.dataset.tab === MIAS.tab));
+  $$(".panel-mias").forEach((p) => { p.hidden = p.id !== `panel-${MIAS.tab}`; });
+  $("#list-mias").innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
+
+  let pubs = [], cots = [], tratos = [], favores = [], accesos = null;
   try {
-    const m = await api("/api/mis-publicaciones");
-    $("#list-mias").innerHTML = m.length ? m.map((p) => `
-      <article class="card pub"><div class="pub-info">
-        <div class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(cap(p.categoria))}
-          <span class="badge ${p.estado === "activa" ? "verde" : "gris"}">${ESTADO_TEXTO[p.estado] || p.estado}</span></div>
-        <h3>${esc(p.titulo)}</h3>
-        <div class="meta"><span class="visto">${ic("thumb")} ${p.vistos || 0}</span>
-          <span>${esc(p.zona)}</span><span>${hace(p.creado)}</span></div>
-        <div class="pubs-actions">
-          <button type="button" class="btn small" data-ver="${esc(p.id)}">Ver</button>
-          ${p.estado === "activa" ? `<button type="button" class="btn small" data-cerrar="${esc(p.id)}">Marcar resuelta</button>` : ""}
-          <button type="button" class="btn small danger" data-borrar="${esc(p.id)}">Borrar</button>
-        </div></div></article>`).join("")
-      : `<div class="vacio">${ic("clipboard")}<b>Aún no publicas nada</b>Tus servicios, productos y favores aparecerán aquí.</div>`;
-    $$("#list-mias [data-ver]").forEach((b) => b.onclick = () => verDetalle(b.dataset.ver));
-    $$("#list-mias [data-cerrar]").forEach((b) => b.onclick = async () => {
-      try { await api(`/api/publicaciones/${b.dataset.cerrar}`, { method: "PATCH", body: JSON.stringify({ estado: "resuelta" }) });
-        toast("Marcada como resuelta"); cargarMias(); } catch (e) { toast(e.message, "err"); }
-    });
-    $$("#list-mias [data-borrar]").forEach((b) => b.onclick = async () => {
-      if (!confirm("¿Borrar esta publicación? Dejará de verse.")) return;
-      try { await api(`/api/publicaciones/${b.dataset.borrar}`, { method: "DELETE", offlineQueue: false });
-        toast("Publicación borrada"); cargarMias(); } catch (e) { toast(e.message, "err"); }
-    });
-
-    const c = await api("/api/cotizaciones");
-    const abiertas = c.filter((x) => x.estado === "enviada").length;
-    $("#cot-badge").hidden = !abiertas;
-    $("#cot-badge").textContent = `${abiertas} esperando respuesta`;
-    $("#list-cotizaciones").innerHTML = c.length ? c.map((x) => `
-      <div class="card mini">
-        <strong>${esc(x.titulo)}</strong>
-        <p class="hint">${esc(x.comprador_id === S.user.id ? "Tú preguntaste" : (x.comprador_nombre || "Un vecino"))} ·
-          ${esc(ESTADO_TEXTO[x.estado] || x.estado)} · ${hace(x.creado)}</p>
-        <p>${esc(x.descripcion)}</p>
-        ${x.precio_respuesta ? `<p><b>Respuesta: ${esc(x.precio_respuesta)}</b></p>` : ""}
-        ${x.estado === "enviada" && x.autor_id === S.user.id ? `
-          <div class="pubs-actions">
-            <button type="button" class="btn small primary" data-resp="puedo" data-cid="${esc(x.id)}">Puedo hacerlo</button>
-            <button type="button" class="btn small" data-resp="no_puedo" data-cid="${esc(x.id)}">No puedo</button>
-          </div>` : ""}
-      </div>`).join("") : `<p class="hint">Sin cotizaciones todavía.</p>`;
-    $$("#list-cotizaciones [data-resp]").forEach((b) => b.onclick = async () => {
-      try {
-        await api(`/api/cotizaciones/${b.dataset.cid}/responder`, { method: "POST",
-          body: JSON.stringify({ respuesta: b.dataset.resp }) });
-        toast("Respuesta enviada"); cargarMias();
-      } catch (e) { toast(e.message, "err"); }
-    });
-
-    const t = await api("/api/tratos");
-    $("#list-tratos").innerHTML = t.length ? t.map((x) => {
-      const soyComprador = x.comprador_id === S.user.id;
-      const miMarca = soyComprador ? x.marca_comprador : x.marca_vendedor;
-      return `<div class="card mini">
-        <strong>${esc(x.titulo)}</strong>
-        <p class="hint">${soyComprador ? "Compraste a " + esc(x.vendedor_nombre) : "Vendiste a " + esc(x.comprador_nombre)}
-          · ${esc(ESTADO_TEXTO[x.estado] || x.estado)} · ${esc(x.monto || "sin monto")}</p>
-        ${x.estado === "acordado" && !miMarca ? `
-          <div class="pubs-actions">
-            <button type="button" class="btn small primary" data-trato="${esc(x.id)}">${soyComprador ? "Recibí el servicio" : "Entregué el servicio"}</button>
-            <button type="button" class="btn small" data-cancelar="${esc(x.id)}">Cancelar</button>
-          </div>` : x.estado === "acordado" ? `<p class="hint">Esperando confirmación de la otra parte.</p>`
-          : x.estado === "cerrado" ? `<p class="hint">${ic("check")} Cerrado. Ya puedes dejar tu visto bueno en la publicación.</p>` : ""}
-      </div>`;
-    }).join("") : `<p class="hint">Sin tratos registrados.</p>`;
-    $$("#list-tratos [data-trato]").forEach((b) => b.onclick = async () => {
-      try { await api(`/api/tratos/${b.dataset.trato}/estado`, { method: "POST", body: JSON.stringify({ estado: "cerrado" }) });
-        toast("Confirmado"); cargarMias(); } catch (e) { toast(e.message, "err"); }
-    });
-    $$("#list-tratos [data-cancelar]").forEach((b) => b.onclick = async () => {
-      try { await api(`/api/tratos/${b.dataset.cancelar}/estado`, { method: "POST", body: JSON.stringify({ estado: "cancelado" }) });
-        cargarMias(); } catch (e) { toast(e.message, "err"); }
-    });
-
-    const i = await api("/api/intercambios");
-    $("#list-intercambios").innerHTML = i.length ? i.map((x) => `
-      <div class="card mini"><strong>${esc(x.peticion_titulo || "Favor")}</strong>
-        <p class="hint">${esc(ESTADO_TEXTO[x.estado] || x.estado)} · ${hace(x.creado)}</p>
-        <p>${esc(x.mensaje || "")}</p>
-        ${x.estado === "solicitada" && x.solicitante_id === S.user.id ? `
-          <div class="pubs-actions">
-            <button type="button" class="btn small primary" data-inter="aceptada" data-iid="${esc(x.id)}">Aceptar</button>
-            <button type="button" class="btn small" data-inter="rechazada" data-iid="${esc(x.id)}">Rechazar</button>
-          </div>` : x.estado === "aceptada" ? `
-          <div class="pubs-actions"><button type="button" class="btn small primary" data-inter="resuelta" data-iid="${esc(x.id)}">Se concretó</button></div>` : ""}
-      </div>`).join("") : `<p class="hint">Sin intercambios.</p>`;
-    $$("#list-intercambios [data-inter]").forEach((b) => b.onclick = async () => {
-      try { await api(`/api/intercambios/${b.dataset.iid}/estado`, { method: "POST", body: JSON.stringify({ estado: b.dataset.inter }) });
-        toast("Actualizado"); cargarMias(); } catch (e) { toast(e.message, "err"); }
-    });
-
-    const a = await api("/api/mis-accesos");
-    $("#accesos-box").innerHTML = `<p><b>${a.total}</b> ${a.total === 1 ? "vez" : "veces"} consultaron tu contacto.</p>
-      ${a.items.length ? `<ul class="lista">${a.items.slice(0, 8).map((x) =>
-        `<li>${esc(x.quien)} · ${esc(x.titulo)} · ${hace(x.creado)}</li>`).join("")}</ul>` : ""}
-      <p class="hint">Solo se registra cuando un vecino con sesión abre el detalle de una publicación tuya que muestra contacto.</p>`;
+    [pubs, cots, tratos, favores, accesos] = await Promise.all([
+      api("/api/mis-publicaciones").catch(() => []),
+      api("/api/cotizaciones").catch(() => []),
+      api("/api/tratos").catch(() => []),
+      api("/api/intercambios").catch(() => []),
+      api("/api/mis-accesos").catch(() => null),
+    ]);
   } catch (e) { toast(e.message, "err"); }
+
+  const activas = pubs.filter((p) => p.estado === "activa").length;
+  const porResponder = cots.filter((c) => c.estado === "enviada" && c.autor_id === S.user.id).length;
+  const misPendientes = cots.filter((c) => c.estado === "enviada" && c.autor_id !== S.user.id).length;
+  const tratosAbiertos = tratos.filter((t) => t.estado === "acordado").length;
+  const favoresAbiertos = favores.filter((f) => ["solicitada", "aceptada", "en_curso"].includes(f.estado)).length;
+
+  $("#resumen-mias").innerHTML = [
+    statMias(activas, activas === 1 ? "publicación activa" : "publicaciones activas", "pubs"),
+    statMias(porResponder + misPendientes, "cotizaciones en curso", "cots", (porResponder + misPendientes) ? "alerta" : ""),
+    statMias(tratosAbiertos, tratosAbiertos === 1 ? "trato abierto" : "tratos abiertos", "tratos"),
+    statMias(favoresAbiertos, favoresAbiertos === 1 ? "favor en curso" : "favores en curso", "favores"),
+  ].join("");
+  $$("#resumen-mias .stat").forEach((b) => b.onclick = () => cargarMias(b.dataset.irTab));
+
+  // --- publicaciones
+  $("#list-mias").innerHTML = pubs.length ? pubs.map((p) => `
+    <article class="card pub">
+      <div class="catrow"><span class="cat">${ic(CAT_ICON[p.categoria] || "dots")} ${esc(cap(p.categoria))}</span>
+        <span class="catrow-right">${etiqueta(p.estado)}</span></div>
+      <h3>${esc(p.titulo)}</h3>
+      <div class="meta"><span class="visto">${ic("thumb")} ${p.vistos || 0}</span>
+        <span>${esc(p.zona)}</span><span>${hace(p.creado)}</span></div>
+      <div class="pubs-actions">
+        <button type="button" class="btn small" data-ver="${esc(p.id)}">Ver</button>
+        ${p.estado === "activa" ? `<button type="button" class="btn small" data-cerrar="${esc(p.id)}">Marcar resuelta</button>` : ""}
+        <button type="button" class="btn small danger" data-borrar="${esc(p.id)}">${ic("trash")}Borrar</button>
+      </div>
+    </article>`).join("")
+    : `<div class="vacio">${ic("clipboard")}<b>Aún no publicas nada</b>
+        Tus servicios, productos y favores aparecerán aquí.<br>
+        <button type="button" class="btn primary" onclick="abrirPublicar()" style="margin-top:12px">Publicar algo</button></div>`;
+
+  $$("#list-mias [data-ver]").forEach((b) => b.onclick = () => verDetalle(b.dataset.ver));
+  $$("#list-mias [data-cerrar]").forEach((b) => b.onclick = async () => {
+    try { await api(`/api/publicaciones/${b.dataset.cerrar}`, { method: "PATCH", body: JSON.stringify({ estado: "resuelta" }) });
+      toast("Marcada como resuelta"); cargarMias(); } catch (e) { toast(e.message, "err"); }
+  });
+  $$("#list-mias [data-borrar]").forEach((b) => b.onclick = async () => {
+    if (!confirm("¿Borrar esta publicación? Dejará de verse.")) return;
+    try { await api(`/api/publicaciones/${b.dataset.borrar}`, { method: "DELETE", offlineQueue: false });
+      toast("Publicación borrada"); cargarMias(); } catch (e) { toast(e.message, "err"); }
+  });
+
+  // --- cotizaciones
+  $("#list-cotizaciones").innerHTML = cots.length ? cots.map((x) => {
+    const soyVendedor = x.autor_id === S.user.id;
+    return `<div class="card mini">
+      <div class="fila-titulo"><strong>${esc(x.titulo)}</strong>${etiqueta(x.estado)}</div>
+      <p class="hint">${soyVendedor ? "Te preguntó " + esc(x.comprador_nombre || "un vecino") : "Preguntaste por este servicio"} ·
+        ${hace(x.creado)}</p>
+      <p class="texto-cot">${esc(x.descripcion)}</p>
+      ${x.precio_respuesta ? `<p><b>Respuesta: ${esc(x.precio_respuesta)}</b></p>` : ""}
+      ${x.estado === "enviada" && soyVendedor ? `
+        <div class="pubs-actions">
+          <button type="button" class="btn small primary" data-resp="puedo" data-cid="${esc(x.id)}">Puedo hacerlo</button>
+          <button type="button" class="btn small" data-resp="no_puedo" data-cid="${esc(x.id)}">No puedo</button>
+        </div>` : ""}
+    </div>`;
+  }).join("")
+    : `<div class="vacio">${ic("chat")}<b>Sin cotizaciones</b>
+        Cuando un vecino pregunte por tu servicio, aparecerá aquí.</div>`;
+
+  $$("#list-cotizaciones [data-resp]").forEach((b) => b.onclick = async () => {
+    try {
+      await api(`/api/cotizaciones/${b.dataset.cid}/responder`, { method: "POST", body: JSON.stringify({ respuesta: b.dataset.resp }) });
+      toast("Respuesta enviada"); cargarMias();
+    } catch (e) { toast(e.message, "err"); }
+  });
+
+  // --- tratos
+  $("#list-tratos").innerHTML = tratos.length ? tratos.map((x) => {
+    const soyComprador = x.comprador_id === S.user.id;
+    const miMarca = soyComprador ? x.marca_comprador : x.marca_vendedor;
+    const otra = soyComprador ? x.vendedor_nombre : x.comprador_nombre;
+    return `<div class="card mini">
+      <div class="fila-titulo"><strong>${esc(x.titulo)}</strong>${etiqueta(x.estado)}</div>
+      <p class="hint">${soyComprador ? "Compraste a" : "Vendiste a"} ${esc(otra)} · ${esc(x.monto || "sin monto")} · ${hace(x.creado)}</p>
+      ${x.estado === "acordado" && !miMarca ? `
+        <div class="pubs-actions">
+          <button type="button" class="btn small primary" data-trato="${esc(x.id)}">${soyComprador ? "Recibí el servicio" : "Entregué el servicio"}</button>
+          <button type="button" class="btn small" data-cancelar="${esc(x.id)}">Cancelar</button>
+        </div>`
+      : x.estado === "acordado" ? `<p class="hint">Falta que ${esc(otra)} confirme.</p>`
+      : x.estado === "cerrado" ? `<p class="hint">${ic("check")} Cerrado. Puedes dejar tu visto bueno en la publicación.</p>` : ""}
+    </div>`;
+  }).join("")
+    : `<div class="vacio">${ic("handshake")}<b>Todavía no hay tratos</b>
+        Cuando acuerdes un servicio, regístralo desde la publicación para dejar constancia.</div>`;
+
+  $$("#list-tratos [data-trato]").forEach((b) => b.onclick = async () => {
+    try { await api(`/api/tratos/${b.dataset.trato}/estado`, { method: "POST", body: JSON.stringify({ estado: "cerrado" }) });
+      toast("Confirmado"); cargarMias(); } catch (e) { toast(e.message, "err"); }
+  });
+  $$("#list-tratos [data-cancelar]").forEach((b) => b.onclick = async () => {
+    try { await api(`/api/tratos/${b.dataset.cancelar}/estado`, { method: "POST", body: JSON.stringify({ estado: "cancelado" }) });
+      cargarMias(); } catch (e) { toast(e.message, "err"); }
+  });
+
+  // --- favores
+  $("#list-intercambios").innerHTML = favores.length ? favores.map((x) => `
+    <div class="card mini">
+      <div class="fila-titulo"><strong>${esc(x.peticion_titulo || "Favor")}</strong>${etiqueta(x.estado)}</div>
+      <p class="hint">${hace(x.creado)}</p>
+      <p class="texto-cot">${esc(x.mensaje || "")}</p>
+      ${x.estado === "solicitada" && x.solicitante_id === S.user.id ? `
+        <div class="pubs-actions">
+          <button type="button" class="btn small primary" data-inter="aceptada" data-iid="${esc(x.id)}">Aceptar</button>
+          <button type="button" class="btn small" data-inter="rechazada" data-iid="${esc(x.id)}">Rechazar</button>
+        </div>`
+      : x.estado === "aceptada" ? `
+        <div class="pubs-actions"><button type="button" class="btn small primary" data-inter="resuelta" data-iid="${esc(x.id)}">Se concretó</button></div>` : ""}
+    </div>`).join("")
+    : `<div class="vacio">${ic("heart")}<b>Sin favores en curso</b>
+        Pide o ofrece ayuda en la pestaña Favores.</div>`;
+
+  $$("#list-intercambios [data-inter]").forEach((b) => b.onclick = async () => {
+    try { await api(`/api/intercambios/${b.dataset.iid}/estado`, { method: "POST", body: JSON.stringify({ estado: b.dataset.inter }) });
+      toast("Actualizado"); cargarMias(); } catch (e) { toast(e.message, "err"); }
+  });
+
+  // --- privacidad
+  const total = accesos ? accesos.total : 0;
+  $("#accesos-box").innerHTML = `
+    <p class="acceso-num"><b>${total}</b> ${total === 1 ? "vez consultaron tu contacto" : "veces consultaron tu contacto"}</p>
+    ${accesos && accesos.items.length ? `<ul class="lista">${accesos.items.slice(0, 10).map((x) =>
+      `<li>${esc(x.quien)} · ${esc(x.titulo)} · ${hace(x.creado)}</li>`).join("")}</ul>` : ""}
+    <p class="hint">Solo se registra cuando un vecino con sesión abre una publicación tuya que muestra contacto.
+      Puedes ocultar tu número en Mi perfil.</p>`;
 }
 
 /* ------------------------------------------------------------ moderación */
@@ -1062,6 +1131,7 @@ function engancharEventos() {
   });
   $("#cat").onchange = (e) => { S.cat = e.target.value; cargarLista(); };
   $("#orden").onchange = (e) => { S.orden = e.target.value; cargarLista(); };
+  $$(".tabs-mias button").forEach((b) => b.onclick = () => cargarMias(b.dataset.tab));
   $("#cat-favor").onchange = (e) => { S.catFavor = e.target.value; cargarFavores(); };
   $("#btn-more").onclick = () => cargarLista({ append: true });
   $("#btn-publicar").onclick = () => abrirPublicar();
