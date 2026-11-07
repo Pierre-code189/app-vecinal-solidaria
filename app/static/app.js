@@ -911,8 +911,17 @@ window.addEventListener('online', () => {
 });
 window.addEventListener('offline', () => banner('📴 Sin conexión — sigues viendo lo último guardado', true));
 
+/* ------------------------------------------------------------------ pista de desplazamiento en pestañas */
+function marcarScrollPestanas() {
+  const nav = document.querySelector('.tabs');
+  if (!nav) return;
+  nav.classList.toggle('scrollable', nav.scrollWidth > nav.clientWidth + 4);
+}
+window.addEventListener('resize', marcarScrollPestanas);
+
 /* ------------------------------------------------------------------ arranque */
 renderUser();
+marcarScrollPestanas();
 cargarLocal();
 if (!localStorage.getItem('tv_tutorial_visto')) {
   localStorage.setItem('tv_tutorial_visto', '1');

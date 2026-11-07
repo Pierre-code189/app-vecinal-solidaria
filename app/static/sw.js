@@ -1,6 +1,6 @@
 /* Service worker: shell primero para cargar sin internet, red primero para datos.
    Los datos se guardan en localStorage desde la app; aquí solo se cachea el shell. */
-const CACHE = 'vecinal-v2';
+const CACHE = 'vecinal-v3';
 const SHELL = ['./', './index.html', './style.css', './app.js', './manifest.json',
   './icon-192.svg', './icon-512.svg'];
 

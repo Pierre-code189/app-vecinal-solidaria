@@ -34,12 +34,10 @@ body{
   font-size:16px; cursor:pointer; min-height:46px;
 }
 .tabs button.on{background:var(--verde); border-color:var(--verde); color:#fff; font-weight:600}
-.tabs::after{
-  content:"›"; position:sticky; right:0; align-self:center; flex:0 0 22px;
-  background:linear-gradient(90deg,#fff0,#fff 60%); color:var(--gris);
-  font-size:22px; line-height:1; text-align:right; padding-right:4px;
+.tabs.scrollable{
+  -webkit-mask-image:linear-gradient(to right,#000 0,#000 88%,transparent 100%);
+  mask-image:linear-gradient(to right,#000 0,#000 88%,transparent 100%);
 }
-@media (min-width:900px){.tabs::after{display:none}}
 .tabs button:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
   outline:3px solid #1d7fd1; outline-offset:2px;
 }
