@@ -117,6 +117,25 @@ CREATE TABLE IF NOT EXISTS eventos(
     id TEXT PRIMARY KEY, tipo TEXT NOT NULL, publicacion_id TEXT,
     usuario_id TEXT, meta TEXT DEFAULT '', creado INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS tratos(
+    id TEXT PRIMARY KEY, publicacion_id TEXT NOT NULL,
+    comprador_id TEXT NOT NULL, vendedor_id TEXT NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'acordado',
+    monto TEXT DEFAULT '', nota TEXT DEFAULT '',
+    marca_comprador INTEGER DEFAULT 0, marca_vendedor INTEGER DEFAULT 0,
+    creado INTEGER NOT NULL, actualizado INTEGER NOT NULL,
+    cerrado_en INTEGER,
+    UNIQUE(publicacion_id, comprador_id, estado)
+);
+CREATE TABLE IF NOT EXISTS notificaciones(
+    id TEXT PRIMARY KEY, usuario_id TEXT NOT NULL,
+    tipo TEXT NOT NULL, titulo TEXT NOT NULL, cuerpo TEXT DEFAULT '',
+    enlace TEXT DEFAULT '', leida INTEGER DEFAULT 0, creado INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS accesos_contacto(
+    id TEXT PRIMARY KEY, publicacion_id TEXT NOT NULL, usuario_id TEXT NOT NULL,
+    creado INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS historial_estado(
     id TEXT PRIMARY KEY, entidad TEXT NOT NULL, entidad_id TEXT NOT NULL,
     estado_anterior TEXT, estado_nuevo TEXT, actor_id TEXT,
@@ -129,6 +148,9 @@ CREATE INDEX IF NOT EXISTS ix_rep_estado ON reportes(estado);
 CREATE INDEX IF NOT EXISTS ix_eventos_tipo ON eventos(tipo, creado DESC);
 CREATE INDEX IF NOT EXISTS ix_sesiones_usuario ON sesiones(usuario_id);
 CREATE INDEX IF NOT EXISTS ix_cot_pub ON cotizaciones(publicacion_id, estado);
+CREATE INDEX IF NOT EXISTS ix_tratos_pub ON tratos(publicacion_id, comprador_id);
+CREATE INDEX IF NOT EXISTS ix_notif_user ON notificaciones(usuario_id, leida, creado DESC);
+CREATE INDEX IF NOT EXISTS ix_accesos_pub ON accesos_contacto(publicacion_id, creado DESC);
 """
 
 # Columnas añadidas después de la primera versión (migración aditiva)
@@ -139,6 +161,12 @@ MIGRATIONS = {
         "telefono_verificado": "INTEGER DEFAULT 0",
         "acepta_privacidad": "INTEGER DEFAULT 0",
         "salt": "TEXT DEFAULT ''",
+        "plin": "TEXT DEFAULT ''",
+        "mostrar_contacto": "INTEGER DEFAULT 1",
+        "reset_code": "TEXT DEFAULT ''",
+        "reset_expira": "INTEGER",
+        "intentos_fallidos": "INTEGER DEFAULT 0",
+        "bloqueado_hasta": "INTEGER",
     },
     "publicaciones": {
         "subtipo_favor": "TEXT",
@@ -156,6 +184,11 @@ MIGRATIONS = {
         "deleted_at": "INTEGER",
         "deleted_por": "TEXT",
         "motivo_baja": "TEXT",
+        "yape_snapshot": "TEXT DEFAULT ''",
+        "plin_snapshot": "TEXT DEFAULT ''",
+        "mostrar_contacto": "INTEGER DEFAULT 1",
+        "fotos": "TEXT DEFAULT ''",
+        "necesidad": "TEXT DEFAULT ''",
     },
     "sesiones": {"expira": "INTEGER DEFAULT 0"},
     "reportes": {
@@ -189,55 +222,160 @@ def migrate(con: sqlite3.Connection) -> list[str]:
 
 
 SEED_USERS = [
-    ("u-mod", "María Moderadora", "Zona Centro", "999000001", "mod@app.local", "mod123", "moderador", "999000001"),
-    ("u-gas", "Juan Gasfitero", "Zona Centro", "999000002", "juan@app.local", "gas123", "vecino", "999000002"),
-    ("u-carp", "Ana Carpintera", "Zona Norte", "999000003", "ana@app.local", "carp123", "vecino", "999000003"),
-    ("u-vec", "Pedro Vecino", "Zona Centro", "999000004", "pedro@app.local", "pedro123", "vecino", None),
-    ("u-vec2", "Lucía Vecina", "Zona Sur", "999000005", "lucia@app.local", "lucia123", "vecino", "999000005"),
+    ("u-mod", "María Moderadora", "Piura Centro", "999000001", "mod@app.local", "mod123", "moderador", "999000001"),
+    ("u-gas", "Juan Gasfitero", "Piura Centro", "999000002", "juan@app.local", "gas123", "vecino", "999000002"),
+    ("u-carp", "Ana Carpintera", "Urb. Miraflores (Castilla)", "999000003", "ana@app.local", "carp123", "vecino", "999000003"),
+    ("u-vec", "Pedro Vecino", "Piura Centro", "999000004", "pedro@app.local", "pedro123", "vecino", None),
+    ("u-vec2", "Lucía Vecina", "Urb. Santa Isabel", "999000005", "lucia@app.local", "lucia123", "vecino", "999000005"),
+    # Moderador suplente: si el titular no está, la moderación y la emergencia siguen
+    ("u-mod2", "Rosa Suplente", "Piura Centro", "999000006", "mod2@app.local", "mod2-123", "moderador", "999000006"),
 ]
+
+# Centros de sector (misma lista que app/main.py) para ubicar la semilla.
+ZONA_CENTRO = {
+    "Piura Centro": (-5.19449, -80.63282),
+    "Urb. Miraflores (Castilla)": (-5.18520, -80.62140),
+    "Urb. Santa Isabel": (-5.18680, -80.63650),
+    "Urb. Ignacio Merino": (-5.17850, -80.64210),
+    "Veintiséis de Octubre": (-5.19830, -80.66120),
+    "Urb. Los Ejidos": (-5.16240, -80.63190),
+    "Urb. El Chipe": (-5.17420, -80.62580),
+    "Catacaos Centro": (-5.26670, -80.68330),
+}
 
 SEED_PUBS = [
     # id, autor, tipo, categoria, subtipo, titulo, desc, precio, medios, zona, lat, lng, emergencia
     ("p1", "u-gas", "servicio", "gasfitería", None,
-     "Gasfitero 24h · destapes y fugas",
-     "Destapes, instalación de caños y reparación de fugas. Atención el mismo día en Zona Centro. Presupuesto sin costo antes de empezar.",
-     "A convenir", "yape,efectivo", "Zona Centro", -12.0464, -77.0428, 0),
+     "Gasfitero 24h · fugas, tanques y electrobombas",
+     "Destapes, instalación de caños y reparación de fugas. Atención el mismo día en Piura Centro, "
+     "Santa Isabel y Miraflores. Presupuesto sin costo antes de empezar.",
+     "A convenir", "yape,efectivo", "Piura Centro", -5.19449, -80.63282, 0),
     ("p2", "u-carp", "servicio", "carpintería", None,
-     "Carpintería a medida",
-     "Puertas, mesas y closets. Trabajo con medidas exactas; acepto intercambio por clases o trabajo de gasfitería.",
-     "Intercambio / sin dinero", "intercambio", "Zona Norte", -12.0300, -77.0500, 0),
+     "Carpintería a medida en Castilla",
+     "Puertas, mesas y closets con medidas exactas. Taller en Miraflores (Castilla). "
+     "Acepto intercambio por clases o trabajo de gasfitería.",
+     "Intercambio / sin dinero", "intercambio", "Urb. Miraflores (Castilla)", -5.18520, -80.62140, 0),
     ("p3", "u-vec", "producto", "alimentos", None,
-     "Pastelitos caseros de la vecina",
-     "Pastelitos dulces y salados por encargo, receta de casa. Pedidos con un día de anticipación.",
-     "S/ 2.00", "yape,efectivo", "Zona Centro", -12.0460, -77.0430, 0),
+     "Pastelitos piuranos por encargo",
+     "Pastelitos dulces y salados, receta de casa. Pedidos con un día de anticipación. "
+     "Entrego en la Plaza de Armas o en la puerta de tu casa dentro de Piura Centro.",
+     "S/ 2.00", "yape,efectivo", "Piura Centro", -5.19400, -80.63300, 0),
     ("p4", "u-vec", "favor_solicitado", "préstamo", "prestamo",
-     "Necesito muleta prestada por una semana",
-     "Me lesioné la pierna jugando fútbol y necesito una muleta hasta el viernes. La devuelvo en el mismo estado.",
-     "Intercambio / sin dinero", "intercambio", "Zona Centro", -12.0470, -77.0420, 0),
+     "Necesito una muleta por una semana",
+     "Me lesioné la pierna jugando fútbol y necesito una muleta hasta el viernes. "
+     "La devuelvo en el mismo estado, con garante del barrio.",
+     "Intercambio / sin dinero", "intercambio", "Piura Centro", -5.19480, -80.63200, 0),
     ("p5", "u-vec2", "favor_ofrecido", "movilidad", "movilidad",
-     "Comparto auto al colegio · Zona Centro",
-     "Salgo 7:00 por Zona Centro hacia el colegio. Punto de encuentro: parque principal. Sin pago. Cupo para 2 personas.",
-     "Intercambio / sin dinero", "intercambio", "Zona Centro", -12.0450, -77.0410, 0),
+     "Comparto auto hacia el colegio · Santa Isabel",
+     "Salgo 7:00 de Santa Isabel hacia la zona de colegios. Punto de encuentro: parque del sector. "
+     "Sin pago, cupo para dos personas adultas.",
+     "Intercambio / sin dinero", "intercambio", "Urb. Santa Isabel", -5.18680, -80.63650, 0),
     ("p6", "u-gas", "servicio", "electricidad", None,
      "Electricista · instalaciones y urgencias",
-     "Instalaciones, cambio de tableros y urgencias eléctricas. Disponible también durante emergencias.",
-     "A convenir", "yape,efectivo", "Zona Sur", -12.0600, -77.0600, 1),
+     "Instalaciones, cambio de tableros y urgencias eléctricas, también durante emergencias "
+     "por lluvia o corte de luz.",
+     "A convenir", "yape,efectivo", "Piura Centro", -5.19600, -80.63400, 1),
     ("p7", "u-carp", "favor_solicitado", "herramientas", "prestamo",
-     "Necesito taladro prestado el fin de semana",
+     "Necesito un taladro el fin de semana",
      "Para colgar cuadros en casa. Lo devuelvo el domingo por la tarde.",
-     "Intercambio / sin dinero", "intercambio", "Zona Norte", -12.0310, -77.0510, 0),
+     "Intercambio / sin dinero", "intercambio", "Urb. Miraflores (Castilla)", -5.18600, -80.62200, 0),
     ("p8", "u-vec2", "producto", "alimentos", None,
-     "Lasaña casera por encargo",
-     "Lasaña de carne para 4 personas, pedidos con un día de anticipación. Muy pedida en la zona.",
-     "S/ 25.00", "yape,efectivo", "Zona Sur", -12.0610, -77.0590, 0),
+     "Lasaña casera por encargo (Lucía)",
+     "Lasaña de carne para cuatro personas, pedidos con un día de anticipación. "
+     "Muy pedida en Santa Isabel.",
+     "S/ 25.00", "yape,efectivo", "Urb. Santa Isabel", -5.18700, -80.63700, 0),
     ("p9", "u-vec2", "servicio", "clases", None,
      "Clases de matemática para primaria y secundaria",
-     "Refuerzo escolar por hora, en casa del alumno o en la biblioteca del barrio. Acepto intercambio.",
-     "S/ 15.00", "yape,efectivo,intercambio", "Zona Sur", -12.0590, -77.0580, 0),
+     "Refuerzo escolar por hora, en tu casa o en la biblioteca del sector. Acepto intercambio.",
+     "S/ 15.00", "yape,efectivo,intercambio", "Urb. Santa Isabel", -5.18750, -80.63600, 0),
     ("p10", "u-carp", "producto", "alimentos", None,
-     "Queques y tortas por encargo (Ana)",
-     "Tortas de chocolate y queques de naranja. Pedidos con 2 días de anticipación.",
-     "S/ 30.00", "yape,efectivo", "Zona Norte", -12.0320, -77.0490, 0),
+     "Tortas y queques por encargo (Ana)",
+     "Tortas de chocolate y queques de naranja, pedidos con dos días de anticipación.",
+     "S/ 30.00", "yape,efectivo", "Urb. Miraflores (Castilla)", -5.18450, -80.62050, 0),
+    ("p11", "u-gas", "servicio", "gasfitería", None,
+     "Limpieza de tanque y cisterna",
+     "Limpieza y desinfección de tanques elevados y cisternas, con certificado simple de trabajo.",
+     "S/ 80.00", "yape,efectivo", "Veintiséis de Octubre", -5.19830, -80.66120, 0),
+    ("p12", "u-vec", "favor_ofrecido", "ayuda_temporal", "ayuda_temporal",
+     "Ayudo a mover muebles dentro del sector",
+     "Tengo camioneta y puedo ayudar a mover muebles o materiales dentro de Piura Centro. Sin cobro.",
+     "Intercambio / sin dinero", "intercambio", "Piura Centro", -5.19350, -80.63150, 0),
+    ("p13", "u-carp", "servicio", "cerrajería", None,
+     "Cerrajería: apertura sin daño y cambio de chapa",
+     "Apertura de puertas sin romper, cambio de chapas y candados. Atiendo Miraflores y Castilla.",
+     "S/ 40.00", "yape,efectivo", "Urb. Miraflores (Castilla)", -5.18560, -80.62100, 0),
+    ("p14", "u-vec2", "producto", "alimentos", None,
+     "Almuerzos caseros de lunes a viernes",
+     "Menú del día con sopa, segundo y refresco. Entrega en Santa Isabel entre 12 y 1.",
+     "S/ 8.00", "yape,efectivo", "Urb. Santa Isabel", -5.18650, -80.63680, 0),
+    ("p15", "u-vec2", "servicio", "paseo de mascotas", None,
+     "Paseo de perros por Santa Isabel",
+     "Paseo tu perro 30 minutos por la mañana o al atardecer, dentro del sector. "
+     "Acepto también trueque por almuerzos.",
+     "S/ 10.00", "yape,efectivo,intercambio", "Urb. Santa Isabel", -5.18690, -80.63580, 0),
+    ("p16", "u-gas", "servicio", "electricidad", None,
+     "Instalación de luminarias y tomacorrientes",
+     "Cambio de tomacorrientes, instalación de luces y revisión de tablero. "
+     "Materiales aparte o los coordinas tú.",
+     "S/ 45.00", "yape,efectivo", "Urb. Ignacio Merino", -5.17850, -80.64210, 0),
+    ("p17", "u-carp", "producto", "herramientas", None,
+     "Cajones de madera para cocina por encargo",
+     "Cajones y repisas de madera a medida, entrega en una semana.",
+     "S/ 120.00", "yape,efectivo", "Urb. Miraflores (Castilla)", -5.18490, -80.62080, 0),
+    ("p18", "u-vec", "producto", "alimentos", None,
+     "Chifles y camotes fritos por bolsa",
+     "Bolsa de 250 g, hechos el mismo día. Entrega en Piura Centro.",
+     "S/ 6.00", "yape,efectivo", "Piura Centro", -5.19320, -80.63220, 0),
+    ("p19", "u-vec2", "favor_ofrecido", "donacion", "donacion",
+     "Dono ropa de niño talla 4 a 8",
+     "Ropa en buen estado, lavada. Retiro en Santa Isabel, sin costo.",
+     "Intercambio / sin dinero", "intercambio", "Urb. Santa Isabel", -5.18720, -80.63720, 0),
+    ("p20", "u-gas", "favor_solicitado", "herramientas", "prestamo",
+     "Busco escalera de tijera para pintar",
+     "Una tarde nada más. La devuelvo limpia y con garante del barrio.",
+     "Intercambio / sin dinero", "intercambio", "Piura Centro", -5.19520, -80.63080, 0),
+    ("p21", "u-carp", "servicio", "clases", None,
+     "Clases de dibujo técnico para secundaria",
+     "Clases por hora, en la biblioteca del sector. Preparación para exámenes.",
+     "S/ 20.00", "yape,efectivo", "Urb. Miraflores (Castilla)", -5.18590, -80.62280, 0),
+    ("p22", "u-vec2", "servicio", "cerrajería", None,
+     "Cambio de chapa y copia de llaves",
+     "Cambio de chapa de puerta principal y copias. Atiendo Santa Isabel y Centro.",
+     "S/ 35.00", "yape,efectivo", "Urb. Santa Isabel", -5.18760, -80.63620, 0),
+    ("p23", "u-gas", "producto", "alimentos", None,
+     "Agua de mesa en bidón de 20 L",
+     "Bidón sellado entregado en casa, dentro de Piura Centro y 26 de Octubre.",
+     "S/ 5.00", "yape,efectivo", "Veintiséis de Octubre", -5.19790, -80.66010, 0),
+    ("p24", "u-vec", "favor_solicitado", "ayuda_temporal", "ayuda_temporal",
+     "Ayuda para limpiar el techo antes de las lluvias",
+     "Necesito una mano el sábado por la mañana para limpiar canaletas. Doy almuerzo.",
+     "Intercambio / sin dinero", "intercambio", "Piura Centro", -5.19420, -80.63420, 0),
+    ("p25", "u-carp", "servicio", "gasfitería", None,
+     "Reparación de tanque elevado con fuga",
+     "Sello de fugas en tanques elevados y cisternas. Trabajo garantizado 30 días.",
+     "S/ 90.00", "yape,efectivo", "Urb. Los Ejidos", -5.16240, -80.63190, 0),
+    ("p26", "u-vec2", "producto", "alimentos", None,
+     "Queso fresco artesanal por kilo",
+     "Queso fresco de vaca, hecho en casa. Pedidos los jueves.",
+     "S/ 22.00", "yape,efectivo", "Urb. El Chipe", -5.17420, -80.62580, 0),
+    ("p27", "u-gas", "servicio", "carpintería", None,
+     "Reparación de puertas y cerraduras",
+     "Ajuste de puertas que rozan, cambio de bisagras y cerraduras.",
+     "S/ 50.00", "yape,efectivo", "Catacaos Centro", -5.26670, -80.68330, 0),
+    ("p28", "u-carp", "favor_ofrecido", "intercambio_habilidades", "intercambio_habilidades",
+     "Enseño a hacer muebles simples a cambio de ayuda",
+     "Te enseño a armar una repisa o un banco con madera reciclada; a cambio me ayudas "
+     "dos tardes en el taller.",
+     "Intercambio / sin dinero", "intercambio", "Urb. Miraflores (Castilla)", -5.18500, -80.62190, 0),
+    ("p29", "u-vec", "servicio", "electricidad", None,
+     "Revisión de instalación eléctrica antes de lluvias",
+     "Reviso tablero, pozos de tierra y cableado expuesto. Informe simple por escrito.",
+     "S/ 60.00", "yape,efectivo", "Urb. Los Ejidos", -5.16310, -80.63260, 0),
+    ("p30", "u-vec2", "favor_solicitado", "movilidad", "movilidad",
+     "Traslado solidario al hospital para mi mamá",
+     "Necesito traslado al hospital el martes a las 8. Punto de encuentro: parque del sector. "
+     "No pago, ofrezco almuerzo a cambio.",
+     "Intercambio / sin dinero", "intercambio", "Urb. Santa Isabel", -5.18640, -80.63710, 0),
 ]
 
 SEED_VISTOS = [
@@ -249,10 +387,10 @@ SEED_VISTOS = [
 ]
 
 SEED_AVALADORES = [
-    ("av1", "Ferretería El Tornillo", "ferreteria", "Zona Centro", "999111001"),
-    ("av2", "Bodega Doña Rosa", "bodega", "Zona Norte", "999111002"),
-    ("av3", "Olla Común San Martín", "olla", "Zona Sur", "999111003"),
-    ("av4", "Parroquia San José", "parroquia", "Zona Centro", "999111004"),
+    ("av1", "Ferretería El Tornillo", "ferreteria", "Piura Centro", "999111001"),
+    ("av2", "Bodega Doña Rosa", "bodega", "Urb. Miraflores (Castilla)", "999111002"),
+    ("av3", "Olla Común San Martín", "olla", "Urb. Santa Isabel", "999111003"),
+    ("av4", "Parroquia San José", "parroquia", "Piura Centro", "999111004"),
 ]
 
 
@@ -265,6 +403,13 @@ def seed(con: sqlite3.Connection) -> None:
             (uid, nombre, zona, tel, email, hash_pw(pw), rol, yape, now),
         )
     for pid, autor, tipo, cat, sub, tit, desc, precio, medios, zona, lat, lng, em in SEED_PUBS:
+        # Separar las ofertas del centro exacto del sector (~150-400 m), para que
+        # la lista no muestre todo a la misma distancia: el barrio no es un punto.
+        centro = ZONA_CENTRO.get(zona)
+        if centro and abs(lat - centro[0]) < 0.0005 and abs(lng - centro[1]) < 0.0005:
+            h = sum(ord(c) for c in pid)
+            lat += ((h % 7) - 3) * 0.0009
+            lng += ((h // 7 % 7) - 3) * 0.0009
         con.execute(
             "INSERT OR IGNORE INTO publicaciones(id,autor_id,tipo,categoria,subtipo_favor,titulo,descripcion,"
             "precio,medios_pago,zona,lat,lng,estado,es_emergencia,creado,actualizado,client_id,expira_en)"

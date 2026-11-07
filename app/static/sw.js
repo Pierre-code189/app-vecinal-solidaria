@@ -1,6 +1,6 @@
 /* Service worker: shell primero para cargar sin internet, red primero para datos.
    Los datos se guardan en localStorage desde la app; aquí solo se cachea el shell. */
-const CACHE = 'vecinal-v3';
+const CACHE = 'vecinal-v4';
 const SHELL = ['./', './index.html', './style.css', './app.js', './manifest.json',
   './icon-192.svg', './icon-512.svg'];
 
@@ -24,6 +24,12 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  // Mosaicos del mapa: se guardan para que el mapa siga visible sin señal.
+  if (url.hostname.endsWith('basemaps.cartocdn.com')) {
+    event.respondWith(caches.open(CACHE + '-tiles').then((c) =>
+      c.match(req).then((hit) => hit || fetch(req).then((res) => { c.put(req, res.clone()); return res; }))));
+    return;
+  }
   if (url.origin !== self.location.origin) return;
 
   // Datos: red primero, y si falla, lo último cacheado (la app maneja su propio caché).

@@ -6,3 +6,5 @@ data/*.db-wal
 data/*.db-shm
 .env
 capturas/
+data/
+capturas/

@@ -11,6 +11,8 @@ idempotencia por client_id y redacción de datos personales sin sesión.
 """
 from __future__ import annotations
 
+import base64
+import json
 import math
 import re
 import time
@@ -23,7 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .db import connect, hash_pw, init_db
+from .db import connect, hash_pw, hash_pw_salted, init_db
 
 APP_VERSION = "2.0.0"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
@@ -43,15 +45,19 @@ NECESIDADES_72H = {
     "balde_bidon", "herramientas", "movilidad", "alojamiento", "energia", "otro",
 }
 ESTADOS_PUB = {"borrador", "activa", "pausada", "resuelta", "cerrada", "vencida"}
-ZONAS = {"Zona Centro", "Zona Norte", "Zona Sur", "Zona Este", "Zona Oeste"}
-# Centro aproximado de cada zona: se usa cuando el vecino no comparte su GPS.
+# Sectores reales de Piura. Las coordenadas son el centro de cada sector y se
+# usan cuando el vecino no comparte su GPS (RF-013a del documento).
 ZONA_CENTRO = {
-    "Zona Centro": (-12.0464, -77.0428),
-    "Zona Norte": (-12.0300, -77.0500),
-    "Zona Sur": (-12.0600, -77.0600),
-    "Zona Este": (-12.0460, -77.0300),
-    "Zona Oeste": (-12.0460, -77.0550),
+    "Piura Centro": (-5.19449, -80.63282),
+    "Urb. Miraflores (Castilla)": (-5.18520, -80.62140),
+    "Urb. Santa Isabel": (-5.18680, -80.63650),
+    "Urb. Ignacio Merino": (-5.17850, -80.64210),
+    "Veintiséis de Octubre": (-5.19830, -80.66120),
+    "Urb. Los Ejidos": (-5.16240, -80.63190),
+    "Urb. El Chipe": (-5.17420, -80.62580),
+    "Catacaos Centro": (-5.26670, -80.68330),
 }
+ZONAS = set(ZONA_CENTRO)
 
 
 # ----------------------------------------------------------------- utilidades
@@ -64,9 +70,10 @@ def clean_txt(value: Optional[str], limit: int = 2000) -> str:
     return txt.strip()[:limit]
 
 
-def haversine_km(lat1, lng1, lat2, lng2) -> float:
+def haversine_km(lat1, lng1, lat2, lng2):
+    """Distancia en km, o None si falta alguna coordenada (nunca un número inventado)."""
     if None in (lat1, lng1, lat2, lng2):
-        return 9999.0
+        return None
     r = 6371.0
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp = math.radians(lat2 - lat1)
@@ -101,7 +108,8 @@ async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'"
+        "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://*.openstreetmap.fr; "
+        "connect-src 'self' https://tile.openstreetmap.org; object-src 'none'; base-uri 'self'"
     )
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -143,6 +151,7 @@ class RegistroIn(BaseModel):
     email: str = Field(min_length=6, max_length=120)
     password: str = Field(min_length=6, max_length=72)
     yape: Optional[str] = None
+    plin: Optional[str] = None
     acepta_privacidad: bool = True
 
 
@@ -157,6 +166,8 @@ class PerfilIn(BaseModel):
     descripcion: Optional[str] = None
     oficios: Optional[str] = None
     yape: Optional[str] = None
+    plin: Optional[str] = None
+    mostrar_contacto: Optional[bool] = None
 
 
 class PublicacionIn(BaseModel):
@@ -179,6 +190,8 @@ class PublicacionIn(BaseModel):
     es_emergencia: bool = False
     recurso_critico: bool = False
     necesidad: Optional[str] = None
+    mostrar_contacto: bool = True
+    fotos: Optional[list[str]] = None
     client_id: Optional[str] = None
 
 
@@ -232,6 +245,26 @@ class IntercambioEstadoIn(BaseModel):
     estado: str  # aceptada | rechazada | en_curso | resuelta | cancelada
 
 
+class TratoIn(BaseModel):
+    publicacion_id: str
+    monto: Optional[str] = ""
+    nota: Optional[str] = ""
+
+
+class TratoEstadoIn(BaseModel):
+    estado: str  # cerrado | cancelado
+
+
+class ResetIn(BaseModel):
+    identificador: str
+
+
+class ResetConfirmIn(BaseModel):
+    identificador: str
+    codigo: str
+    password: str = Field(min_length=6, max_length=72)
+
+
 class EmergenciaIn(BaseModel):
     activa: bool = False
     motivo: Optional[str] = ""
@@ -281,6 +314,17 @@ def require_moderador(request: Request) -> dict:
     return user
 
 
+def verificar_password(user, password: str) -> bool:
+    """Acepta el hash nuevo (con sal) y migra el viejo al primer login correcto."""
+    try:
+        sal = user["salt"] or ""
+    except (IndexError, KeyError):
+        sal = ""
+    if sal:
+        return user["pass"] == hash_pw_salted(password, sal)
+    return user["pass"] == hash_pw(password)
+
+
 def public_user(u: dict) -> dict:
     return {
         "id": u["id"], "nombre": u["nombre"], "zona": u["zona"],
@@ -288,6 +332,8 @@ def public_user(u: dict) -> dict:
         "telefono": u["telefono"], "descripcion": u.get("descripcion") or "",
         "oficios": u.get("oficios") or "",
         "telefono_verificado": bool(u.get("telefono_verificado")),
+        "plin": u.get("plin") or "",
+        "mostrar_contacto": bool(u.get("mostrar_contacto", 1)),
     }
 
 
@@ -295,6 +341,17 @@ def log_evento(con, tipo: str, publicacion_id=None, usuario_id=None, meta: str =
     con.execute(
         "INSERT INTO eventos(id,tipo,publicacion_id,usuario_id,meta,creado) VALUES(?,?,?,?,?,?)",
         (str(uuid.uuid4()), tipo, publicacion_id, usuario_id, meta, int(time.time())),
+    )
+
+
+def notificar(con, usuario_id: str, tipo: str, titulo: str, cuerpo: str = "", enlace: str = "") -> None:
+    """Aviso interno: campana de la aplicación."""
+    if not usuario_id:
+        return
+    con.execute(
+        "INSERT INTO notificaciones(id,usuario_id,tipo,titulo,cuerpo,enlace,leida,creado)"
+        " VALUES(?,?,?,?,?,?,0,?)",
+        (str(uuid.uuid4()), usuario_id, tipo, titulo[:120], cuerpo[:300], enlace[:200], int(time.time())),
     )
 
 
@@ -309,9 +366,11 @@ def historial(con, entidad: str, entidad_id: str, antes, despues, actor, motivo=
 def serializar_publicacion(p: dict, viewer: Optional[dict], con) -> dict:
     """Aplica privacidad: contacto y ubicación exacta solo con sesión iniciada."""
     autor = con.execute(
-        "SELECT nombre, telefono, yape FROM usuarios WHERE id=?", (p["autor_id"],)
+        "SELECT nombre, telefono, yape, plin FROM usuarios WHERE id=?", (p["autor_id"],)
     ).fetchone()
     p["autor"] = autor["nombre"] if autor else "Vecino"
+    if not p.get("nombre"):
+        p["nombre"] = p["autor"]
     p["vistos"] = con.execute(
         "SELECT COUNT(*) c FROM vistos WHERE publicacion_id=?", (p["id"],)
     ).fetchone()["c"]
@@ -322,12 +381,35 @@ def serializar_publicacion(p: dict, viewer: Optional[dict], con) -> dict:
     ).fetchall()
     p["avaladores"] = [{"nombre": a["nombre"], "tipo": a["tipo"]} for a in avales]
     p["lat_publica"], p["lng_publica"] = jitter(p.get("lat"), p.get("lng"), p["id"])
+    # ¿La ubicación es el centro del sector (sin GPS propio)? Entonces la distancia
+    # exacta sería falsa precisión: se muestra «en tu sector».
+    centro = ZONA_CENTRO.get(p.get("zona") or "", (None, None))
+    p["ubicacion_aproximada"] = bool(
+        centro[0] is not None and p.get("lat") is not None
+        and abs(p["lat"] - centro[0]) < 0.0015 and abs(p["lng"] - centro[1]) < 0.0015
+    )
+    # Las fotos viajan como lista, no como texto JSON (un string rompe la vista).
+    fotos = p.get("fotos")
+    if isinstance(fotos, str):
+        try:
+            p["fotos"] = json.loads(fotos) if fotos.strip() else []
+        except json.JSONDecodeError:
+            p["fotos"] = []
+    p["fotos"] = [f for f in (p.get("fotos") or []) if isinstance(f, str) and f.startswith("/fotos/")]
+    permite = bool(p.get("mostrar_contacto", 1))
     if viewer:
         ref_lat, ref_lng = viewer.get("lat_ref"), viewer.get("lng_ref")
         p["distancia_km"] = haversine_km(ref_lat, ref_lng, p.get("lat"), p.get("lng"))
-        p["telefono"] = autor["telefono"] if autor else None
-        p["yape_autor"] = autor["yape"] if autor else None
         p["es_mio"] = viewer["id"] == p["autor_id"]
+        if permite or p["es_mio"]:
+            p["telefono"] = autor["telefono"] if autor else None
+            p["yape_autor"] = (p.get("yape_snapshot") or (autor["yape"] if autor else None))
+            p["plin_autor"] = (p.get("plin_snapshot") or (autor["plin"] if autor else None))
+        else:
+            p["telefono"] = None
+            p["yape_autor"] = None
+            p["plin_autor"] = None
+        p["contacto_visible"] = bool(permite or p["es_mio"])
         p["ya_recomende"] = bool(con.execute(
             "SELECT 1 FROM vistos WHERE publicacion_id=? AND usuario_id=?",
             (p["id"], viewer["id"]),
@@ -336,6 +418,7 @@ def serializar_publicacion(p: dict, viewer: Optional[dict], con) -> dict:
         p["distancia_km"] = None
         p["es_mio"] = False
         p["ya_recomende"] = False
+        p["contacto_visible"] = False
     p.pop("lat", None)
     p.pop("lng", None)
     return p
@@ -373,6 +456,12 @@ def filtros_lista(con, *, tipo=None, categoria=None, q=None, zona=None,
 
 
 # ----------------------------------------------------------------- salud
+@app.get("/api/zonas")
+def zonas():
+    """Sectores disponibles: el cliente pinta los selectores desde aquí."""
+    return [{"nombre": k, "lat": v[0], "lng": v[1]} for k, v in ZONA_CENTRO.items()]
+
+
 @app.get("/api/salud")
 def salud():
     con = connect()
@@ -407,19 +496,22 @@ def registro(body: RegistroIn, request: Request):
     if not body.acepta_privacidad:
         raise HTTPException(400, "Debes aceptar el aviso de privacidad")
     yape = (body.yape or "").strip() or None
-    if yape and not re.match(r"^[0-9]{9}$", yape):
-        raise HTTPException(400, "El número de Yape debe tener 9 dígitos")
+    plin = (body.plin or "").strip() or None
+    for numero, nombre in ((yape, "Yape"), (plin, "Plin")):
+        if numero and not re.match(r"^[0-9]{9}$", numero):
+            raise HTTPException(400, f"El número de {nombre} debe tener 9 dígitos")
     con = connect()
     if con.execute("SELECT 1 FROM usuarios WHERE email=? OR telefono=?",
                    (email, body.telefono)).fetchone():
         con.close()
         raise HTTPException(400, "Ese correo o teléfono ya está registrado")
     uid = str(uuid.uuid4())
+    sal = uuid.uuid4().hex[:16]
     con.execute(
-        "INSERT INTO usuarios(id,nombre,zona,telefono,email,pass,rol,yape,creado,"
-        "telefono_verificado,acepta_privacidad) VALUES(?,?,?,?,?,?,'vecino',?,?,1,1)",
+        "INSERT INTO usuarios(id,nombre,zona,telefono,email,pass,rol,yape,plin,creado,"
+        "telefono_verificado,acepta_privacidad,salt) VALUES(?,?,?,?,?,?,'vecino',?,?,?,1,1,?)",
         (uid, clean_txt(body.nombre, 80), body.zona, body.telefono, email,
-         hash_pw(body.password), yape, int(time.time())),
+         hash_pw_salted(body.password, sal), yape, plin, int(time.time()), sal),
     )
     con.commit()
     con.close()
@@ -432,9 +524,24 @@ def login(body: LoginIn, request: Request):
     con = connect()
     row = con.execute("SELECT * FROM usuarios WHERE email=?",
                       (body.email.strip().lower(),)).fetchone()
-    if not row or row["pass"] != hash_pw(body.password):
+    if row and row["bloqueado_hasta"] and row["bloqueado_hasta"] > time.time():
+        restante = int((row["bloqueado_hasta"] - time.time()) / 60) + 1
+        con.close()
+        raise HTTPException(429, f"Demasiados intentos. Prueba de nuevo en {restante} minutos "
+                                "o recupera tu contraseña.")
+    if not row or not verificar_password(row, body.password):
+        if row:
+            fallos = (row["intentos_fallidos"] or 0) + 1
+            bloqueo = int(time.time()) + 15 * 60 if fallos >= 5 else None
+            con.execute("UPDATE usuarios SET intentos_fallidos=?, bloqueado_hasta=? WHERE id=?",
+                        (fallos, bloqueo, row["id"]))
+            con.commit()
         con.close()
         raise HTTPException(401, "Correo o contraseña incorrectos")
+    # Login correcto: limpiar contadores y, si el hash era viejo, actualizarlo con sal
+    sal = row["salt"] or uuid.uuid4().hex[:16]
+    con.execute("UPDATE usuarios SET intentos_fallidos=0, bloqueado_hasta=NULL, salt=?, pass=? WHERE id=?",
+                (sal, hash_pw_salted(body.password, sal), row["id"]))
     token = uuid.uuid4().hex
     now = int(time.time())
     con.execute("INSERT INTO sesiones(token,usuario_id,creado,expira) VALUES(?,?,?,?)",
@@ -484,6 +591,15 @@ def editar_perfil(body: PerfilIn, request: Request):
             raise HTTPException(400, "El número de Yape debe tener 9 dígitos")
         campos.append("yape=?")
         valores.append(y or None)
+    if body.plin is not None:
+        pl = body.plin.strip()
+        if pl and not re.match(r"^[0-9]{9}$", pl):
+            raise HTTPException(400, "El número de Plin debe tener 9 dígitos")
+        campos.append("plin=?")
+        valores.append(pl or None)
+    if body.mostrar_contacto is not None:
+        campos.append("mostrar_contacto=?")
+        valores.append(1 if body.mostrar_contacto else 0)
     if not campos:
         raise HTTPException(400, "Nada que actualizar")
     valores.append(user["id"])
@@ -515,30 +631,61 @@ def mis_publicaciones(request: Request):
 def listar(request: Request, tipo: Optional[str] = None, categoria: Optional[str] = None,
            q: Optional[str] = None, zona: Optional[str] = None, emergencia: bool = False,
            tipo_favor: Optional[str] = None, solo_recomendadas: bool = False,
+           solo_favores: bool = False,
            lat: Optional[float] = None, lng: Optional[float] = None,
            limit: int = Query(20, ge=1, le=50), offset: int = Query(0, ge=0)):
     viewer = current_user(request)
+    ref_lat, ref_lng = lat, lng
+    if (ref_lat is None or ref_lng is None) and viewer:
+        # Sin GPS usamos el centro del sector del vecino: distancia útil, no exacta.
+        centro = ZONA_CENTRO.get(viewer.get("zona") or "", (None, None))
+        if centro[0] is not None:
+            ref_lat, ref_lng = centro
     if viewer:
-        viewer = {**viewer, "lat_ref": lat, "lng_ref": lng}
+        viewer = {**viewer, "lat_ref": ref_lat, "lng_ref": ref_lng}
     con = connect()
+    ahora = int(time.time())
+    vencidas = con.execute(
+        "SELECT id, autor_id FROM publicaciones WHERE estado='activa' AND expira_en IS NOT NULL"
+        " AND expira_en < ? AND deleted_at IS NULL", (ahora,)).fetchall()
+    for v in vencidas:
+        con.execute("UPDATE publicaciones SET estado='vencida' WHERE id=?", (v["id"],))
+        notificar(con, v["autor_id"], "vencida", "Tu publicación venció",
+                  "Pasaron 30 días. Puedes volver a publicarla cuando quieras.", "/?v=mias")
+    if vencidas:
+        con.commit()
     rows = filtros_lista(con, tipo=tipo, categoria=categoria, q=q, zona=zona,
                          emergencia=emergencia, solo_recomendadas=solo_recomendadas,
                          tipo_favor=tipo_favor)
+    if solo_favores:
+        rows = [r for r in rows if str(r.get("tipo", "")).startswith("favor")]
     total = len(rows)
-    if lat is not None and lng is not None:
+    if ref_lat is not None and ref_lng is not None:
         for r in rows:
-            r["_d"] = haversine_km(lat, lng, r.get("lat"), r.get("lng"))
-        rows.sort(key=lambda r: r["_d"])
+            r["_d"] = haversine_km(ref_lat, ref_lng, r.get("lat"), r.get("lng"))
+        rows.sort(key=lambda r: (r["_d"] is None, r["_d"] or 0))
     page = rows[offset: offset + limit]
     out = [serializar_publicacion(r, viewer, con) for r in page]
+    # La distancia se muestra también sin sesión: sirve para decidir, no es un dato personal.
+    for item, r in zip(out, page):
+        if r.get("_d") is not None:
+            item["distancia_km"] = round(r["_d"], 3)
     con.close()
     return {"items": out, "total": total, "limit": limit, "offset": offset,
             "has_more": offset + limit < total}
 
 
 @app.get("/api/publicaciones/{pid}")
-def detalle(pid: str, request: Request):
+def detalle(pid: str, request: Request, lat: Optional[float] = None, lng: Optional[float] = None):
     viewer = current_user(request)
+    ref_lat, ref_lng = lat, lng
+    if (ref_lat is None or ref_lng is None):
+        origen = (viewer.get("zona") if viewer else None) or None
+        centro = ZONA_CENTRO.get(origen or "", (None, None)) if origen else (None, None)
+        if centro[0] is not None:
+            ref_lat, ref_lng = centro
+    if viewer:
+        viewer = {**viewer, "lat_ref": ref_lat, "lng_ref": ref_lng}
     con = connect()
     row = con.execute("SELECT * FROM publicaciones WHERE id=? AND deleted_at IS NULL",
                       (pid,)).fetchone()
@@ -550,6 +697,12 @@ def detalle(pid: str, request: Request):
         "SELECT estado_anterior, estado_nuevo, motivo, creado FROM historial_estado"
         " WHERE entidad='publicacion' AND entidad_id=? ORDER BY creado DESC LIMIT 10",
         (pid,)).fetchall()]
+    if viewer and viewer["id"] != row["autor_id"] and pub.get("contacto_visible"):
+        con.execute(
+            "INSERT INTO accesos_contacto(id,publicacion_id,usuario_id,creado) VALUES(?,?,?,?)",
+            (str(uuid.uuid4()), pid, viewer["id"], int(time.time())),
+        )
+        con.commit()
     pub["vistos_detalle"] = [dict(r) for r in con.execute(
         "SELECT v.comentario, v.creado, u.nombre, u.zona FROM vistos v"
         " JOIN usuarios u ON u.id=v.usuario_id WHERE v.publicacion_id=?"
@@ -601,6 +754,12 @@ def crear_publicacion(body: PublicacionIn, request: Request):
     lat, lng = body.lat, body.lng
     if lat is None or lng is None:
         lat, lng = ZONA_CENTRO.get(zona, (None, None))
+    # El número de pago se copia a la publicación al crearla: si el vecino
+    # cambia su Yape después, el historial no se reescribe.
+    yape_pub = body.yape_snapshot if False else (user.get("yape") or "")
+    plin_pub = user.get("plin") or ""
+    fotos_json = json.dumps([f for f in (body.fotos or []) if str(f).startswith("/fotos/")][:3]) if body.fotos else "[]"
+    necesidad = body.necesidad if (body.es_emergencia and body.necesidad in NECESIDADES_72H) else ""
     con = connect()
     cid = body.client_id or str(uuid.uuid4())
     existente = con.execute("SELECT id, autor_id FROM publicaciones WHERE client_id=?",
@@ -616,8 +775,9 @@ def crear_publicacion(body: PublicacionIn, request: Request):
     con.execute(
         "INSERT INTO publicaciones(id,autor_id,tipo,categoria,subtipo_favor,titulo,descripcion,"
         "precio,medios_pago,qr_yape,politica_pago,zona,lat,lng,punto_encuentro,franja_horaria,cupo,"
-        "checklist_ok,estado,es_emergencia,recurso_critico,expira_en,creado,actualizado,client_id)"
-        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'activa',?,?,?,?,?,?)",
+        "checklist_ok,estado,es_emergencia,recurso_critico,expira_en,creado,actualizado,client_id,"
+        "yape_snapshot,plin_snapshot,mostrar_contacto,fotos,necesidad)"
+        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'activa',?,?,?,?,?,?,?,?,?,?,?)",
         (pid, user["id"], body.tipo, cat, body.subtipo_favor, titulo, desc,
          clean_txt(body.precio, 40), ",".join(medios), body.qr_yape or "",
          body.politica_pago, zona, lat, lng,
@@ -625,7 +785,8 @@ def crear_publicacion(body: PublicacionIn, request: Request):
          body.cupo, 1 if body.checklist_ok else 0,
          1 if body.es_emergencia else 0,
          1 if (body.recurso_critico and body.es_emergencia) else 0,
-         now + 30 * 86400, now, now, cid),
+         now + 30 * 86400, now, now, cid,
+         yape_pub, plin_pub, 1 if body.mostrar_contacto else 0, fotos_json, necesidad),
     )
     historial(con, "publicacion", pid, None, "activa", user["id"], "creación")
     log_evento(con, "publicacion_creada", pid, user["id"], body.tipo)
@@ -731,9 +892,23 @@ def dar_visto(body: VistoIn, request: Request):
     if pub["autor_id"] == user["id"]:
         con.close()
         raise HTTPException(400, "No puedes recomendar tu propia publicación")
-    if pub["estado"] != "activa":
+    if pub["estado"] not in {"activa", "resuelta"}:
         con.close()
-        raise HTTPException(400, "Solo se puede recomendar publicaciones activas")
+        raise HTTPException(400, "Solo se puede recomendar publicaciones activas o cerradas")
+    trato = con.execute(
+        "SELECT 1 FROM tratos WHERE publicacion_id=? AND comprador_id=? AND estado='cerrado'",
+        (body.publicacion_id, user["id"]),
+    ).fetchone()
+    intercambio = con.execute(
+        "SELECT 1 FROM intercambios i JOIN publicaciones p ON p.id=i.peticion_id"
+        " WHERE i.peticion_id=? AND i.estado='resuelta' AND i.ofertante_id=?",
+        (body.publicacion_id, user["id"]),
+    ).fetchone()
+    if not trato and not intercambio:
+        con.close()
+        raise HTTPException(
+            400, "Solo puedes recomendar un servicio que hayas cerrado con la otra persona. "
+                 "Marca primero \"cerramos el trato\".")
     try:
         con.execute(
             "INSERT INTO vistos(id,publicacion_id,usuario_id,comentario,creado) VALUES(?,?,?,?,?)",
@@ -868,6 +1043,8 @@ def metricas(request: Request):
     usuarios = one("SELECT COUNT(*) c FROM usuarios")
     reportes = one("SELECT COUNT(*) c FROM reportes WHERE estado='pendiente'")
     vistos = one("SELECT COUNT(*) c FROM vistos")
+    tratos = one("SELECT COUNT(*) c FROM tratos")
+    tratos_cerrados = one("SELECT COUNT(*) c FROM tratos WHERE estado='cerrado'")
     ult7 = one("SELECT COUNT(*) c FROM eventos WHERE tipo='publicacion_creada' AND creado>?",
                now - 7 * 86400)
     con.close()
@@ -878,6 +1055,7 @@ def metricas(request: Request):
         "cotizaciones": cotiz, "cotizaciones_respondidas": cotiz_resp,
         "fill_rate_cotizaciones": round(cotiz_resp / cotiz * 100, 1) if cotiz else 0,
         "intercambios": inter, "intercambios_resueltos": inter_res,
+        "tratos": tratos, "tratos_cerrados": tratos_cerrados,
         "publicaciones_ultimos_7_dias": ult7,
         "reportes_pendientes": reportes,
         "densidad": "ok" if activas >= 20 else "baja",
@@ -915,6 +1093,13 @@ def crear_cotizacion(body: CotizacionIn, request: Request):
          clean_txt(body.medida, 100), body.urgencia or "normal", now, now + 7 * 86400),
     )
     log_evento(con, "cotizacion_enviada", body.publicacion_id, user["id"])
+    pub_autor = con.execute("SELECT autor_id, titulo FROM publicaciones WHERE id=?",
+                            (body.publicacion_id,)).fetchone()
+    if pub_autor:
+        notificar(con, pub_autor["autor_id"], "cotizacion",
+                  "Te pidieron una cotización",
+                  f"{user['nombre']} pregunta por: {pub_autor['titulo']}",
+                  "/?v=mias")
     con.commit()
     con.close()
     return {"ok": True, "id": cid, "expira_en_dias": 7}
@@ -924,6 +1109,9 @@ def crear_cotizacion(body: CotizacionIn, request: Request):
 def mis_cotizaciones(request: Request):
     user = require_user(request)
     con = connect()
+    ahora = int(time.time())
+    con.execute("UPDATE cotizaciones SET estado='expirada' WHERE estado='enviada' AND expira < ?", (ahora,))
+    con.commit()
     rows = con.execute(
         "SELECT c.*, p.titulo, p.autor_id, u.nombre AS vendedor FROM cotizaciones c"
         " JOIN publicaciones p ON p.id=c.publicacion_id"
@@ -956,6 +1144,13 @@ def responder_cotizacion(cid: str, body: CotizacionRespIn, request: Request):
         "UPDATE cotizaciones SET estado=?, precio_respuesta=?, nota_vendedor=? WHERE id=?",
         (body.respuesta, clean_txt(body.precio_respuesta, 40), clean_txt(body.nota, 300), cid))
     log_evento(con, "cotizacion_respondida", cot["publicacion_id"], user["id"], body.respuesta)
+    titulo_pub = con.execute("SELECT titulo FROM publicaciones WHERE id=?",
+                             (cot["publicacion_id"],)).fetchone()
+    notificar(con, cot["comprador_id"], "cotizacion_respuesta",
+              "Respondieron tu cotización",
+              f"{user['nombre']}: {body.respuesta.replace('_', ' ')}"
+              + (f" ({body.precio_respuesta})" if body.precio_respuesta else ""),
+              "/?v=mias")
     con.commit()
     con.close()
     return {"ok": True}
@@ -997,6 +1192,8 @@ def crear_intercambio(body: IntercambioIn, request: Request):
     )
     historial(con, "intercambio", iid, None, "solicitada", user["id"], "solicitud")
     log_evento(con, "intercambio_solicitado", body.peticion_id, user["id"])
+    notificar(con, pet["autor_id"], "favor_solicitado", "Alguien quiere ayudarte",
+              f"{user['nombre']} respondió a tu favor. Entra para aceptar.", "/?v=mias")
     con.commit()
     con.close()
     return {"ok": True, "id": iid}
@@ -1055,6 +1252,12 @@ def cambiar_estado_intercambio(iid: str, body: IntercambioEstadoIn, request: Req
     historial(con, "intercambio", iid, it["estado"], body.estado, user["id"], "")
     if body.estado == "resuelta":
         log_evento(con, "intercambio_resuelto", it["peticion_id"], user["id"])
+        otro = it["ofertante_id"] if user["id"] == it["solicitante_id"] else it["solicitante_id"]
+        notificar(con, otro, "favor_resuelto", "Se cerró el favor",
+                  "Ya puedes dejar tu visto bueno a quien te ayudó.", "/?v=mias")
+    if body.estado == "aceptada":
+        notificar(con, it["ofertante_id"], "favor_aceptado", "Aceptaron tu ayuda",
+                  "El vecino aceptó. Coordinen la entrega por WhatsApp.", "/?v=mias")
     con.commit()
     con.close()
     return {"ok": True, "estado": body.estado}
@@ -1203,6 +1406,212 @@ def evento_contacto(publicacion_id: str, request: Request):
     return {"ok": True}
 
 
+
+# ----------------------------------------------------------------- tratos (cierre del ciclo)
+@app.post("/api/tratos")
+def crear_trato(body: TratoIn, request: Request):
+    """El comprador declara que cerró el trato con el vendedor."""
+    user = require_user(request)
+    con = connect()
+    pub = con.execute("SELECT * FROM publicaciones WHERE id=? AND deleted_at IS NULL",
+                      (body.publicacion_id,)).fetchone()
+    if not pub:
+        con.close()
+        raise HTTPException(404, "Publicación no encontrada")
+    if pub["autor_id"] == user["id"]:
+        con.close()
+        raise HTTPException(400, "No puedes cerrar un trato contigo mismo")
+    if pub["tipo"].startswith("favor"):
+        con.close()
+        raise HTTPException(400, "En favores se usa el botón de intercambio, no el trato comercial")
+    existente = con.execute(
+        "SELECT * FROM tratos WHERE publicacion_id=? AND comprador_id=? AND estado!='cancelado'",
+        (body.publicacion_id, user["id"])).fetchone()
+    if existente:
+        con.close()
+        return {"ok": True, "id": existente["id"], "estado": existente["estado"]}
+    tid = str(uuid.uuid4())
+    now = int(time.time())
+    con.execute(
+        "INSERT INTO tratos(id,publicacion_id,comprador_id,vendedor_id,estado,monto,nota,"
+        "creado,actualizado) VALUES(?,?,?,?,'acordado',?,?,?,?)",
+        (tid, body.publicacion_id, user["id"], pub["autor_id"],
+         clean_txt(body.monto, 40), clean_txt(body.nota, 300), now, now))
+    notificar(con, pub["autor_id"], "trato", "Cerraste un trato",
+              f"{user['nombre']} registró un trato por: {pub['titulo']}. Confírmalo en Mis publicaciones.",
+              "/?v=mias")
+    con.commit()
+    con.close()
+    return {"ok": True, "id": tid, "estado": "acordado"}
+
+
+@app.get("/api/tratos")
+def mis_tratos(request: Request):
+    user = require_user(request)
+    con = connect()
+    con.execute("UPDATE tratos SET estado='cerrado', cerrado_en=? "
+                "WHERE marca_comprador=1 AND marca_vendedor=1 AND estado!='cerrado'",
+                (int(time.time()),))
+    con.commit()
+    rows = con.execute(
+        "SELECT t.*, p.titulo, p.zona, cu.nombre AS comprador_nombre, vu.nombre AS vendedor_nombre"
+        " FROM tratos t JOIN publicaciones p ON p.id=t.publicacion_id"
+        " JOIN usuarios cu ON cu.id=t.comprador_id JOIN usuarios vu ON vu.id=t.vendedor_id"
+        " WHERE t.comprador_id=? OR t.vendedor_id=? ORDER BY t.creado DESC",
+        (user["id"], user["id"])).fetchall()
+    con.close()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/tratos/{tid}/estado")
+def marcar_trato(tid: str, body: TratoEstadoIn, request: Request):
+    """Doble marca: comprador y vendedor confirman; al coincidir queda cerrado."""
+    user = require_user(request)
+    if body.estado not in {"cerrado", "cancelado"}:
+        raise HTTPException(400, "Estado inválido")
+    con = connect()
+    tr = con.execute("SELECT * FROM tratos WHERE id=?", (tid,)).fetchone()
+    if not tr:
+        con.close()
+        raise HTTPException(404, "Trato no encontrado")
+    if user["id"] not in (tr["comprador_id"], tr["vendedor_id"]):
+        con.close()
+        raise HTTPException(403, "No participas en este trato")
+    now = int(time.time())
+    if body.estado == "cancelado":
+        con.execute("UPDATE tratos SET estado='cancelado', actualizado=? WHERE id=?", (now, tid))
+    else:
+        campo = "marca_comprador" if user["id"] == tr["comprador_id"] else "marca_vendedor"
+        con.execute(f"UPDATE tratos SET {campo}=1, actualizado=? WHERE id=?", (now, tid))
+        nuevo = con.execute("SELECT * FROM tratos WHERE id=?", (tid,)).fetchone()
+        if nuevo["marca_comprador"] and nuevo["marca_vendedor"]:
+            con.execute("UPDATE tratos SET estado='cerrado', cerrado_en=? WHERE id=?", (now, tid))
+            notificar(con, tr["comprador_id"], "trato_cerrado", "Trato cerrado",
+                      "Ya puedes dejar tu visto bueno a quien te atendió.", "/?v=mias")
+        else:
+            otro = tr["vendedor_id"] if user["id"] == tr["comprador_id"] else tr["comprador_id"]
+            notificar(con, otro, "trato", "Confirmación pendiente",
+                      f"{user['nombre']} marcó el trato como cumplido. Confírmalo tú también.", "/?v=mias")
+    con.commit()
+    con.close()
+    return {"ok": True}
+
+
+# ----------------------------------------------------------------- notificaciones
+@app.get("/api/notificaciones")
+def mis_notificaciones(request: Request):
+    user = require_user(request)
+    con = connect()
+    rows = con.execute(
+        "SELECT * FROM notificaciones WHERE usuario_id=? ORDER BY creado DESC LIMIT 40",
+        (user["id"],)).fetchall()
+    pendientes = con.execute(
+        "SELECT COUNT(*) c FROM notificaciones WHERE usuario_id=? AND leida=0",
+        (user["id"],)).fetchone()["c"]
+    con.close()
+    return {"items": [dict(r) for r in rows], "sin_leer": pendientes}
+
+
+@app.post("/api/notificaciones/leer")
+def leer_notificaciones(request: Request):
+    user = require_user(request)
+    con = connect()
+    con.execute("UPDATE notificaciones SET leida=1 WHERE usuario_id=?", (user["id"],))
+    con.commit()
+    con.close()
+    return {"ok": True}
+
+
+# ----------------------------------------------------------------- recuperar contraseña
+@app.post("/api/password/solicitar")
+def solicitar_reset(body: ResetIn, request: Request):
+    rate_limit(request, "/api/login")
+    ident = body.identificador.strip()
+    con = connect()
+    u = con.execute("SELECT id, telefono, email FROM usuarios WHERE email=? OR telefono=?",
+                    (ident.lower(), ident)).fetchone()
+    if not u:
+        con.close()
+        # No revelamos si existe la cuenta
+        return {"ok": True, "mensaje": "Si la cuenta existe, enviamos un código al teléfono registrado."}
+    codigo = f"{uuid.uuid4().int % 1000000:06d}"
+    con.execute("UPDATE usuarios SET reset_code=?, reset_expira=? WHERE id=?",
+                (codigo, int(time.time()) + 900, u["id"]))
+    con.commit()
+    con.close()
+    # En la demo el código vuelve en la respuesta; con proveedor de SMS/WhatsApp
+    # se envía al teléfono y no se muestra.
+    return {"ok": True, "codigo_demo": codigo,
+            "mensaje": "Código válido por 15 minutos. En la demo se muestra aquí; con WhatsApp llegaría a tu teléfono."}
+
+
+@app.post("/api/password/confirmar")
+def confirmar_reset(body: ResetConfirmIn):
+    ident = body.identificador.strip()
+    con = connect()
+    u = con.execute("SELECT * FROM usuarios WHERE email=? OR telefono=?", (ident.lower(), ident)).fetchone()
+    if not u or not u["reset_code"] or u["reset_code"] != body.codigo.strip():
+        con.close()
+        raise HTTPException(400, "Código incorrecto")
+    if not u["reset_expira"] or u["reset_expira"] < time.time():
+        con.close()
+        raise HTTPException(400, "El código venció. Pide otro.")
+    sal = uuid.uuid4().hex[:16]
+    con.execute("UPDATE usuarios SET pass=?, salt=?, reset_code='', reset_expira=NULL WHERE id=?",
+                (hash_pw_salted(body.password, sal), sal, u["id"]))
+    con.execute("DELETE FROM sesiones WHERE usuario_id=?", (u["id"],))
+    con.commit()
+    con.close()
+    return {"ok": True, "mensaje": "Contraseña actualizada. Inicia sesión con la nueva."}
+
+
+# ----------------------------------------------------------------- registro de accesos
+@app.get("/api/mis-accesos")
+def mis_accesos(request: Request):
+    """El vecino ve cuántas veces se consultó su contacto."""
+    user = require_user(request)
+    con = connect()
+    rows = con.execute(
+        "SELECT a.creado, p.titulo, u.nombre AS quien FROM accesos_contacto a"
+        " JOIN publicaciones p ON p.id=a.publicacion_id"
+        " JOIN usuarios u ON u.id=a.usuario_id"
+        " WHERE p.autor_id=? ORDER BY a.creado DESC LIMIT 30", (user["id"],)).fetchall()
+    total = con.execute(
+        "SELECT COUNT(*) c FROM accesos_contacto a JOIN publicaciones p ON p.id=a.publicacion_id"
+        " WHERE p.autor_id=?", (user["id"],)).fetchone()["c"]
+    con.close()
+    return {"total": total, "items": [dict(r) for r in rows]}
+
+
+# ----------------------------------------------------------------- fotos
+@app.post("/api/fotos")
+def subir_foto(request: Request, payload: dict):
+    """Recibe la imagen ya comprimida en el teléfono (data URL) y la guarda."""
+    user = require_user(request)
+    data = (payload or {}).get("data", "")
+    if not data.startswith("data:image/"):
+        raise HTTPException(400, "Formato de imagen no válido")
+    try:
+        cabecera, b64 = data.split(",", 1)
+        binario = base64.b64decode(b64)
+    except Exception:
+        raise HTTPException(400, "No pudimos leer la imagen")
+    if len(binario) > 400_000:
+        raise HTTPException(400, "La imagen es muy grande: máximo 400 KB")
+    ext = "png" if "png" in cabecera else "jpg"
+    nombre = f"{uuid.uuid4().hex}.{ext}"
+    destino = FOTOS_DIR / nombre
+    destino.write_bytes(binario)
+    con = connect()
+    log_evento(con, "foto_subida", None, user["id"], nombre)
+    con.commit()
+    con.close()
+    return {"ok": True, "url": f"/fotos/{nombre}"}
+
+
 # ----------------------------------------------------------------- estáticos
 STATIC = Path(__file__).resolve().parent / "static"
+FOTOS_DIR = Path(__file__).resolve().parent.parent / "data" / "fotos"
+FOTOS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/fotos", StaticFiles(directory=str(FOTOS_DIR)), name="fotos")
 app.mount("/", StaticFiles(directory=str(STATIC), html=True), name="static")
