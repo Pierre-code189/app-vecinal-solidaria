@@ -2,7 +2,7 @@
    Móvil primero, sin dependencias. Todo lo que se muestra pasa por esc(). */
 "use strict";
 
-const APP_VERSION = "3.3.0";   // se sube con cada despliegue que cambie JS o CSS
+const APP_VERSION = "3.3.1";   // se sube con cada despliegue que cambie JS o CSS
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -46,6 +46,102 @@ const S = {
   fotos: [],
   paso: 1,
 };
+
+/* ------------------------------------------------------------ selector propio
+   El desplegable nativo lo dibuja el sistema operativo (lista con radios) y no
+   se puede vestir. Se reemplaza por un listbox propio, manteniendo el <select>
+   real como fuente del valor para que el resto del código no cambie. */
+function mejoraSelect(sel) {
+  if (!sel || sel.dataset.selPropio) return;
+  sel.dataset.selPropio = "1";
+  const wrap = document.createElement("div");
+  wrap.className = "sel";
+  sel.parentNode.insertBefore(wrap, sel);
+  wrap.appendChild(sel);
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "sel-btn";
+  btn.setAttribute("aria-haspopup", "listbox");
+  btn.setAttribute("aria-expanded", "false");
+  btn.innerHTML = `<span class="sel-txt"></span>
+    <svg class="ic sel-chev" aria-hidden="true"><use href="#i-chevron"/></svg>`;
+
+  const panel = document.createElement("ul");
+  panel.className = "sel-panel";
+  panel.setAttribute("role", "listbox");
+  panel.hidden = true;
+  wrap.appendChild(btn);
+  wrap.appendChild(panel);
+
+  const etiqueta = () => {
+    const o = sel.options[sel.selectedIndex];
+    btn.querySelector(".sel-txt").textContent = o ? o.textContent : "";
+    const lbl = document.querySelector(`label[for="${sel.id}"]`);
+    const nombre = sel.getAttribute("aria-label") || (lbl ? lbl.textContent.replace(/\s+/g, " ").trim() : "Opción");
+    btn.setAttribute("aria-label", nombre + ": " + (o ? o.textContent : ""));
+  };
+
+  const pintar = () => {
+    panel.innerHTML = "";
+    Array.from(sel.options).forEach((o, i) => {
+      const li = document.createElement("li");
+      li.className = "sel-op";
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", String(i === sel.selectedIndex));
+      li.dataset.i = String(i);
+      li.innerHTML = `<span>${esc(o.textContent)}</span>
+        <svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>`;
+      li.onclick = () => elegir(i);
+      panel.appendChild(li);
+    });
+    etiqueta();
+  };
+
+  const abrir = () => {
+    panel.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+    const act = panel.querySelector('[aria-selected="true"]') || panel.firstElementChild;
+    act?.classList.add("activo");
+    act?.scrollIntoView({ block: "nearest" });
+  };
+  const cerrar = () => {
+    panel.hidden = true;
+    btn.setAttribute("aria-expanded", "false");
+    panel.querySelectorAll(".activo").forEach((e) => e.classList.remove("activo"));
+  };
+  const elegir = (i) => {
+    if (i < 0 || i >= sel.options.length) return;
+    sel.selectedIndex = i;
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+    pintar(); cerrar(); btn.focus();
+  };
+
+  btn.onclick = (e) => { e.stopPropagation(); panel.hidden ? abrir() : cerrar(); };
+  btn.onkeydown = (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (panel.hidden) { abrir(); return; }
+      const ops = Array.from(panel.children);
+      const actual = ops.findIndex((o) => o.classList.contains("activo"));
+      const paso = e.key === "ArrowUp" ? -1 : 1;
+      const siguiente = e.key === "Enter" || e.key === " " ? actual : Math.min(ops.length - 1, Math.max(0, actual + paso));
+      ops.forEach((o) => o.classList.remove("activo"));
+      ops[siguiente]?.classList.add("activo");
+      ops[siguiente]?.scrollIntoView({ block: "nearest" });
+    } else if (e.key === "Escape") { cerrar(); }
+    else if (e.key === "Tab") { cerrar(); }
+  };
+  panel.onkeydown = (e) => { if (e.key === "Escape") { cerrar(); btn.focus(); } };
+
+  sel._sync = etiqueta;
+  sel.addEventListener("change", etiqueta);
+  new MutationObserver(pintar).observe(sel, { childList: true, subtree: true });
+  document.addEventListener("click", (e) => { if (!wrap.contains(e.target)) cerrar(); });
+  pintar();
+}
+
+window.syncSelects = () => $$("select").forEach((s) => s._sync && s._sync());
 
 /* ------------------------------------------------------------ utilidades */
 const cap = (s) => { const x = String(s || ""); return x.charAt(0).toUpperCase() + x.slice(1); };
@@ -639,6 +735,7 @@ function guardarBorrador() {
   localStorage.setItem(BORRADOR, JSON.stringify(d));
 }
 function restaurarBorrador() {
+  setTimeout(() => window.syncSelects && window.syncSelects(), 0);
   let d; try { d = JSON.parse(localStorage.getItem(BORRADOR) || "null"); } catch { d = null; }
   if (!d) { $("#f-zona").value = S.user.zona || S.zona; return; }
   $("#f-tipo").value = d.tipo || "servicio";
@@ -1071,6 +1168,7 @@ function llenarZonas() {
   });
   const rz = $("#r-zona");
   rz.innerHTML = `<option value="">Elige tu sector</option>` + opciones;
+  window.syncSelects && window.syncSelects();
 }
 
 async function pedirGPS() {
@@ -1328,6 +1426,7 @@ async function arrancar() {
   if (S.user === null) await cargarPerfil();
   pintarZona();
   engancharEventos();
+  $$("select").forEach(mejoraSelect);
   fabInteligente();
   pintarAuth();
   await cargarLista();

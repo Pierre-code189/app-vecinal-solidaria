@@ -283,3 +283,20 @@ esa vista cae en el perfil.
 actúan como comodín) dañó tres trazados SVG: el libro del tutorial, la llave de
 cerrajería y el apretón de manos de «Cerrar trato». Se restauraron y se
 comprobó que los 37 iconos siguen dibujándose.
+
+## Desplegables propios (v3.3.1)
+
+El `<select>` nativo lo pinta el sistema operativo: en Android e iOS se abre como
+una lista con botones de radio grises, imposible de vestir con CSS. Por eso se veía
+"del sistema" aunque el control cerrado ya estuviera integrado.
+
+Ahora cada `<select>` se sustituye por un **listbox propio**: botón con el estilo de
+los campos de la app, panel blanco redondeado con sombra, opción activa en verde con
+marca de verificación y scroll interno cuando hay muchas opciones. El `<select>` real
+sigue en el DOM como fuente del valor, así que todo el código existente
+(`select.value`, eventos `change`, validaciones) funciona sin cambios.
+
+Detalles: cierre al tocar fuera o con Escape, navegación con flechas y Enter, y
+`aria-expanded` / `role="listbox"` para lectores de pantalla. Los 12 desplegables de
+la app (categorías, sector, tipo, pagos, orden, recuperación de contraseña) usan el
+mismo componente.

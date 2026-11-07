@@ -1,7 +1,7 @@
 /* Service worker: shell primero para cargar sin internet, red primero para datos.
    Los datos se guardan en localStorage desde la app; aquí solo se cachea el shell. */
-const CACHE = 'vecinal-v9';
-const SHELL = ['./', './index.html', './style.css?v=3.3.0', './app.js?v=3.3.0', './manifest.json',
+const CACHE = 'vecinal-v10';
+const SHELL = ['./', './index.html', './style.css?v=3.3.1', './app.js?v=3.3.1', './manifest.json',
   './icon-192.svg', './icon-512.svg'];
 
 self.addEventListener('install', (event) => {

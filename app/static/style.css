@@ -215,6 +215,36 @@ label{display:block;font-size:.82rem;font-weight:600;margin:14px 0 6px;color:var
 .badge.gris{background:var(--surface-3);color:var(--muted);border-color:var(--line)}
 .badges{margin:6px 0;display:flex;flex-wrap:wrap;gap:4px}
 
+/* ---------- selector propio (reemplaza el desplegable del sistema) ---------- */
+.sel{position:relative;display:inline-flex;width:100%;min-width:0}
+.sel > select{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;min-height:0}
+.sel-btn{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;
+  min-height:var(--control-h);padding:0 12px 0 14px;border:1px solid var(--line);border-radius:11px;
+  background:var(--surface);color:var(--ink);font:inherit;font-size:.95rem;cursor:pointer;
+  transition:border-color .15s,box-shadow .15s;
+}
+.sel-btn:hover{border-color:#c2d3c9}
+.sel-btn[aria-expanded="true"]{border-color:var(--brand-600);box-shadow:0 0 0 3px rgba(15,107,76,.16)}
+.sel-btn:focus-visible{outline:2px solid var(--brand-600);outline-offset:2px}
+.sel-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-chev{color:var(--muted);transition:transform .15s}
+.sel-btn[aria-expanded="true"] .sel-chev{transform:rotate(180deg)}
+.sel-panel{
+  position:absolute;z-index:70;left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;
+  list-style:none;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 18px 44px rgba(16,40,30,.20);max-height:min(300px,60vh);overflow:auto;
+}
+.sel-op{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;border-radius:8px;font-size:.93rem;color:var(--text);cursor:pointer}
+.sel-op:hover,.sel-op.activo{background:var(--surface-3)}
+.sel-op[aria-selected="true"]{background:var(--brand-50);color:var(--brand-700);font-weight:600}
+.sel-op .ic{width:.95em;height:.95em;opacity:0;color:var(--brand-600)}
+.sel-op[aria-selected="true"] .ic{opacity:1}
+.toolbar .sel{flex:1 1 210px;min-width:190px}
+.orden .sel{width:auto;min-width:150px}
+.orden .sel-btn{min-height:38px;font-size:.84rem;padding:0 10px 0 12px}
+
 /* ---------- tarjetas ---------- */
 .grid{display:grid;grid-template-columns:1fr;gap:12px}
 .grid.small{grid-template-columns:1fr}
@@ -420,14 +450,15 @@ label{display:block;font-size:.82rem;font-weight:600;margin:14px 0 6px;color:var
   .bottom-nav button span{font-size:.63rem}
   .toolbar{position:sticky;top:54px;z-index:20;background:var(--bg);padding:8px 0;margin:8px 0}
   .toolbar #btn-publicar{flex:1 1 42%;order:3;min-height:44px}
-  .toolbar select{flex:1 1 54%;min-width:0;order:2;font-size:.85rem;padding:10px 34px 10px 12px}
+  .toolbar .sel{flex:1 1 54%;min-width:0;order:2}
+  .toolbar .sel-btn{font-size:.85rem}
   .toolbar input[type=search]{order:1;flex:1 1 100%}
   /* sin botón flotante: el botón vive en la barra, así no tapa las tarjetas */
   .fab{display:none!important}
   .orden{flex-wrap:wrap;gap:8px;margin-bottom:8px}
   .orden .hint{flex:1 1 100%;order:1}
   .orden-ctl{width:100%;justify-content:space-between;order:2}
-  .orden select{flex:1 1 auto;max-width:200px}
+  .orden .sel{flex:1 1 auto;max-width:200px;min-width:0}
   .bottom-nav button.on{color:var(--brand-700);font-weight:700}
   .bottom-nav button.on svg{background:var(--brand-50);border-radius:10px}
   .bottom-nav svg{padding:2px;box-sizing:content-box;transition:background .15s;width:22px;height:22px}
