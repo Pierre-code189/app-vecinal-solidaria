@@ -1,0 +1,42 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>App Vecinal Solidaria</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><div class="logo">🏘️ App Vecinal Solidaria</div><div id="userbox" class="userbox"></div></header>
+<div id="banner" class="banner" style="display:none"></div>
+<nav id="nav">
+<button data-v="local" class="on">🏪 Economía Local</button>
+<button data-v="favores">🤝 Favores</button>
+<button data-v="emergencia">🚨 Emergencia</button>
+<button data-v="tutorial">📚 Tutorial</button>
+<button data-v="perfil">👤 Mi perfil</button>
+</nav>
+<main>
+<section id="view-local" class="view on">
+<h1>Economía Local <span class="sub">Productos y servicios cerca de ti, con visto bueno vecinal</span></h1>
+<div class="tabs"><button id="tab-prod" onclick="setTab('producto')">Productos</button><button id="tab-serv" class="on" onclick="setTab('servicio')">Servicios</button><button onclick="setTab('')">Todos</button></div>
+<div class="toolbar"><input id="q" placeholder="🔍 Buscar gasfitero, pastelitos..." oninput="load()"><select id="cat" onchange="load()"><option value="">Todas las categorías</option><option>gasfitería</option><option>carpintería</option><option>electricidad</option><option>cerrajería</option><option>clases</option><option>alimentos</option><option>herramientas</option><option>movilidad</option><option>préstamo</option></select><button class="primary" onclick="showPub()">+ Publicar</button><button onclick="toggleMap()">🗺️ Mapa</button></div>
+<div id="map" class="map" style="display:none"><p>📍 Mapa vecinal (lista por distancia como respaldo sin internet)</p><div id="maplist"></div></div>
+<div id="list" class="grid"></div>
+</section>
+<section id="view-favores" class="view"><h1>Economía Solidaria <span class="sub">Muro de favores sin dinero: necesito / ofrezco</span></h1>
+<div class="tabs"><button onclick="fav('favor_solicitado')">Necesito</button><button onclick="fav('favor_ofrecido')">Ofrezco</button><button onclick="fav('')">Todos</button></div>
+<div class="toolbar"><button class="primary" onclick="showPub('favor')">+ Publicar favor</button><button onclick="toggleMap()">🗺️ Mapa</button></div>
+<div id="list2" class="grid"></div></section>
+<section id="view-emergencia" class="view"><h1>🚨 Emergencia <span class="sub">Tablero vecinal no oficial. Ante riesgo vital: 105 Policía · 116 Bomberos · 115 Defensa Civil · 106 SAMU</span></h1>
+<div id="emergbox"></div><div id="list3" class="grid"></div></section>
+<section id="view-tutorial" class="view"><h1>Tutorial <span class="sub">Cómo usar la aplicación en 5 pasos</span></h1>
+<div class="card"><p><b>1.</b> Crea tu cuenta con tu teléfono.</p><p><b>2.</b> Publica en 3 pantallas: tipo, datos, confirmar.</p><p><b>3.</b> Busca cerca de tu zona y contacta por WhatsApp.</p><p><b>4.</b> Recomienda con visto bueno lo que ya usaste.</p><p><b>5.</b> En emergencia, reporta tu necesidad y ofrece recursos críticos.</p><p>🎤 Puedes dictar con el micrófono. 📴 Sin internet ves lo guardado con la hora.</p></div></section>
+<section id="view-perfil" class="view"><h1>Mi perfil</h1><div id="perfilbox" class="card"></div>
+<h2>Crear cuenta / Iniciar sesión</h2><div class="card">
+<input id="reg-nombre" placeholder="Nombre"><input id="reg-zona" placeholder="Zona (ej: Zona Centro)"><input id="reg-tel" placeholder="Teléfono 9 dígitos"><input id="reg-email" placeholder="Correo"><input id="reg-pass" type="password" placeholder="Contraseña"><input id="reg-yape" placeholder="Yape (opcional)">
+<button class="primary" onclick="registro()">Crear cuenta</button><hr>
+<input id="log-email" placeholder="Correo"><input id="log-pass" type="password" placeholder="Contraseña"><button onclick="login()">Iniciar sesión</button>
+<p class="hint">Demo: mod@app.local / mod123 · juan@app.local / gas123 · pedro@app.local / pedro123</p></div></section>
+</main>
+<div id="modal" class="modal" style="display:none"><div class="modalbox"><button class="close" onclick="closeModal()">✕</button><div id="modalcontent"></div></div></div>
+<div id="pubmodal" class="modal" style="display:none"><div class="modalbox"><button class="close" onclick="document.getElementById('pubmodal').style.display='none'">✕</button>
+<h2>Publicar (3 pantallas)</h2><p>Pantalla 1 — Tipo</p><select id="p-tipo"><option value="servicio">Servicio</option><option value="producto">Producto</option><option value="favor_solicitado">Favor: necesito</option><option value="favor_ofrecido">Favor: ofrezco</option></select>
+<p>Pantalla 2 — Datos</p><input id="p-cat" placeholder="Categoría (gasfitería, alimentos...)"><input id="p-titulo" placeholder="Título"><textarea id="p-desc" placeholder="Descripción"></textarea><input id="p-precio" placeholder="Precio: S/ 20, A convenir, o Intercambio / sin dinero"><input id="p-zona" placeholder="Zona">
+<label><input type="checkbox" id="p-emerg"> También en emergencia</label>
+<p>Pantalla 3 — Confirmar</p><button class="primary" onclick="publicar()">✅ Confirmar publicación</button><p id="pubmsg"></p></div></div>
+<script src="app.js"></script></body></html>
