@@ -38,6 +38,8 @@
   --sombra:0 1px 2px rgba(16,40,30,.06),0 8px 24px rgba(16,40,30,.05);
   --max:1180px;
 }
+/* Un elemento con [hidden] nunca debe mostrarse, aunque su clase traiga display:flex. */
+[hidden]{display:none!important}
 *{box-sizing:border-box}
 /* Iconos: un solo trazo, heredan el color del texto. Sin emojis. */
 .ic{width:1.05em;height:1.05em;flex:0 0 auto;fill:none;stroke:currentColor;

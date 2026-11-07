@@ -2,6 +2,8 @@
    Móvil primero, sin dependencias. Todo lo que se muestra pasa por esc(). */
 "use strict";
 
+const APP_VERSION = "3.2.4";   // se sube con cada despliegue que cambie JS o CSS
+
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
@@ -1235,6 +1237,21 @@ function fabInteligente() {
   }, { passive: true });
 }
 
+/* Si el teléfono quedó con una versión vieja en caché, se actualiza sola una vez. */
+async function verificarVersion() {
+  try {
+    const d = await api("/api/salud", { offlineQueue: false });
+    if (!d || !d.version || d.version === APP_VERSION) return;
+    if (sessionStorage.getItem("vecinal-actualizado") === d.version) return;
+    sessionStorage.setItem("vecinal-actualizado", d.version);
+    if (navigator.serviceWorker) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.update().catch(() => {})));
+    }
+    location.reload();
+  } catch { /* sin conexión: se reintenta en la próxima visita */ }
+}
+
 async function arrancar() {
   try { S.zonas = await api("/api/zonas"); } catch { S.zonas = []; }
   llenarZonas();
@@ -1248,6 +1265,7 @@ async function arrancar() {
   if (S.user) { cargarAvisos(); setInterval(cargarAvisos, 60000); }
   const hash = location.hash.replace("#", "");
   if (hash && $(`#view-${hash}`)) ir(hash);
+  verificarVersion();
   if (!localStorage.getItem("vecinal-visto-loc") && !S.token) {
     $("#locmodal").hidden = false;
     localStorage.setItem("vecinal-visto-loc", "1");

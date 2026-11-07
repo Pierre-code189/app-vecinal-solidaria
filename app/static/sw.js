@@ -1,7 +1,7 @@
 /* Service worker: shell primero para cargar sin internet, red primero para datos.
    Los datos se guardan en localStorage desde la app; aquí solo se cachea el shell. */
-const CACHE = 'vecinal-v5';
-const SHELL = ['./', './index.html', './style.css?v=3.2.1', './app.js?v=3.2.1', './manifest.json',
+const CACHE = 'vecinal-v8';
+const SHELL = ['./', './index.html', './style.css?v=3.2.4', './app.js?v=3.2.4', './manifest.json',
   './icon-192.svg', './icon-512.svg'];
 
 self.addEventListener('install', (event) => {
@@ -49,12 +49,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Shell: caché primero, luego red, con respaldo al index para navegación.
+  // Shell: red primero (para que un despliegue nuevo llegue al instante) y
+  // caché solo cuando no hay conexión. Antes era caché primero, y un cambio de
+  // la app podía tardar días en verse.
   event.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      const copy = res.clone();
-      caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-      return res;
-    }).catch(() => (req.mode === 'navigate' ? caches.match('./index.html') : Response.error()))),
+    fetch(req)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        return res;
+      })
+      .catch(() => caches.match(req).then((hit) => hit
+        || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error()))),
   );
 });
