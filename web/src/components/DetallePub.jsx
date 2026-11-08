@@ -130,6 +130,7 @@ export default function DetallePub({ id, onClose }) {
             {!esFavor && <div><span>Precio</span><b>{p.precio || "A convenir"}</b></div>}
             {esFavor && <div><span>Estado</span><b className={p.estado === "activa" ? "abierto" : ""}>{p.estado === "activa" ? "Abierto" : "Pausado"}</b></div>}
             {esFavor && p.franja_horaria && <div><span>Cuándo</span><b>{p.franja_horaria}</b></div>}
+            {p.es_emergencia && p.necesidad && <div><span>Recurso</span><b>{String(p.necesidad).replace(/_/g, " ")}</b></div>}
             {!soloIntercambio && <div><span>Pago</span><b>{medios(p).join(", ") || "A convenir"}</b></div>}
             <div><span>Vistos buenos</span><b><Icon name="thumb" /> {p.vistos || 0}</b></div>
             {p.stock != null && (
@@ -147,7 +148,7 @@ export default function DetallePub({ id, onClose }) {
           )}
 
           {p.contacto_visible && (p.yape_autor || p.plin_autor) && (
-            <details className={`det2-pago ${soloIntercambio ? "oculto" : ""}`}>
+            <details className={`det2-pago ${soloIntercambio || esFavor ? "oculto" : ""}`}>
               <summary><Icon name="wallet" /> Datos para pagar</summary>
               <div className="det2-pago-cuerpo">
                 {p.yape_autor && (
@@ -271,7 +272,7 @@ export default function DetallePub({ id, onClose }) {
             </div>
           )}
 
-          {usuario && !p.es_mio && !p.tipo?.startsWith("favor") && (
+          {usuario && !p.es_mio && (
             <>
               {esExterno && (
                 <p className="hint det2-fuente">
@@ -285,7 +286,7 @@ export default function DetallePub({ id, onClose }) {
                   </a>
                 ) : (
                   <Btn className="cta-67" variant="primary" icon="chat" onClick={abrirConversacion}>
-                    Chat con el vecino
+                    Consultar al vecino
                   </Btn>
                 )}
                 {waLink ? (

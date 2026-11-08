@@ -50,7 +50,7 @@ export default function Local() {
   });
 
   const items = useMemo(() => {
-    let lista = data?.items || [];
+    let lista = (data?.items || []).filter((p) => !String(p.tipo || "").startsWith("favor"));
     if (radio !== "0") {
       lista = lista.filter((p) => p.distancia_km != null && p.distancia_km <= Number(radio));
     }

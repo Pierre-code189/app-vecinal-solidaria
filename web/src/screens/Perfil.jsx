@@ -148,35 +148,55 @@ export default function Perfil() {
             } catch (e) { setPinError(e.message); }
           }}>Guardar PIN</Btn>
       </Sheet>
-      <div className="perfil-card">
+      <section className="perfil-cab">
         <Avatar nombre={usuario.nombre} cls="grande" />
-        <div>
+        <div className="perfil-id">
           <b>{usuario.nombre}</b>
           <p className="hint">{usuario.telefono} · {usuario.zona}</p>
-          {usuario.rol === "moderador" && <span className="badge verde"><Icon name="shield" />Moderador</span>}
+          <div className="perfil-tags">
+            {usuario.rol !== "vecino" && (
+              <span className="badge verde"><Icon name="shield" />{usuario.rol === "admin" ? "Administrador" : "Moderador"}</span>
+            )}
+            {usuario.telefono_verificado && <span className="tag-ok"><Icon name="check" />Verificado</span>}
+          </div>
         </div>
-      </div>
+        <Btn size="small" icon="user" onClick={() => { setEditando(true); setF({}); }}>Editar</Btn>
+      </section>
 
-      <div className="stats-row">
-        <div><b>{usuario.vistos_recibidos ?? 0}</b><span>vistos buenos</span></div>
-        <div><b>{usuario.publicaciones ?? 0}</b><span>publicaciones</span></div>
-        <div><b>{usuario.tratos_cerrados ?? 0}</b><span>tratos cerrados</span></div>
+      <div className="kpis">
+        <div className="kpi"><Icon name="store" /><b>{usuario.publicaciones ?? 0}</b><span>Publicaciones</span></div>
+        <div className="kpi"><Icon name="thumb" /><b>{usuario.vistos_recibidos ?? 0}</b><span>Vistos buenos</span></div>
+        <div className="kpi"><Icon name="handshake" /><b>{usuario.tratos_cerrados ?? 0}</b><span>Tratos cerrados</span></div>
       </div>
+      {!(usuario.publicaciones || usuario.vistos_recibidos || usuario.tratos_cerrados) && (
+        <p className="hint perfil-vacio">Aún sin actividad. Publica tu primer servicio o favor y aparecerá aquí.</p>
+      )}
 
       {!editando ? (
         <>
-          <div className="datos">
-            <div><span>Teléfono</span><b>{usuario.telefono || "—"}</b></div>
-            <div><span>Yape</span><b>{usuario.yape || "—"}</b></div>
-            <div><span>Plin</span><b>{usuario.plin || "—"}</b></div>
-            <div><span>Sector</span><b>{usuario.zona}</b></div>
+          <section className="bloque">
+            <h3 className="bloque-t">Contacto y cobros</h3>
+            <div className="fila-dato"><span>Teléfono</span><b>{usuario.telefono || "—"}</b></div>
+            <div className="fila-dato"><span>Yape</span>
+              {usuario.yape ? <b>{usuario.yape}</b> : <button type="button" className="linkbtn" onClick={() => { setEditando(true); setF({}); }}>Sin configurar · Agregar</button>}
+            </div>
+            <div className="fila-dato"><span>Plin</span>
+              {usuario.plin ? <b>{usuario.plin}</b> : <button type="button" className="linkbtn" onClick={() => { setEditando(true); setF({}); }}>Sin configurar · Agregar</button>}
+            </div>
+            <p className="hint">Solo los vecinos con sesión ven estos datos.</p>
+          </section>
+
+          <div className="acciones-grid">
+            <button type="button" className="accion" onClick={() => nav("/actividad")}>
+              <Icon name="clipboard" /><b>Mi actividad</b><span>Publicaciones y tratos</span>
+            </button>
+            <button type="button" className="accion" onClick={() => setPinOpen(true)}>
+              <Icon name="lock" /><b>Cambiar PIN</b><span>Seguridad de la cuenta</span>
+            </button>
           </div>
-          <div className="pubs-actions">
-            <Btn icon="user" onClick={() => { setEditando(true); setF({}); }}>Editar mis datos</Btn>
-            <Btn icon="clipboard" onClick={() => nav("/actividad")}>Mi actividad</Btn>
-            <Btn icon="lock" onClick={() => setPinOpen(true)}>Cambiar mi PIN</Btn>
-            <Btn variant="danger" icon="logout" onClick={async () => { await salir(); toast("Sesión cerrada"); nav("/"); }}>Salir</Btn>
-          </div>
+
+          <Btn variant="danger" icon="logout" className="wide salir-btn"
+            onClick={async () => { await salir(); toast("Sesión cerrada"); nav("/"); }}>Salir de mi cuenta</Btn>
         </>
       ) : (
         <form className="form-card" onSubmit={guardar}>

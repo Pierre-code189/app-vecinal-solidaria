@@ -74,9 +74,31 @@ export function Shell({ children }) {
     try { await api.post("/api/notificaciones/leer", {}); } catch { /* da igual */ }
   };
 
-  const ir = (ruta) => { setMenu(false); nav(ruta); };
+  const ir = (ruta) => { setMenu(false); setAcces(false); nav(ruta); };
 
   const [subir, setSubir] = useState(false);
+  const [acces, setAcces] = useState(false);
+  const [pos, setPos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vecinal-fab") || '{"x":0,"y":0}'); }
+    catch { return { x: 0, y: 0 }; }
+  });
+  const arrastre = useRef(null);
+  const accesRef = useRef(null);
+
+  useEffect(() => {
+    if (!acces) return;
+    const fuera = (e) => { if (accesRef.current && !accesRef.current.contains(e.target)) setAcces(false); };
+    const esc = (e) => { if (e.key === "Escape") setAcces(false); };
+    document.addEventListener("click", fuera);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("click", fuera); document.removeEventListener("keydown", esc); };
+  }, [acces]);
+
+  useEffect(() => {
+    const cerrar = () => { setAcces(false); setMenu(false); };
+    window.addEventListener("hashchange", cerrar);
+    return () => window.removeEventListener("hashchange", cerrar);
+  }, []);
   useEffect(() => {
     const alScroll = () => setSubir(window.scrollY > 360);
     window.addEventListener("scroll", alScroll, { passive: true });
@@ -105,6 +127,23 @@ export function Shell({ children }) {
           <button type="button" className="chip-zona" data-tour="zona" title={zona} onClick={() => { setLocSel(zona); setLocOpen(true); }}>
             <Icon name="pin" /><span>{zona}</span>
           </button>
+          <div className="acces" ref={accesRef}>
+            <button type="button" className="campana" aria-label="Accesibilidad" aria-expanded={acces}
+              onClick={() => setAcces(!acces)}><Icon name="eye" size="1.15em" /></button>
+            {acces && (
+              <div className="menu-cuenta acces-menu" role="menu">
+                <button type="button" role="menuitem" onClick={() => setGrande(!grande)}>
+                  <Icon name="text" /> {grande ? "Letra normal" : "Letra grande"}
+                </button>
+                <button type="button" role="menuitem" onClick={() => setContraste(!contraste)}>
+                  <Icon name="eye" /> {contraste ? "Contraste normal" : "Alto contraste"}
+                </button>
+                <button type="button" role="menuitem" onClick={() => setMenosMov(!menosMov)}>
+                  <Icon name="clock" /> {menosMov ? "Animaciones normales" : "Reducir movimiento"}
+                </button>
+              </div>
+            )}
+          </div>
           {usuario && (
             <button type="button" className="campana" aria-label="Avisos" onClick={() => setAvisosOpen(true)}>
               <Icon name="bell" size="1.2em" />
@@ -168,17 +207,26 @@ export function Shell({ children }) {
           </NavLink>
         ))}
         <NavLink to="/perfil" className={({ isActive }) => (isActive ? "on" : "")}>
-          <Icon name="user" /><span>{usuario ? "Mi cuenta" : "Entrar"}</span>
+          <Icon name="user" /><span>{usuario ? "Perfil" : "Entrar"}</span>
         </NavLink>
       </nav>
 
-      <div className="flotantes">
+      <div className="flotantes" style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}>
         <button type="button" className={`fab-top ${subir ? "vis" : ""}`} aria-label="Volver arriba"
           aria-hidden={!subir} tabIndex={subir ? 0 : -1}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
           <span className="arrow-up" aria-hidden="true">↑</span>
         </button>
         <button type="button" className="fab-msg" aria-label="Mensajes"
+          style={{ touchAction: "none" }}
+          onPointerDown={(e) => { arrastre.current = { sx: e.clientX, sy: e.clientY, x: pos.x, y: pos.y }; e.currentTarget.setPointerCapture(e.pointerId); }}
+          onPointerMove={(e) => {
+            if (!arrastre.current) return;
+            const nx = Math.max(-140, Math.min(140, arrastre.current.x + (e.clientX - arrastre.current.sx)));
+            const ny = Math.max(-260, Math.min(60, arrastre.current.y + (e.clientY - arrastre.current.sy)));
+            setPos({ x: nx, y: ny });
+          }}
+          onPointerUp={() => { if (arrastre.current) { localStorage.setItem("vecinal-fab", JSON.stringify(pos)); } arrastre.current = null; }}
           onClick={() => ir(usuario ? "/actividad" : "/perfil")}>
           <Icon name="chat" />
           {avisos?.sin_leer > 0 && <span className="fab-msg-badge">{avisos.sin_leer > 9 ? "9+" : avisos.sin_leer}</span>}
