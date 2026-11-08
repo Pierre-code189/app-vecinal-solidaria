@@ -14,6 +14,7 @@ import Local from "./screens/Local";
 import Favores from "./screens/Favores";
 import Emergencia from "./screens/Emergencia";
 import MiActividad from "./screens/MiActividad";
+import Mensajes from "./screens/Mensajes";
 import Perfil from "./screens/Perfil";
 import Tutorial from "./screens/Tutorial";
 import Moderacion from "./screens/Moderacion";
@@ -64,7 +65,8 @@ function Contenido() {
   if (cargando) return <Cargando />;
 
   // El barrio se puede mirar sin cuenta; solo se pide al publicar, contactar o gestionar.
-  const privada = ["/perfil", "/actividad", "/moderacion"].includes(loc.pathname);
+  const privada = ["/perfil", "/actividad", "/moderacion", "/mensajes"].includes(loc.pathname)
+    || loc.pathname.startsWith("/mensajes/");
   if (!usuario && privada) return <AuthGate />;
   if (!usuario && loc.pathname === "/recuperar") {
     return (
@@ -87,6 +89,8 @@ function Contenido() {
         <Route path="/favores" element={<Favores />} />
         <Route path="/emergencia" element={<Emergencia />} />
         <Route path="/actividad" element={<MiActividad />} />
+        <Route path="/mensajes" element={<Mensajes />} />
+        <Route path="/mensajes/:contexto/:ref" element={<Mensajes />} />
         <Route path="/perfil" element={<Perfil />} />
         <Route path="/tutorial" element={<Tutorial />} />
         <Route path="/recuperar" element={<Recuperar />} />

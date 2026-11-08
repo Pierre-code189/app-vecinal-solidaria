@@ -168,6 +168,7 @@ export function Shell({ children }) {
                   <span>{usuario?.telefono} · {usuario?.zona}</span>
                 </div>
                 <button type="button" role="menuitem" onClick={() => ir("/perfil")}><Icon name="user" /> Mi perfil</button>
+                <button type="button" role="menuitem" onClick={() => ir("/mensajes")}><Icon name="chat" /> Mensajes</button>
                 <button type="button" role="menuitem" onClick={() => ir("/actividad")}><Icon name="clipboard" /> Mi actividad</button>
                 <button type="button" role="menuitem" onClick={() => ir("/tutorial")}><Icon name="book" /> Tutorial</button>
                 {esModerador && <button type="button" role="menuitem" onClick={() => ir("/moderacion")}><Icon name="shield" /> Moderación</button>}
@@ -227,7 +228,7 @@ export function Shell({ children }) {
             setPos({ x: nx, y: ny });
           }}
           onPointerUp={() => { if (arrastre.current) { localStorage.setItem("vecinal-fab", JSON.stringify(pos)); } arrastre.current = null; }}
-          onClick={() => ir(usuario ? "/actividad" : "/perfil")}>
+          onClick={() => ir(usuario ? "/mensajes" : "/perfil")}>
           <Icon name="chat" />
           {avisos?.sin_leer > 0 && <span className="fab-msg-badge">{avisos.sin_leer > 9 ? "9+" : avisos.sin_leer}</span>}
         </button>

@@ -394,3 +394,48 @@ main{padding-left:16px;padding-right:16px;box-sizing:border-box}
 .acces-menu{right:0;top:46px}
 .flotantes{transition:transform .12s linear;touch-action:none}
 .fab-msg{cursor:grab}
+
+/* ---------- Mensajes: bandeja tipo messenger ---------- */
+.msj-vista .page-head{margin-bottom:8px}
+.msj{display:grid;grid-template-columns:320px minmax(0,1fr);gap:12px;align-items:start;margin-top:12px}
+.msj-lista{display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:8px;max-height:calc(100vh - 230px);overflow:auto}
+.conv{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;padding:10px;border:0;
+  border-radius:var(--r-sm);background:transparent;cursor:pointer;font:inherit;color:inherit}
+.conv:hover{background:var(--surface-2)}
+.conv.on{background:var(--brand-50)}
+.conv-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.conv-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.conv-top b{font-size:.92rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-top time{font-size:.72rem;color:var(--muted);white-space:nowrap}
+.conv-pub{font-size:.78rem;color:var(--brand-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-ult{font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-n{display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:var(--r-pill);
+  background:var(--accent);color:#fff;font-size:.7rem;font-weight:700}
+.msj-hilo{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:12px;min-height:420px}
+.hilo-cab{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.hilo-volver{display:none;align-items:center;gap:4px}
+.hilo-quien{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.hilo-quien b{font-size:.95rem;color:var(--text)}
+.hilo-quien span{font-size:.78rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hilo-acciones{display:flex;flex-direction:column;gap:8px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:var(--r-sm);padding:10px}
+.hilo-acciones .hint{margin:0}
+.hilo-botones{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hilo-form{display:flex;flex-direction:column;gap:8px}
+.msj-vacio{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  color:var(--muted);min-height:320px;text-align:center}
+@media (max-width:819px){
+  .msj{grid-template-columns:1fr;gap:10px}
+  .msj .msj-hilo{display:none}
+  .msj.con-hilo .msj-lista{display:none}
+  .msj.con-hilo .msj-hilo{display:flex}
+  .msj-lista{max-height:none}
+  .hilo-volver{display:inline-flex}
+  .msj-hilo{min-height:0}
+}
+
+/* El texto del aviso debe envolver: sin min-width:0 la rejilla crece y lo corta. */
+.msj > *, .msj-hilo, .msj-lista, .hilo-acciones, .hilo-botones{min-width:0}
+.hilo-acciones .hint{white-space:normal;overflow-wrap:anywhere}

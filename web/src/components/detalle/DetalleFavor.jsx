@@ -1,11 +1,10 @@
 import React from "react";
 import { Icon } from "../../lib/icons";
-import { Btn } from "../ui";
-import { Hechos, Descripcion, Paneles, CtaFila, Botones, AvisoMio, useDetalle } from "./DetalleBase";
+import { Hechos, Descripcion, useDetalle } from "./DetalleBase";
 
-/* Favor (pedido u ofrecido): sin dinero, con estado y franja horaria. */
+/* Favor (pedido u ofrecido): sin dinero. Estado, cuándo y aval vecinal. */
 export default function DetalleFavor() {
-  const { p, abrirConversacion } = useDetalle();
+  const { p } = useDetalle();
   const abierto = p.estado === "activa";
 
   return (
@@ -18,16 +17,6 @@ export default function DetalleFavor() {
       </Hechos>
 
       <Descripcion />
-
-      <Paneles />
-
-      <CtaFila principal={
-        <Btn className="cta-67" variant="primary" icon="chat" onClick={abrirConversacion}>
-          Consultar al vecino
-        </Btn>
-      } />
-      <Botones />
-      <AvisoMio />
     </>
   );
 }

@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.12.1"
+APP_VERSION = "4.13.2"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -1540,6 +1540,17 @@ def _participantes(con, contexto: str, ref_id: str):
     return None
 
 
+def _claves_hilo(con, contexto: str, ref_id: str):
+    """Un trato continúa la conversación de su cotización: mismo hilo, dos tablas."""
+    if contexto == "trato":
+        r = con.execute("SELECT cotizacion_id FROM tratos WHERE id=?", (ref_id,)).fetchone()
+        claves = [("trato", ref_id)]
+        if r and r["cotizacion_id"]:
+            claves.append(("cotizacion", r["cotizacion_id"]))
+        return claves
+    return [(contexto, ref_id)]
+
+
 @app.get("/api/mensajes")
 def leer_mensajes(contexto: str, ref: str, request: Request):
     """Conversación de una cotización o de un trato. Solo sus dos participantes."""
@@ -1552,14 +1563,72 @@ def leer_mensajes(contexto: str, ref: str, request: Request):
     if user["id"] not in (partes[1], partes[2]):
         con.close()
         raise HTTPException(403, "No participas en esta conversación")
-    filas = con.execute(
-        "SELECT m.*, u.nombre AS de_nombre FROM mensajes m JOIN usuarios u ON u.id=m.de_id"
-        " WHERE m.contexto=? AND m.ref_id=? ORDER BY m.creado ASC", (contexto, ref)).fetchall()
-    con.execute("UPDATE mensajes SET leido=1 WHERE contexto=? AND ref_id=? AND de_id!=?",
-                (contexto, ref, user["id"]))
+    filas = []
+    for ctx, rf in _claves_hilo(con, contexto, ref):
+        filas += con.execute(
+            "SELECT m.*, u.nombre AS de_nombre FROM mensajes m JOIN usuarios u ON u.id=m.de_id"
+            " WHERE m.contexto=? AND m.ref_id=? ORDER BY m.creado ASC", (ctx, rf)).fetchall()
+        con.execute("UPDATE mensajes SET leido=1 WHERE contexto=? AND ref_id=? AND de_id!=?",
+                    (ctx, rf, user["id"]))
+    filas.sort(key=lambda f: f["creado"])
     con.commit()
     con.close()
     return {"items": [dict(f) for f in filas], "yo": user["id"]}
+
+
+@app.get("/api/conversaciones")
+def listar_conversaciones(request: Request):
+    """Bandeja tipo messenger: una fila por conversación (cotización o trato) del vecino."""
+    user = require_user(request)
+    yo = user["id"]
+    con = connect()
+    hilos = {}
+    for r in con.execute(
+        "SELECT c.id, c.publicacion_id, c.comprador_id, c.estado, c.creado, c.trato_id,"
+        " p.autor_id, p.titulo"
+        " FROM cotizaciones c JOIN publicaciones p ON p.id=c.publicacion_id"
+        " WHERE c.comprador_id=? OR p.autor_id=?", (yo, yo)).fetchall():
+        if r["trato_id"]:
+            continue  # el trato continúa el mismo hilo: no se lista dos veces
+        otro = r["autor_id"] if r["comprador_id"] == yo else r["comprador_id"]
+        hilos[("cotizacion", r["id"])] = {
+            "contexto": "cotizacion", "ref_id": r["id"], "publicacion_id": r["publicacion_id"],
+            "titulo": r["titulo"], "estado": r["estado"], "otro_id": otro, "creado": r["creado"],
+            "claves": [("cotizacion", r["id"])],
+        }
+    for r in con.execute(
+        "SELECT t.id, t.publicacion_id, t.comprador_id, t.vendedor_id, t.estado, t.creado,"
+        " t.cotizacion_id, p.titulo"
+        " FROM tratos t JOIN publicaciones p ON p.id=t.publicacion_id"
+        " WHERE t.comprador_id=? OR t.vendedor_id=?", (yo, yo)).fetchall():
+        otro = r["vendedor_id"] if r["comprador_id"] == yo else r["comprador_id"]
+        hilos[("trato", r["id"])] = {
+            "contexto": "trato", "ref_id": r["id"], "publicacion_id": r["publicacion_id"],
+            "titulo": r["titulo"], "estado": r["estado"], "otro_id": otro, "creado": r["creado"],
+            "claves": _claves_hilo(con, "trato", r["id"]),
+        }
+    items = []
+    for clave, h in hilos.items():
+        ultimo = None
+        sin_leer = 0
+        for ctx, rf in h["claves"]:
+            m = con.execute(
+                "SELECT texto, creado FROM mensajes WHERE contexto=? AND ref_id=?"
+                " ORDER BY creado DESC LIMIT 1", (ctx, rf)).fetchone()
+            if m and (ultimo is None or m["creado"] > ultimo["creado"]):
+                ultimo = m
+            sin_leer += con.execute(
+                "SELECT COUNT(*) FROM mensajes WHERE contexto=? AND ref_id=? AND de_id!=? AND leido=0",
+                (ctx, rf, yo)).fetchone()[0]
+        u = con.execute("SELECT nombre FROM usuarios WHERE id=?", (h["otro_id"],)).fetchone()
+        items.append({**{k: v for k, v in h.items() if k != "claves"},
+                      "otro_nombre": (u["nombre"] if u else "Vecino"),
+                      "ultimo": (ultimo["texto"] if ultimo else ""),
+                      "ts": (ultimo["creado"] if ultimo else h["creado"]),
+                      "sin_leer": sin_leer})
+    con.close()
+    items.sort(key=lambda x: -(x["ts"] or 0))
+    return {"items": items, "sin_leer": sum(i["sin_leer"] for i in items)}
 
 
 @app.post("/api/mensajes")

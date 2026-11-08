@@ -1,12 +1,12 @@
 import React from "react";
 import { Icon } from "../../lib/icons";
 import { Btn } from "../ui";
-import { medios } from "../../lib/format";
-import { Hechos, Descripcion, DatosPago, Paneles, CtaFila, Botones, AvisoMio, useDetalle } from "./DetalleBase";
+import { medios, copiar } from "../../lib/format";
+import { Hechos, Descripcion, useDetalle } from "./DetalleBase";
 
-/* Servicio o producto: precio, forma de pago, inventario y trato con cotización. */
+/* Servicio o producto: precio, forma de pago e inventario. El resto pasa en el chat. */
 export default function DetalleServicio() {
-  const { p, abrirConversacion } = useDetalle();
+  const { p, toast } = useDetalle();
   const soloIntercambio = /intercambio/i.test(`${p.precio || ""} ${p.medios_pago || ""}`);
 
   return (
@@ -23,17 +23,23 @@ export default function DetalleServicio() {
       </Hechos>
 
       <Descripcion />
-      {!soloIntercambio && <DatosPago />}
 
-      <Paneles />
-
-      <CtaFila principal={
-        <Btn className="cta-67" variant="primary" icon="chat" onClick={abrirConversacion}>
-          Consultar al vecino
-        </Btn>
-      } />
-      <Botones />
-      <AvisoMio />
+      {!soloIntercambio && p.contacto_visible && (p.yape_autor || p.plin_autor) && (
+        <details className="det2-pago">
+          <summary><Icon name="wallet" /> Datos para pagar</summary>
+          <div className="det2-pago-cuerpo">
+            {p.yape_autor && (
+              <div className="pago-fila"><span>Yape <b>{p.yape_autor}</b></span>
+                <Btn size="small" icon="copy" onClick={async () => (await copiar(p.yape_autor)) ? toast("Yape copiado") : toast("Copia manual", "warn")}>Copiar</Btn></div>
+            )}
+            {p.plin_autor && (
+              <div className="pago-fila"><span>Plin <b>{p.plin_autor}</b></span>
+                <Btn size="small" icon="copy" onClick={async () => (await copiar(p.plin_autor)) ? toast("Plin copiado") : toast("Copia manual", "warn")}>Copiar</Btn></div>
+            )}
+            <p className="hint">Pago directo entre vecinos. La app no cobra comisión ni guarda tu dinero.</p>
+          </div>
+        </details>
+      )}
     </>
   );
 }
