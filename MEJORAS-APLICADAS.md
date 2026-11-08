@@ -507,3 +507,20 @@ vertical y horizontalmente, con casillas de 64 × 62 px.
 
 También se quitó el aviso duplicado: ya no salen «Código enviado» y «Código recibido» juntos;
 queda solo el segundo.
+
+
+## v4.5.0 — escritorio ordenado, menú de cuenta y recorrido guiado
+
+**Cabecera.** Se eliminaron las pestañas «Mi actividad», «Mi perfil» y «Tutorial» de la barra.
+Quedan las tres secciones (Economía Local, Favores, Emergencia) y, a la derecha, el sector, los
+avisos y el avatar. El avatar abre un menú con el nombre, el teléfono, Mi perfil, Mi actividad,
+Tutorial, Moderación (si aplica), letra grande y cerrar sesión.
+
+**Escritorio.** Contenido hasta 1240 px con 32 px de margen, título más grande, barra de filtros
+como panel y rejilla de tres columnas con tarjetas de la misma altura en cada fila. En móvil
+todo sigue igual que antes.
+
+**Tutorial como recorrido.** Ya no es una lista de texto: es un tour de 10 pasos que resalta el
+elemento real de cada pantalla (sector, buscador, tarjeta, publicar, favores, emergencia,
+actividad, cuenta), cambia de sección cuando toca y avanza con Siguiente/Atrás. Se abre solo la
+primera vez que alguien entra y se puede repetir desde el menú de la cuenta o desde Tutorial.

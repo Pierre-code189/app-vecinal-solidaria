@@ -201,7 +201,7 @@ export function ToastProvider({ children }) {
 }
 
 /* ---------------------------------------------------------------- tarjeta */
-export function Tarjeta({ p, onOpen, zona }) {
+export function Tarjeta({ p, onOpen, zona, dataTour }) {
   const cat = CAT_ICON[p.categoria] || "dots";
   const nv = p.vistos || 0;
   let dist = null;
@@ -210,7 +210,7 @@ export function Tarjeta({ p, onOpen, zona }) {
   const foto = p.fotos && p.fotos.length ? p.fotos[0] : null;
 
   return (
-    <article className="card pub" tabIndex={0} role="button"
+    <article className="card pub" data-tour={dataTour} tabIndex={0} role="button"
       aria-label={`Ver detalle de ${p.titulo}`}
       onClick={() => onOpen(p)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen(p)}>
       <div className="pub-top">

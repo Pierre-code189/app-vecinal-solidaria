@@ -842,3 +842,95 @@ input.pin{letter-spacing:.42em;font-variant-numeric:tabular-nums;font-size:1.05r
 @media (min-width:900px){
   .entrada-cuerpo.solo-codigo{min-height:calc(100vh - 54px);align-content:center;padding-top:0;padding-bottom:48px}
 }
+
+/* ===================== escritorio: cabecera y contenido ===================== */
+.mainnav{display:none}
+@media (min-width:900px){
+  .mainnav{display:flex;align-items:center;gap:2px;flex:1;margin-left:26px}
+  .mainnav a{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;
+    color:rgba(255,255,255,.82);text-decoration:none;font-size:.9rem;font-weight:500}
+  .mainnav a:hover{background:rgba(255,255,255,.12);color:#fff}
+  .mainnav a.on{background:rgba(255,255,255,.18);color:#fff;font-weight:600}
+  .topbar{padding:10px 28px}
+  .brand{font-size:1rem}
+}
+/* menú de la cuenta */
+.cuenta{position:relative}
+.menu-cuenta{position:absolute;right:0;top:calc(100% + 10px);width:260px;background:var(--surface);
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 44px rgba(20,27,43,.20);
+  padding:6px;z-index:70;animation:subir .14s ease-out}
+.menu-cabeza{padding:10px 10px 8px;border-bottom:1px solid var(--line);margin-bottom:4px;display:grid;gap:2px}
+.menu-cabeza b{font-size:.92rem;color:var(--ink)}
+.menu-cabeza span{font-size:.76rem;color:var(--muted)}
+.menu-cuenta button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:0;
+  background:transparent;color:var(--text);font:inherit;font-size:.9rem;padding:9px 10px;border-radius:9px;cursor:pointer}
+.menu-cuenta button:hover{background:var(--surface-3);color:var(--brand-700)}
+.menu-cuenta button.peligro{color:var(--danger)}
+.menu-cuenta button.peligro:hover{background:var(--danger-50)}
+.menu-cuenta hr{border:0;border-top:1px solid var(--line);margin:5px 4px}
+
+/* ancho y aire del contenido */
+main{max-width:1240px;margin:0 auto;padding:24px 20px 60px}
+@media (min-width:900px){main{padding:30px 32px 72px}}
+.view h1{font-size:1.5rem;line-height:1.22;margin-bottom:14px}
+@media (min-width:900px){.view h1{font-size:1.95rem;margin-bottom:18px}.view h1 .sub{margin-top:6px}}
+.sec{font-size:1.05rem;margin:26px 0 10px}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:6px}
+.page-head h1{margin-bottom:0}
+
+/* rejilla de tarjetas: tres columnas en escritorio */
+.grid{grid-template-columns:1fr;gap:14px}
+@media (min-width:700px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1080px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}}
+
+/* barra de filtros como panel en escritorio */
+@media (min-width:900px){
+  .toolbar{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:12px;box-shadow:var(--sombra);margin:14px 0 16px}
+  .orden{margin:0 0 18px}
+  .pub{padding:16px}
+}
+
+/* tutorial: héroe y lista */
+.tuto-hero{display:flex;gap:20px;justify-content:space-between;align-items:center;flex-wrap:wrap;
+  background:var(--brand-50);border:1px solid var(--brand-100);border-radius:var(--radio);padding:18px;margin:14px 0 6px}
+.tuto-hero-txt b{font-size:1.05rem;color:var(--brand-800)}
+.tuto-hero-txt p{margin:4px 0 0;color:var(--text);font-size:.92rem;line-height:1.5;max-width:62ch}
+.tuto-hero-acciones{display:grid;gap:6px;justify-items:start}
+.tuto-lista{display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:820px){.tuto-lista{grid-template-columns:1fr 1fr;gap:12px}}
+.tuto-item{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:12px}
+.tuto-item b{font-size:.94rem;color:var(--ink)}
+.tuto-item p{margin:2px 0 0;font-size:.84rem;color:var(--muted);line-height:1.45}
+.tuto-ico{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--brand-50);color:var(--brand-700)}
+
+/* ===================== recorrido guiado ===================== */
+.tour-mask{position:fixed;inset:0;z-index:1190}
+.tour-mask.oscuro{background:rgba(11,20,16,.62)}
+.tour-hueco{position:fixed;z-index:1191;border-radius:14px;pointer-events:none;
+  box-shadow:0 0 0 9999px rgba(11,20,16,.62),0 0 0 3px rgba(127,252,151,.55);
+  transition:left .2s ease,top .2s ease,width .2s ease,height .2s ease}
+.tour-card{background:var(--surface);border-radius:14px;padding:16px 16px 12px;z-index:1200;
+  box-shadow:0 24px 60px rgba(6,18,12,.35);border:1px solid var(--line)}
+.tour-paso{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brand-600);font-weight:700}
+.tour-card h3{margin:6px 0 6px;font-size:1.05rem;color:var(--ink)}
+.tour-card p{margin:0;font-size:.9rem;line-height:1.5;color:var(--text)}
+.tour-acciones{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.tour-botones{display:flex;gap:8px}
+.tour-puntos{display:flex;gap:4px;margin-top:10px}
+.tour-puntos span{width:6px;height:6px;border-radius:50%;background:var(--line-strong)}
+.tour-puntos span.on{background:var(--brand-600);width:16px;border-radius:99px}
+
+/* ajustes finos de la barra y de las tarjetas en escritorio */
+@media (min-width:900px){
+  .toolbar{gap:10px;align-items:stretch}
+  .buscador{flex:1 1 360px;max-width:600px}
+  .toolbar .sel-toolbar{flex:0 0 210px}
+  .toolbar .btn-publicar{flex:0 0 auto;min-height:var(--control-h,46px);padding:0 18px}
+  .orden{align-items:flex-end;margin-bottom:20px}
+  .grid{grid-auto-rows:1fr}
+  .pub .precio{font-size:1.02rem}
+  .pub h3{font-size:1.02rem}
+}

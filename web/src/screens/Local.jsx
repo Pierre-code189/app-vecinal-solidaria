@@ -88,7 +88,7 @@ export default function Local() {
       ]} />
 
       <div className="toolbar">
-        <div className="buscador">
+        <div className="buscador" data-tour="buscar">
           <input type="search" placeholder="Buscar en tu sector…" value={q}
             onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
           <button type="button" className={`mic ${escuchando ? "on" : ""}`} aria-label="Buscar por voz" onClick={dictar}>
@@ -97,7 +97,7 @@ export default function Local() {
         </div>
         <Select ariaLabel="Categoría" value={cat} onChange={setCat} className="sel-toolbar"
           options={CATS.map((c) => ({ value: c, label: c || "Todas" }))} />
-        <Btn variant="primary" icon="plus" onClick={() => setPublicar(true)} className="btn-publicar">Publicar</Btn>
+        <Btn variant="primary" icon="plus" onClick={() => setPublicar(true)} className="btn-publicar" data-tour="publicar">Publicar</Btn>
       </div>
 
       <div className="orden">
@@ -118,7 +118,9 @@ export default function Local() {
       )}
 
       <div className="grid">
-        {items.map((p) => <Tarjeta key={p.id} p={p} zona={zona} onOpen={() => setDetalle(p.id)} />)}
+        {items.map((p, i) => (
+          <Tarjeta key={p.id} p={p} zona={zona} dataTour={i === 0 ? "tarjeta" : undefined} onOpen={() => setDetalle(p.id)} />
+        ))}
       </div>
 
       {detalle && <Detalle id={detalle} onClose={() => setDetalle(null)} />}

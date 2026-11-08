@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./context/Auth";
 import { ZonaProvider } from "./context/Zona";
 import { ToastProvider } from "./components/ui";
 import { Shell } from "./components/Shell";
+import { TourProvider } from "./components/Tour";
 import AuthGate from "./components/AuthGate";
 import { Icon } from "./lib/icons";
 import { sincronizarCola } from "./lib/api";
@@ -78,9 +79,10 @@ function Contenido() {
   }
 
   return (
-    <Shell>
-      <AvisoSinConexion />
-      <Routes>
+    <TourProvider>
+      <Shell>
+        <AvisoSinConexion />
+        <Routes>
         <Route path="/" element={<Local />} />
         <Route path="/favores" element={<Favores />} />
         <Route path="/emergencia" element={<Emergencia />} />
@@ -90,8 +92,9 @@ function Contenido() {
         <Route path="/recuperar" element={<Recuperar />} />
         <Route path="/moderacion" element={<Moderacion />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Shell>
+        </Routes>
+      </Shell>
+    </TourProvider>
   );
 }
 

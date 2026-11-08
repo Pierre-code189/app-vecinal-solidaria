@@ -58,7 +58,7 @@ export default function Favores() {
         <Empty icon="heart" titulo="Sin favores por ahora" texto="Pide o ofrece ayuda a tus vecinos." />
       )}
 
-      <div className="grid">
+      <div className="grid" data-tour="favores">
         {(data?.items || []).map((p) => (
           <Tarjeta key={p.id} p={p} zona={zona} onOpen={() => setDetalle(p.id)} />
         ))}

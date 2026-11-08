@@ -58,7 +58,7 @@ export default function Emergencia() {
       </div>
 
       <h2 className="sec">Llamadas de emergencia</h2>
-      <div className="sos">
+      <div className="sos" data-tour="sos">
         {SOS.map((s) => (
           <a key={s.num} href={`tel:${s.num}`} className="sos-item">
             <Icon name={s.icon} /><b>{s.num}</b><span>{s.nombre}</span>

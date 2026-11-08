@@ -26,7 +26,7 @@ export default function Actividad() {
   }
 
   return (
-    <section className="view on">
+    <section className="view on" data-tour="actividad">
       <h1>Mi actividad
         <span className="sub">Tus publicaciones, tus tratos y quién consultó tu contacto</span>
       </h1>
