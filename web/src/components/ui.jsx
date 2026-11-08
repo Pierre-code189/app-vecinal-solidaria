@@ -231,7 +231,7 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
               <Icon name={cat} size="2.05em" /></span>}
         <div className="pub-info">
           <div className="catrow">
-            <span className="cat"><Icon name={cat} />{cap(p.categoria)}</span>
+            <span className="cat"><Icon name={cat} />{cap(String(p.categoria || "").replace(/_/g, " "))}</span>
             <span className="catrow-right">
               {Boolean(p.es_emergencia) && <span className="badge rojo"><Icon name="alert" />Emergencia</span>}
               <span className="ver-mas" aria-hidden="true"><Icon name="back" /></span>
@@ -249,10 +249,16 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
               <Icon name="thumb" />{nv ? `${nv} visto${nv === 1 ? "" : "s"}` : "Nuevo"}
             </span>
           </div>
-          <div className={`precio ${String(p.precio || "").length > 14 ? "largo" : ""}`}>{p.precio || "A convenir"}</div>
+          {String(p.tipo || "").startsWith("favor") ? (
+            <span className={`badge-favor ${p.tipo === "favor_solicitado" ? "nec" : "ofr"}`}>
+              {p.tipo === "favor_solicitado" ? "Necesito" : "Ofrezco"}
+            </span>
+          ) : (
+            <div className={`precio ${String(p.precio || "").length > 14 ? "largo" : ""}`}>{p.precio || "A convenir"}</div>
+          )}
           {p.stock === 0 && <span className="badge agotado-badge">Agotado</span>}
           <div className="badges">
-            {String(p.medios_pago || "").split(",").filter(Boolean).map((m) => (
+            {String(p.medios_pago || "").split(",").filter((m) => m && !(String(p.tipo || "").startsWith("favor") && m === "intercambio")).map((m) => (
               <span key={m} className="badge">{{ yape: "Yape", plin: "Plin", efectivo: "Efectivo", transferencia: "Transferencia", intercambio: "Intercambio" }[m] || m}</span>
             ))}
           </div>

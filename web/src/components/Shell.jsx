@@ -76,6 +76,14 @@ export function Shell({ children }) {
 
   const ir = (ruta) => { setMenu(false); nav(ruta); };
 
+  const [subir, setSubir] = useState(false);
+  useEffect(() => {
+    const alScroll = () => setSubir(window.scrollY > 360);
+    window.addEventListener("scroll", alScroll, { passive: true });
+    alScroll();
+    return () => window.removeEventListener("scroll", alScroll);
+  }, []);
+
   return (
     <>
       <header className="topbar">
@@ -163,6 +171,19 @@ export function Shell({ children }) {
           <Icon name="user" /><span>{usuario ? "Mi cuenta" : "Entrar"}</span>
         </NavLink>
       </nav>
+
+      <div className="flotantes">
+        <button type="button" className={`fab-top ${subir ? "vis" : ""}`} aria-label="Volver arriba"
+          aria-hidden={!subir} tabIndex={subir ? 0 : -1}
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <span className="arrow-up" aria-hidden="true">↑</span>
+        </button>
+        <button type="button" className="fab-msg" aria-label="Mensajes"
+          onClick={() => ir(usuario ? "/actividad" : "/perfil")}>
+          <Icon name="chat" />
+          {avisos?.sin_leer > 0 && <span className="fab-msg-badge">{avisos.sin_leer > 9 ? "9+" : avisos.sin_leer}</span>}
+        </button>
+      </div>
 
       {/* ---- sector ---- */}
       <Sheet open={locOpen} onClose={() => setLocOpen(false)} titulo="Elegir sector" ancho={440}>

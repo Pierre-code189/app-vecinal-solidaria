@@ -1,0 +1,197 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Dirección C — Nocturna</title>
+<style>
+:root{--bg:#f7f1e6;--surface:#fffdf8;--ink:#1e2a22;--muted:#5d6b5f;--line:#e3d9c8;
+--brand:#14532d;--brand-2:#0e3d21;--accent:#b9552a;--accent-soft:#f6e2d5;--radius:18px}
+*{box-sizing:border-box;margin:0}
+body{background:linear-gradient(160deg,#efe6d7,#f9f5ec 40%,#efe8db);font:14px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);padding:28px}
+.board{display:flex;gap:26px;align-items:flex-start;justify-content:center}
+.phone{width:390px;height:812px;background:var(--bg);border-radius:34px;overflow:hidden;position:relative;
+box-shadow:0 24px 60px rgba(40,30,15,.22),0 0 0 1px rgba(0,0,0,.06)}
+.bar{height:46px;background:linear-gradient(120deg,var(--brand-2),var(--brand));color:#fff;display:flex;align-items:center;gap:8px;padding:0 14px;font-weight:600}
+.bar .dot{width:26px;height:26px;border-radius:9px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:12px}
+.bar .zone{margin-left:auto;font-size:11px;background:rgba(255,255,255,.14);padding:5px 9px;border-radius:99px}
+.bar .av{width:26px;height:26px;border-radius:50%;background:#fff;color:var(--brand);display:grid;place-items:center;font-size:12px;font-weight:800}
+main{padding:16px 16px 80px;height:calc(100% - 46px);overflow:hidden}
+h1{font:600 24px/1.15 Georgia,"Times New Roman",serif;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:12px;margin-top:4px}
+.search{display:flex;gap:8px;margin:14px 0 10px}
+.search input{flex:1;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 12px;font:inherit}
+.pub-btn{height:42px;padding:0 14px;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;border:0}
+.tabs{display:flex;gap:6px;margin:6px 0 10px}
+.tab{padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-size:12px;color:var(--muted)}
+.tab.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.card{display:flex;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:10px;
+box-shadow:0 1px 0 rgba(30,42,34,.03)}
+.cover{width:76px;height:76px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;font-size:26px;
+background:radial-gradient(120% 120% at 20% 10%,#e8f0e4,#cfe0cf);color:var(--brand)}
+.cover.b{background:radial-gradient(120% 120% at 20% 10%,#f7e6d8,#eed3bd);color:#8c4520}
+.cover.c{background:radial-gradient(120% 120% at 20% 10%,#e6e9f5,#d3d9ee);color:#33416e}
+.cat{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+h3{font-size:15px;line-height:1.28;margin:3px 0 4px}
+.meta{font-size:11.5px;color:var(--muted)}
+.price{font:800 19px/1.2 Georgia,serif;color:var(--brand-2);margin-top:4px}
+.pay{display:flex;gap:5px;margin-top:4px}
+.pay span{font-size:10px;border:1px solid var(--line);border-radius:99px;padding:1px 7px;color:var(--muted)}
+.nav{position:absolute;bottom:0;left:0;right:0;height:64px;background:var(--surface);border-top:1px solid var(--line);
+display:flex;align-items:center;justify-content:space-around;font-size:10px;color:var(--muted)}
+.nav b{display:block;font-size:17px;text-align:center}
+.nav .on{color:var(--brand)}
+/* detalle */
+.dhead{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.back{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 11px;font-size:12px}
+.detail h2{font:600 25px/1.15 Georgia,serif;letter-spacing:-.02em;margin:10px 0 6px}
+.who{display:flex;align-items:center;gap:8px;margin:8px 0 12px;font-size:12px;color:var(--muted)}
+.who .av{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:#8c4520;display:grid;place-items:center;font-weight:800}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px}
+.fact span{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.fact b{display:block;font-size:15px;margin-top:2px}
+.fact.wide{grid-column:1/-1}
+.desc{font-size:13px;color:#38473c;margin:8px 0 12px}
+.cta{display:flex;gap:8px;margin-top:12px}
+.cta .main{flex:0 0 66%;height:48px;border-radius:14px;background:var(--brand);color:#fff;border:0;font-weight:700}
+.cta .wa{flex:1;height:48px;border-radius:14px;background:var(--surface);border:1px solid var(--line);font-weight:700;color:var(--ink)}
+/* actividad */
+.strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px}
+.kpi b{font:800 20px/1 Georgia,serif;color:var(--brand-2);display:block}
+.kpi span{font-size:10px;color:var(--muted)}
+.row{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
+.row .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.row b.t{font-size:14px}
+.badge{font-size:10px;background:var(--accent-soft);color:#8c4520;border-radius:99px;padding:3px 8px;font-weight:700}
+.row .m{font-size:11px;color:var(--muted);margin-top:3px}
+.acts{display:flex;gap:6px;margin-top:8px}
+.acts button{font-size:11px;border-radius:99px;border:1px solid var(--line);background:#fff;padding:4px 10px;color:var(--ink)}
+.acts .del{color:#a3271c;border-color:#efc9c4}
+.title-sm{font:600 12px/1.2 Georgia,serif;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
+
+:root{--bg:#0b120e;--surface:#111c15;--ink:#e9f2ec;--muted:#9db0a3;--line:#22322a;
+--brand:#7ffc97;--brand-2:#2fe26a;--accent:#f0b35b;--accent-soft:#2a2418;--radius:18px}
+*{box-sizing:border-box;margin:0}
+body{background:radial-gradient(1000px 500px at 50% -10%,#12251a,#080d0a 60%);font:14px/1.45 ui-sans-serif,system-ui,-apple-system,sans-serif;color:var(--ink);padding:28px}
+.board{display:flex;gap:26px;align-items:flex-start;justify-content:center}
+.phone{width:390px;height:812px;background:var(--bg);border-radius:34px;overflow:hidden;position:relative;
+box-shadow:0 30px 70px rgba(0,0,0,.55),0 0 0 1px rgba(127,252,151,.12)}
+.bar{height:48px;background:rgba(17,28,21,.92);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 14px;font-weight:700;font-size:13px}
+.bar .dot{width:24px;height:24px;border-radius:8px;background:rgba(127,252,151,.14);color:var(--brand);display:grid;place-items:center;font-size:11px}
+.bar .zone{margin-left:auto;font-size:10.5px;color:var(--brand);border:1px solid rgba(127,252,151,.28);padding:4px 9px;border-radius:99px}
+.bar .av{width:26px;height:26px;border-radius:50%;background:var(--brand);color:#06240f;display:grid;place-items:center;font-size:11px;font-weight:900}
+main{padding:18px 16px 80px;height:calc(100% - 48px);overflow:hidden}
+h1{font-size:26px;line-height:1.1;letter-spacing:-.035em;font-weight:800}
+.sub{color:var(--muted);font-size:11.5px;margin-top:5px}
+.search{display:flex;gap:8px;margin:14px 0 10px}
+.search input{flex:1;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 12px;font:inherit}
+.pub-btn{height:44px;padding:0 14px;border-radius:12px;background:var(--brand);color:#06240f;font-weight:800;border:0;font-size:12px}
+.tabs{display:flex;gap:6px;margin:4px 0 12px}
+.tab{padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-size:11.5px;color:var(--muted)}
+.tab.on{background:rgba(127,252,151,.14);border-color:rgba(127,252,151,.45);color:var(--brand);font-weight:700}
+.card{display:flex;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:10px}
+.cover{width:74px;height:74px;border-radius:14px;flex:0 0 auto;display:grid;place-items:center;font-size:26px;
+background:radial-gradient(120% 120% at 20% 10%,rgba(127,252,151,.18),rgba(127,252,151,.04));color:var(--brand)}
+.cover.b{background:radial-gradient(120% 120% at 20% 10%,rgba(240,179,91,.2),rgba(240,179,91,.05));color:var(--accent)}
+.cover.c{background:radial-gradient(120% 120% at 20% 10%,rgba(120,170,255,.2),rgba(120,170,255,.05));color:#9dc0ff}
+.cat{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+h3{font-size:14.5px;line-height:1.3;margin:2px 0 3px;font-weight:700}
+.meta{font-size:11px;color:var(--muted)}
+.price{font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--brand);margin-top:5px;font-variant-numeric:tabular-nums}
+.pay{display:flex;gap:5px;margin-top:5px}
+.pay span{font-size:9.5px;border:1px solid var(--line);border-radius:99px;padding:1px 7px;color:var(--muted)}
+.nav{position:absolute;bottom:0;left:0;right:0;height:64px;background:rgba(17,28,21,.96);border-top:1px solid var(--line);
+display:flex;align-items:center;justify-content:space-around;font-size:9.5px;color:var(--muted)}
+.nav b{display:block;font-size:17px;text-align:center}
+.nav .on{color:var(--brand)}
+.dhead{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.back{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 11px;font-size:11.5px;color:var(--ink)}
+.detail h2{font-size:25px;line-height:1.12;letter-spacing:-.035em;font-weight:800;margin:10px 0 8px}
+.who{display:flex;align-items:center;gap:8px;margin:6px 0 14px;font-size:11.5px;color:var(--muted)}
+.who .av{width:28px;height:28px;border-radius:50%;background:rgba(127,252,151,.16);color:var(--brand);display:grid;place-items:center;font-weight:800}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.fact span{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.fact b{display:block;font-size:14px;margin-top:3px}
+.desc{font-size:12.5px;color:#c9d8cf;margin:10px 0 12px}
+.cta{display:flex;gap:8px;margin-top:14px}
+.cta .main{flex:0 0 66%;height:48px;border-radius:14px;background:var(--brand);color:#06240f;border:0;font-weight:800;font-size:12.5px}
+.cta .wa{flex:1;height:48px;border-radius:14px;background:var(--surface);border:1px solid var(--line);font-weight:700;color:var(--ink);font-size:12px}
+.title-sm{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:800}
+.strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:14px 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.kpi b{font-size:22px;font-weight:800;letter-spacing:-.03em;display:block;color:var(--brand)}
+.kpi span{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.row{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
+.row .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.row b.t{font-size:13.5px}
+.badge{font-size:9px;background:rgba(127,252,151,.14);color:var(--brand);border-radius:99px;padding:3px 8px;font-weight:800}
+.row .m{font-size:10.5px;color:var(--muted);margin-top:3px}
+.acts{display:flex;gap:6px;margin-top:9px}
+.acts button{font-size:10.5px;border-radius:99px;border:1px solid var(--line);background:transparent;padding:4px 10px;color:var(--ink)}
+.acts .del{color:#ff9a8f;border-color:rgba(255,120,110,.35)}
+</style><style>body{padding:14px}.board{zoom:.84}</style></head><body>
+<div class="board">
+
+<!-- 1. INICIO -->
+<section class="phone">
+  <div class="bar"><span class="dot">⌂</span> Vecinal <span class="zone">Piura Centro</span><span class="av">A</span></div>
+  <main>
+    <h1>Economía Local</h1>
+    <p class="sub">Servicios y productos de tus vecinos, del más cercano al más lejano.</p>
+    <div class="search"><input placeholder="Buscar en tu sector…"><button class="pub-btn">+ Publicar</button></div>
+    <div class="tabs"><span class="tab on">Todo</span><span class="tab">Servicios</span><span class="tab">Productos</span></div>
+    <div class="card"><div class="cover">🔧</div><div><div class="cat">Gasfitería</div><h3>Gasfitero 24h · fugas y tanques</h3>
+      <div class="meta">a 200 m · 29 vistos</div><div class="price">S/ 40.00</div>
+      <div class="pay"><span>Yape</span><span>Efectivo</span></div></div></div>
+    <div class="card"><div class="cover b">🪚</div><div><div class="cat">Carpintería</div><h3>Carpintería a medida en Castilla</h3>
+      <div class="meta">a 300 m · 1 visto</div><div class="price">Intercambio</div>
+      <div class="pay"><span>Sin dinero</span></div></div></div>
+    <div class="card"><div class="cover c">📐</div><div><div class="cat">Clases</div><h3>Matemática primaria y secundaria</h3>
+      <div class="meta">a 1,6 km · 5 vistos</div><div class="price">S/ 25.00</div>
+      <div class="pay"><span>Yape</span><span>Efectivo</span></div></div></div>
+    <div class="nav"><span class="on"><b>⌂</b>Local</span><span><b>♥</b>Favores</span><span><b>⚠</b>Emergencia</span><span><b>◉</b>Mi cuenta</span></div>
+  </main>
+</section>
+
+<!-- 2. DETALLE -->
+<section class="phone">
+  <div class="bar"><span class="dot">⌂</span> Vecinal <span class="zone">Piura Centro</span><span class="av">A</span></div>
+  <main class="detail">
+    <div class="dhead"><span class="back">← Regresar</span></div>
+    <div class="cat">Carpintería</div>
+    <h2>Carpintería a medida en Castilla</h2>
+    <div class="who"><span class="av">A</span> Ana Morales · Urb. Miraflores</div>
+    <div class="facts">
+      <div class="fact"><span>Precio</span><b>Intercambio</b></div>
+      <div class="fact"><span>Pago</span><b>Sin dinero</b></div>
+      <div class="fact"><span>Vistos</span><b>★ 1</b></div>
+      <div class="fact"><span>Distancia</span><b>300 m</b></div>
+    </div>
+    <p class="desc">Puertas, mesas y closets con medidas exactas. Taller en Miraflores. Acepto intercambio por clases o trabajo de jardín.</p>
+    <div class="cta"><button class="main">Chat con el vecino</button><button class="wa">WhatsApp</button></div>
+    <p class="sub" style="margin-top:10px">Ubicación aproximada ±400 m. El punto exacto se coordina en el chat.</p>
+    <div class="nav"><span class="on"><b>⌂</b>Local</span><span><b>♥</b>Favores</span><span><b>⚠</b>Emergencia</span><span><b>◉</b>Mi cuenta</span></div>
+  </main>
+</section>
+
+<!-- 3. ACTIVIDAD -->
+<section class="phone">
+  <div class="bar"><span class="dot">⌂</span> Vecinal <span class="zone">Piura Centro</span><span class="av">A</span></div>
+  <main>
+    <div class="title-sm">Mi cuenta</div>
+    <h1 style="margin-top:4px">Mi actividad</h1>
+    <div class="strip">
+      <div class="kpi"><b>4</b><span>Publicaciones</span></div>
+      <div class="kpi"><b>2</b><span>Cotizaciones</span></div>
+      <div class="kpi"><b>1</b><span>Trato abierto</span></div>
+    </div>
+    <div class="tabs"><span class="tab on">Publicaciones</span><span class="tab">Cotizaciones</span><span class="tab">Tratos</span></div>
+    <div class="row"><div class="top"><b class="t">Carpintería a medida en Castilla</b><span class="badge">Activa</span></div>
+      <div class="m">Carpintería · Miraflores · hace 11 h · 1 visto</div>
+      <div class="acts"><button>✎ Editar</button><button>⏸ Pausar</button><button class="del">🗑 Eliminar</button></div></div>
+    <div class="row"><div class="top"><b class="t">Necesito un taladro el fin de semana</b><span class="badge">Activa</span></div>
+      <div class="m">Favor · Miraflores · hace 2 d · sin vistos</div>
+      <div class="acts"><button>✎ Editar</button><button>⏸ Pausar</button><button class="del">🗑 Eliminar</button></div></div>
+    <div class="nav"><span class="on"><b>◉</b>Mi cuenta</span><span><b>⌂</b>Local</span><span><b>♥</b>Favores</span><span><b>⚠</b>Emergencia</span></div>
+  </main>
+</section>
+</div>
+</body></html>

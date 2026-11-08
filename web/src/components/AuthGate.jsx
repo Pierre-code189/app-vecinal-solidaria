@@ -187,6 +187,12 @@ export default function AuthGate() {
           </p>
         ) : null}
 
+        <div className="entrada-marca-centro">
+          <span className="marca-badge"><Icon name="home" size="1.35em" /></span>
+          <b>Vecinal Solidaria</b>
+          <small>Piura · el barrio, entre vecinos</small>
+        </div>
+
         <div className="entrada-card">
           {!(modo === "registro" && pasoReg === "codigo") && (
             <Segmented value={modo} onChange={(v) => { setModo(v); setError(""); setCodigoDemo(""); setPasoReg("datos"); }} options={[

@@ -28,7 +28,7 @@ export default function Local() {
   const { zona, ref } = useZona();
   const { usuario } = useAuth();
   const toast = useToast();
-  const [tipo, setTipo] = useState("servicio");
+  const [tipo, setTipo] = useState("");
   const [cat, setCat] = useState("");
   const [orden, setOrden] = useState("cercania");
   const [radio, setRadio] = useState("0");
@@ -36,19 +36,16 @@ export default function Local() {
   const [detalle, setDetalle] = useState(null);
   const [publicar, setPublicar] = useState(false);
   const [escuchando, setEscuchando] = useState(false);
-  const [rapidos, setRapidos] = useState({ yape: false, barato: false, emerg: false });
+  const [rapidos, setRapidos] = useState({ cerca: false, top: false });
 
   const params = new URLSearchParams({ limit: "30", orden });
   if (tipo) params.set("tipo", tipo);
   if (cat) params.set("categoria", cat);
   if (q) params.set("q", q);
-  if (rapidos.yape) params.set("medios", "yape");
-  if (rapidos.barato) params.set("precio_max", "20");
-  if (rapidos.emerg) params.set("emergencia", "true");
   if (ref[0]) { params.set("lat", ref[0]); params.set("lng", ref[1]); }
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["lista", tipo, cat, orden, q, ref[0], ref[1], rapidos.yape, rapidos.barato, rapidos.emerg],
+    queryKey: ["lista", tipo, cat, orden, q, ref[0], ref[1]],
     queryFn: () => api.get(`/api/publicaciones?${params}`),
   });
 
@@ -57,8 +54,10 @@ export default function Local() {
     if (radio !== "0") {
       lista = lista.filter((p) => p.distancia_km != null && p.distancia_km <= Number(radio));
     }
+    if (rapidos.cerca) lista = lista.filter((p) => p.distancia_km != null && p.distancia_km <= 1);
+    if (rapidos.top) lista = [...lista].sort((a, b) => (b.vistos || 0) - (a.vistos || 0));
     return lista;
-  }, [data, radio]);
+  }, [data, radio, rapidos]);
 
   const dictar = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -104,25 +103,15 @@ export default function Local() {
         <Btn variant="primary" icon="plus" onClick={() => setPublicar(true)} className="btn-publicar" data-tour="publicar">Publicar</Btn>
       </div>
 
-      <div className="chips-filtro">
-        <button type="button" className={`chip ${rapidos.yape ? "on" : ""}`}
-          onClick={() => setRapidos({ ...rapidos, yape: !rapidos.yape })}>
-          <Icon name="wallet" /> Acepta Yape
+      <div className="chips-filtro dos-filtros">
+        <button type="button" className={`chip ${rapidos.cerca ? "on" : ""}`}
+          onClick={() => setRapidos({ ...rapidos, cerca: !rapidos.cerca })}>
+          <Icon name="pin" /> Cerca (≤ 1 km)
         </button>
-        <button type="button" className={`chip ${rapidos.barato ? "on" : ""}`}
-          onClick={() => setRapidos({ ...rapidos, barato: !rapidos.barato })}>
-          Hasta S/ 20
+        <button type="button" className={`chip ${rapidos.top ? "on" : ""}`}
+          onClick={() => setRapidos({ ...rapidos, top: !rapidos.top })}>
+          <Icon name="thumb" /> Mejor valorados
         </button>
-        <button type="button" className={`chip ${rapidos.emerg ? "on" : ""}`}
-          onClick={() => setRapidos({ ...rapidos, emerg: !rapidos.emerg })}>
-          <Icon name="alert" /> Para emergencias
-        </button>
-        {(rapidos.yape || rapidos.barato || rapidos.emerg) && (
-          <button type="button" className="chip limpiar"
-            onClick={() => setRapidos({ yape: false, barato: false, emerg: false })}>
-            Limpiar
-          </button>
-        )}
       </div>
 
       <div className="orden">

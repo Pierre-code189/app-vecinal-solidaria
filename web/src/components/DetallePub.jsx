@@ -45,6 +45,8 @@ export default function DetallePub({ id, onClose }) {
   const cot = p?.mi_cotizacion;
   const abrirChat = Boolean(trato || (cot && cot.estado !== "enviada"));
   const esExterno = p?.origen === "scraping";
+  const esFavor = String(p?.tipo || "").startsWith("favor");
+  const soloIntercambio = /intercambio/i.test(`${p?.precio || ""} ${p?.medios_pago || ""}`);
   const waLink = p?.telefono
     ? `https://wa.me/51${p.telefono}?text=${encodeURIComponent("Hola, vi tu publicación en Vecinal Solidaria: " + (p.titulo || ""))}`
     : "";
@@ -106,10 +108,9 @@ export default function DetallePub({ id, onClose }) {
 
       {p && (
         <div className="det2">
-          <button type="button" className="volver" onClick={onClose}><Icon name="back" /> Regresar</button>
 
           <div className="det2-top">
-            <span className="cat"><Icon name={CAT_ICON[p.categoria] || "dots"} />{cap(p.categoria)}</span>
+            <span className="cat"><Icon name={CAT_ICON[p.categoria] || "dots"} />{cap(String(p.categoria || "").replace(/_/g, " "))}</span>
             {Boolean(p.es_emergencia) && <Badge tono="rojo"><Icon name="alert" /> Emergencia</Badge>}
           </div>
           <h2 className="det2-titulo">{p.titulo}</h2>
@@ -126,8 +127,10 @@ export default function DetallePub({ id, onClose }) {
           </div>
 
           <div className="hechos">
-            <div><span>Precio</span><b>{p.precio || "A convenir"}</b></div>
-            <div><span>Pago</span><b>{medios(p).join(", ") || "Intercambio"}</b></div>
+            {!esFavor && <div><span>Precio</span><b>{p.precio || "A convenir"}</b></div>}
+            {esFavor && <div><span>Estado</span><b className={p.estado === "activa" ? "abierto" : ""}>{p.estado === "activa" ? "Abierto" : "Pausado"}</b></div>}
+            {esFavor && p.franja_horaria && <div><span>Cuándo</span><b>{p.franja_horaria}</b></div>}
+            {!soloIntercambio && <div><span>Pago</span><b>{medios(p).join(", ") || "A convenir"}</b></div>}
             <div><span>Vistos buenos</span><b><Icon name="thumb" /> {p.vistos || 0}</b></div>
             {p.stock != null && (
               <div><span>Disponibles</span><b className={p.stock === 0 ? "agotado" : ""}>
@@ -143,8 +146,8 @@ export default function DetallePub({ id, onClose }) {
             </button>
           )}
 
-          {p.contacto_visible && (p.yape_autor || p.plin_autor || p.telefono) && (
-            <details className="det2-pago">
+          {p.contacto_visible && (p.yape_autor || p.plin_autor) && (
+            <details className={`det2-pago ${soloIntercambio ? "oculto" : ""}`}>
               <summary><Icon name="wallet" /> Datos para pagar</summary>
               <div className="det2-pago-cuerpo">
                 {p.yape_autor && (
@@ -154,11 +157,6 @@ export default function DetallePub({ id, onClose }) {
                 {p.plin_autor && (
                   <div className="pago-fila"><span>Plin <b>{p.plin_autor}</b></span>
                     <Btn size="small" icon="copy" onClick={async () => (await copiar(p.plin_autor)) ? toast("Plin copiado") : toast("Copia manual", "warn")}>Copiar</Btn></div>
-                )}
-                {p.telefono && (
-                  <div className="pago-fila"><span>Teléfono <b>{p.telefono}</b></span>
-                    <a className="btn small" href={`https://wa.me/51${p.telefono}?text=${encodeURIComponent("Hola, vi tu publicación en Vecinal Solidaria: " + p.titulo)}`}
-                      target="_blank" rel="noopener noreferrer"><Icon name="whatsapp" /> WhatsApp</a></div>
                 )}
                 <p className="hint">Pago directo entre vecinos. La app no cobra comisión ni guarda tu dinero.</p>
               </div>

@@ -24,6 +24,7 @@ export default function Emergencia() {
   const { data: tablero } = useQuery({ queryKey: ["emergencia"], queryFn: () => api.get("/api/emergencia"), refetchInterval: 60000 });
   const { data: dir } = useQuery({ queryKey: ["directorio"], queryFn: () => api.get("/api/emergencia/directorio") });
   const [necesidad, setNecesidad] = useState("");
+  const [rapidos, setRapidos] = useState({ cerca: false, urg: false });
   const [nuevo, setNuevo] = useState(null); // ofrezco | necesito
   const [detalle, setDetalle] = useState(null);
   const { data: recursos } = useQuery({
@@ -77,18 +78,28 @@ export default function Emergencia() {
       </div>
 
       <div className="em-publicar">
-        <Btn variant="primary" icon="box" onClick={() => setNuevo("ofrezco")}>Ofrecer un recurso</Btn>
-        <Btn icon="alert" onClick={() => setNuevo("necesito")}>Necesito ayuda</Btn>
+        <Btn icon="box" onClick={() => setNuevo("ofrezco")}>Ofrecer un recurso</Btn>
+        <Btn variant="primary" icon="alert" className="btn-necesito" onClick={() => setNuevo("necesito")}>Necesito ayuda</Btn>
       </div>
 
       <h2 className="sec">Recursos en {zona}</h2>
-      <div className="chips-filtro">
-        {[["", "Todo"], ["agua_potable", "Agua"], ["alimentos", "Comida"], ["balde_bidon", "Bidones"],
-          ["herramientas", "Herramientas"], ["movilidad", "Movilidad"], ["salud", "Salud"], ["techo", "Techo"]]
-          .map(([v, etiqueta]) => (
-            <button key={v} type="button" className={`chip ${necesidad === v ? "on" : ""}`}
-              onClick={() => setNecesidad(v)}>{etiqueta}</button>
-          ))}
+      {((recursos?.items?.length ? recursos.items : otros?.items) || []).length === 0 && (
+        <div className="card vacio-em">
+          <b>No hay recursos en tu sector todavía</b>
+          <p className="hint">Publica qué ofreces o qué necesitas y el barrio lo verá al instante.</p>
+          <Btn variant="primary" icon="box" onClick={() => setNuevo("ofrezco")}>Ofrecer un recurso</Btn>
+        </div>
+      )}
+
+      <div className="chips-filtro dos-filtros">
+        <button type="button" className={`chip ${rapidos.cerca ? "on" : ""}`}
+          onClick={() => setRapidos({ ...rapidos, cerca: !rapidos.cerca })}>
+          <Icon name="pin" /> Cerca (≤ 1 km)
+        </button>
+        <button type="button" className={`chip ${rapidos.urg ? "on" : ""}`}
+          onClick={() => setRapidos({ ...rapidos, urg: !rapidos.urg })}>
+          <Icon name="alert" /> Urgentes (48 h)
+        </button>
       </div>
       {(!recursos?.items || recursos.items.length === 0) && (
         <Empty icon="box" titulo="Aún no hay recursos marcados aquí" texto="Si tienes agua, bidones o víveres, publícalo y marca «también disponible en emergencias»." />
@@ -98,7 +109,9 @@ export default function Emergencia() {
           <p className="nota">No hay recursos en {zona}. Estos son de otros sectores del distrito.</p>
         )}
         {((recursos?.items?.length ? recursos.items : otros?.items) || [])
-          .filter((r) => !necesidad || r.necesidad === necesidad).map((r) => (
+          .filter((r) => (!necesidad || r.necesidad === necesidad)
+            && (!rapidos.cerca || (r.distancia_km != null && r.distancia_km <= 1))
+            && (!rapidos.urg || (r.creado && (Date.now() / 1000 - r.creado) < 172800))).map((r) => (
           <article className="card recurso" key={r.id} role="button" tabIndex={0}
             onClick={() => setDetalle(r.id)}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setDetalle(r.id)}>
