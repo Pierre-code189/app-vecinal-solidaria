@@ -212,3 +212,8 @@ html.menos-movimiento .grid > .pub{ animation:none; }
   .tabs{flex-wrap:wrap;overflow:visible;padding:10px}
   .tabs button{flex:0 0 auto}
 }
+
+/* precio: jerarquía real sobre el título */
+.pub .precio{font-size:1.24rem;line-height:1.25}
+.pub .precio.largo{font-size:1.04rem}
+.chips-filtro{gap:10px}
