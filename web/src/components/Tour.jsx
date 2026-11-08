@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Icon } from "../lib/icons";
 import { Btn } from "./ui";
 
-/* Recorrido guiado por la app. Cada paso puede cambiar de pantalla y resaltar un elemento. */
+/* Recorrido guiado. La tarjeta vive siempre en el mismo sitio (abajo, centrada)
+   para que no haya que perseguirla con el mouse; solo cambia lo resaltado. */
 const PASOS = [
   {
     ruta: "/", selector: null, titulo: "Bienvenido a Vecinal",
@@ -65,47 +65,63 @@ function Tour({ onClose }) {
   const [i, setI] = useState(0);
   const [rect, setRect] = useState(null);
   const [listo, setListo] = useState(false);
-  const [alto, setAlto] = useState(0);
+  const [alto, setAlto] = useState(200);
   const cardRef = useRef(null);
+  const intentos = useRef(0);
   const nav = useNavigate();
   const loc = useLocation();
   const paso = PASOS[i];
-  const pendiente = useRef(null);
 
+  const movil = window.innerWidth < 760;
+  const margenInferior = movil ? 78 : 24; // en móvil deja ver la barra inferior
+
+  /* 1. medir el objetivo del paso */
   useEffect(() => {
-    setRect(null); setListo(false);
-    if (loc.pathname !== paso.ruta) {
-      nav(paso.ruta);
-      return;
-    }
+    setRect(null); setListo(false); intentos.current = 0;
+    if (loc.pathname !== paso.ruta) { nav(paso.ruta); return; }
     const medir = () => {
       if (!paso.selector) { setListo(true); return; }
       const el = document.querySelector(paso.selector);
       if (!el) { setListo(true); return; }
       el.scrollIntoView({ block: "center", behavior: "instant" });
-      if (window.innerWidth < 760) {
-        // en móvil la tarjeta vive abajo: subimos el objetivo a la mitad superior
+      setTimeout(() => {
         const r = el.getBoundingClientRect();
-        const limite = window.innerHeight * 0.46;
-        if (r.bottom > limite) window.scrollBy(0, r.bottom - limite + 14);
-      }
-      const medir2 = () => {
-        const r = el.getBoundingClientRect();
-        setRect({ x: r.x, y: r.y, w: r.width, h: r.height });
+        setRect({ x: r.x, y: r.y, w: r.width, h: r.height, el });
         setListo(true);
-      };
-      pendiente.current = setTimeout(medir2, 220);
+      }, 120);
     };
-    const t = setTimeout(medir, loc.pathname === paso.ruta ? 60 : 500);
-    return () => { clearTimeout(t); clearTimeout(pendiente.current); };
+    const t = setTimeout(medir, loc.pathname === paso.ruta ? 60 : 450);
+    return () => clearTimeout(t);
   }, [i, loc.pathname, paso.ruta, paso.selector, nav]);
 
-  /* mide la tarjeta ya pintada para colocarla sin cortarse */
+  /* 2. alto real de la tarjeta */
   useEffect(() => {
     if (!listo || !cardRef.current) return;
     const h = cardRef.current.offsetHeight;
     if (h && Math.abs(h - alto) > 2) setAlto(h);
-  }, [listo, i, rect, alto]);
+  }, [listo, i, alto]);
+
+  /* 3. si el objetivo queda tapado por la tarjeta, se desplaza lo justo (y solo lo justo) */
+  useEffect(() => {
+    if (!listo || !rect) return;
+    const vh = window.innerHeight;
+    const limiteAbajo = vh - alto - margenInferior - 18;
+    const limiteArriba = 64;
+    let dy = 0;
+    if (rect.y < limiteArriba) dy = rect.y - limiteArriba;
+    else if (rect.y + rect.h > limiteAbajo) dy = rect.y + rect.h - limiteAbajo;
+    if (Math.abs(dy) > 2 && intentos.current < 4) {
+      intentos.current++;
+      window.scrollBy({ top: dy, behavior: "instant" });
+      setTimeout(() => {
+        const el = document.querySelector(paso.selector);
+        if (el) {
+          const r = el.getBoundingClientRect();
+          setRect({ x: r.x, y: r.y, w: r.width, h: r.height, el });
+        }
+      }, 70);
+    }
+  }, [listo, rect, alto, margenInferior, paso.selector]);
 
   const siguiente = () => {
     if (i >= PASOS.length - 1) { localStorage.setItem("vecinal-tour", "1"); onClose(); return; }
@@ -114,35 +130,20 @@ function Tour({ onClose }) {
   const anterior = () => setI(Math.max(0, i - 1));
   const saltar = () => { localStorage.setItem("vecinal-tour", "1"); onClose(); };
 
-  /* la tarjeta nunca puede salirse de la pantalla */
   const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const movil = vw < 760;
-  const ancho = Math.min(movil ? vw - 24 : 360, vw - 24);
-  const altoReal = Math.min(alto || 220, vh - 24);
+  const ancho = Math.min(movil ? vw - 20 : 560, vw - 20);
 
-  let estiloCaja = {
-    position: "fixed", zIndex: 1200, width: ancho,
-    maxHeight: vh - 24, overflowY: "auto",
+  const estiloCaja = {
+    position: "fixed",
+    zIndex: 1200,
+    left: "50%",
+    transform: "translateX(-50%)",
+    bottom: margenInferior,
+    width: ancho,
+    height: movil ? Math.min(300, Math.round(window.innerHeight * 0.42)) : "auto",
+    maxHeight: movil ? Math.round(window.innerHeight * 0.42) : 250,
+    overflowY: "auto",
   };
-
-  if (movil) {
-    // en móvil, siempre abajo y a todo el ancho: predecible y sin cortes
-    estiloCaja = { ...estiloCaja, left: 12, right: 12, bottom: 12, width: "auto", maxHeight: Math.round(vh * 0.46) };
-  } else if (rect) {
-    const abajo = vh - (rect.y + rect.h) - 12;
-    const arriba = rect.y - 12;
-    const izquierda = Math.min(Math.max(12, rect.x + rect.w / 2 - ancho / 2), vw - ancho - 12);
-    if (abajo >= altoReal + 8) {
-      estiloCaja = { ...estiloCaja, left: izquierda, top: rect.y + rect.h + 12 };
-    } else if (arriba >= altoReal + 8) {
-      estiloCaja = { ...estiloCaja, left: izquierda, bottom: vh - rect.y + 12 };
-    } else {
-      estiloCaja = { ...estiloCaja, right: 20, bottom: 20 };
-    }
-  } else {
-    estiloCaja = { ...estiloCaja, left: "50%", top: "50%", transform: "translate(-50%,-50%)" };
-  }
 
   return (
     <>
@@ -157,9 +158,10 @@ function Tour({ onClose }) {
         <h3>{paso.titulo}</h3>
         <p>{paso.texto}</p>
         <div className="tour-acciones">
-          <button type="button" className="linkbtn" onClick={saltar}>Salir del recorrido</button>
+          <button type="button" className="linkbtn" onClick={saltar}>Salir</button>
           <div className="tour-botones">
-            {i > 0 && <Btn size="small" icon="back" onClick={anterior}>Atrás</Btn>}
+            <Btn size="small" icon="back" onClick={anterior}
+              style={{ visibility: i === 0 ? "hidden" : "visible" }} aria-hidden={i === 0}>Atrás</Btn>
             <Btn size="small" variant="primary" icon={i === PASOS.length - 1 ? "check" : undefined} onClick={siguiente}>
               {i === PASOS.length - 1 ? "Terminar" : "Siguiente"}
             </Btn>

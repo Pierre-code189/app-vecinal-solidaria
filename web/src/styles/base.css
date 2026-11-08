@@ -941,3 +941,13 @@ main{max-width:1240px;margin:0 auto;padding:24px 20px 60px}
   background:rgba(255,255,255,.16);color:#fff;border-radius:50%;cursor:pointer;padding:0}
 .topbar .avatar-btn:hover{background:rgba(255,255,255,.3)}
 .topbar .avatar-btn[aria-expanded="true"]{background:#fff;color:var(--brand-700);border-color:#fff}
+
+/* el recorrido debe distinguirse del elemento resaltado, aunque los dos sean blancos */
+.tour-card{border-top:3px solid var(--brand-600);box-shadow:0 26px 60px rgba(6,18,12,.4),0 0 0 1px rgba(0,107,44,.12)}
+.tour-hueco{box-shadow:0 0 0 9999px rgba(11,20,16,.66),0 0 0 3px var(--brand-fixed),0 0 26px rgba(127,252,151,.5)}
+.tour-paso{color:var(--brand-700)}
+
+/* los botones del recorrido siempre en el mismo sitio */
+.tour-card{display:flex;flex-direction:column}
+.tour-acciones{margin-top:auto}
+@media (min-width:760px){.tour-card{min-height:206px}}

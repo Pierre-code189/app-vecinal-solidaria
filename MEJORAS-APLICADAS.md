@@ -550,3 +550,18 @@ pantalla, no se solapan con lo resaltado y los botones están siempre visibles.
 
 **Tutorial sin duplicados**: el botón «Empezar el recorrido» aparecía dos veces (cabecera y
 bloque de bienvenida). Queda solo en el bloque de bienvenida.
+
+
+## v4.5.3 — el recorrido se queda quieto
+
+La tarjeta se colocaba junto al elemento de cada paso, así que saltaba por la pantalla y, en
+ventanas bajas, se salía o tapaba botones. Ahora **vive siempre en el mismo lugar**: abajo y
+centrada (en móvil, justo encima de la barra inferior), con alto fijo y los botones anclados
+abajo. El paso solo mueve el foco y, si hace falta, desplaza la página lo mínimo para que lo
+resaltado quede por encima de la tarjeta (máximo cuatro ajustes de pocos píxeles).
+
+Comprobado en los 10 pasos: una sola posición de tarjeta por tamaño de pantalla, cero
+solapamientos con lo resaltado y el botón «Siguiente» siempre a la misma altura.
+
+Para que no se confunda con el elemento resaltado —los dos son blancos— la tarjeta lleva filo
+verde arriba y el foco un anillo más marcado.
