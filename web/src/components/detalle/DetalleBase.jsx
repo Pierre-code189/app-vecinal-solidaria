@@ -35,8 +35,9 @@ export default function DetalleBase({ id, onClose, children }) {
 
   const trato = p?.mi_trato;
   const cot = p?.mi_cotizacion;
-  const waLink = p?.telefono
-    ? `https://wa.me/51${p.telefono}?text=${encodeURIComponent("Hola, vi tu publicación en Vecinal Solidaria: " + (p.titulo || ""))}`
+  const waNum = p?.whatsapp || "";
+  const waLink = waNum
+    ? `https://wa.me/51${waNum}?text=${encodeURIComponent("Hola, vi tu publicación en Vecinal Solidaria: " + (p.titulo || ""))}`
     : "";
 
   const abrirConversacion = async () => {

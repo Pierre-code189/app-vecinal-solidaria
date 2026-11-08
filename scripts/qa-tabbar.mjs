@@ -93,6 +93,9 @@ for (const [i, o] of [{ k: "servicio" }, { k: "favor" }, { k: "emergencia" }].en
   const texto = await js(`[...document.querySelectorAll(".modalbox")].map(m => m.innerText).join(" ")`);
   paso(`la opción ${o.k} abre su formulario`, ESPERA[o.k].test(texto), texto.slice(0, 80).replace(/\n/g, " · "));
   await foto(`5-form-${o.k}`);
+  await js(`(() => { const b = [...document.querySelectorAll(".modalbox button")].find((x) => x.textContent.includes("Siguiente")); b?.click(); return "ok"; })()`);
+  await sleep(900);
+  await foto(`6-datos-${o.k}`);
 }
 
 console.log(fallos ? `\n${fallos} paso(s) fallaron` : "\nTodo en verde");

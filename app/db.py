@@ -196,6 +196,7 @@ MIGRATIONS = {
         "zona_lng": "REAL",
     },
     "publicaciones": {
+        "wa": "INTEGER DEFAULT 1",
         "subtipo_favor": "TEXT",
         "medios_pago": "TEXT DEFAULT ''",
         "qr_yape": "TEXT DEFAULT ''",

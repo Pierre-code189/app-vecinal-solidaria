@@ -3,7 +3,15 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import { useZona } from "../context/Zona";
 import { Icon, CAT_ICON } from "../lib/icons";
-import { Sheet, Btn, Field, Select, useToast } from "./ui";
+import { Sheet, Btn, Field, Select, Segmented, useToast } from "./ui";
+
+/*
+ * Formulario único de publicación. Cambia de contexto según «modo»:
+ *   servicio  · ofrezco/vendo algo (precio, stock, pagos)
+ *   favor     · pido u ofrezco ayuda (cuándo, sin dinero)
+ *   emergencia· tablero (recurso, urgencia) con la misma lógica que un favor
+ * Dos pasos: qué publicas → datos y publicación.
+ */
 
 const CATS = ["gasfitería", "carpintería", "electricidad", "cerrajería", "clases", "alimentos",
   "paseo de mascotas", "herramientas", "movilidad", "préstamo", "otros"];
@@ -14,6 +22,13 @@ const SUBTIPOS = [
   { value: "donacion", label: "Donación de materiales" },
   { value: "intercambio_habilidades", label: "Intercambio de habilidades" },
   { value: "movilidad", label: "Movilidad solidaria" },
+];
+
+const NECESIDADES = [
+  ["agua_potable", "Agua potable"], ["alimentos", "Alimentos"], ["balde_bidon", "Bidones o baldes"],
+  ["techo", "Techo o carpa"], ["abrigo", "Abrigo"], ["higiene", "Higiene"],
+  ["salud", "Salud o medicinas"], ["herramientas", "Herramientas"], ["movilidad", "Movilidad"],
+  ["alojamiento", "Alojamiento"], ["energia", "Energía o luz"], ["otro", "Otro"],
 ];
 
 const PAGOS = [
@@ -54,42 +69,54 @@ function comprimir(file) {
   });
 }
 
-export default function PublicarNuevo({ open, inicial = "servicio", onClose, onPublicado }) {
+export default function Publicar({ open, modo = "servicio", onClose, onPublicado }) {
   const { usuario } = useAuth();
   const { zona, zonas, usarGPS } = useZona();
   const toast = useToast();
 
   const [paso, setPaso] = useState(1);
-  const [f, setF] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(BORRADOR) || "null") || {}; } catch { return {}; }
-  });
+  const [f, setF] = useState({});
   const [fotos, setFotos] = useState([]);
   const [subiendo, setSubiendo] = useState("");
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [otroSector, setOtroSector] = useState(false);
 
-  /* Si el vecino entra pidiendo un favor (o un servicio), el borrador de otra
-     familia no debe cambiarle el formulario. */
-  const guardado = f.tipo || "";
-  const tipo = guardado && (guardado.startsWith("favor") === inicial.startsWith("favor"))
-    ? guardado : inicial;
-  const esFavor = tipo.startsWith("favor");
-  const esMovilidad = esFavor && (f.subtipo || "prestamo") === "movilidad";
-
-  const set = (k, v) => setF((prev) => {
-    const next = { ...prev, [k]: v };
-    localStorage.setItem(BORRADOR, JSON.stringify(next));
-    return next;
-  });
-
+  /* Cada contexto arranca limpio: el borrador de otro flujo confunde. */
   useEffect(() => {
     if (!open) return;
-    setPaso(1); setError("");
-  }, [open]);
+    setPaso(1);
+    setError("");
+    setF({
+      wa: true,
+      tel: (usuario?.telefono || "").slice(0, 9),
+      lado: "necesito",
+      necesidad: "agua_potable",
+      categoria: modo === "favor" ? "herramientas" : "gasfitería",
+      tipo: "servicio",
+    });
+    setFotos([]);
+    setSubiendo("");
+    setOtroSector(false);
+  }, [open, modo, usuario?.telefono]);
 
+  const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
+
+  const esEmergencia = modo === "emergencia";
+  const esFavor = modo === "favor" || esEmergencia;
+  const tipo = esEmergencia
+    ? (f.lado === "ofrezco" ? "favor_ofrecido" : "favor_solicitado")
+    : esFavor
+      ? (f.lado === "ofrezco" ? "favor_ofrecido" : "favor_solicitado")
+      : (f.tipo || "servicio");
+  const esProducto = tipo === "producto";
+  const esMovilidad = esFavor && !esEmergencia && (f.subtipo || "prestamo") === "movilidad";
   const zonaActual = f.zona || zona;
   const zonaConocida = zonas.some((z) => z.nombre === zonaActual) || zonaActual === zona;
+  const categoria = f.categoria || (esEmergencia ? "otros" : "gasfitería");
+
+  const tituloLargo = esEmergencia ? 90 : 120;
+  const titulo = esEmergencia ? "Tablero de emergencia" : esFavor ? "Publicar un favor" : "Publicar en Economía Local";
 
   const agregarFotos = async (files) => {
     const lista = Array.from(files || []).slice(0, 3 - fotos.length);
@@ -109,18 +136,17 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
   };
 
   const validar = () => {
-    if ((f.titulo || "").trim().length < 3) return "El título necesita al menos 3 caracteres.";
+    if ((f.titulo || "").trim().length < 4) return "Ponle un título corto: qué ofreces, pides o necesitas.";
     if ((f.descripcion || "").trim().length < 10) return "Cuenta un poco más en la descripción (10 caracteres).";
-    if (!esFavor && !f.sinPrecio) {
-      const n = Number(f.precioNum);
-      if (!f.precioNum || isNaN(n) || n <= 0) return "Escribe un precio en soles o marca «A convenir».";
-      if (n > 5000) return "El precio parece muy alto. Revisa el monto.";
-    }
-    if (esFavor && esMovilidad) {
+    if (!esFavor && !f.sinPrecio && !f.precioNum) return "Escribe un precio en soles o marca «A convenir».";
+    if (!esFavor && !f.sinPrecio && Number(f.precioNum) > 5000) return "El precio parece muy alto. Revisa el monto.";
+    if (esMovilidad) {
       if (!(f.franja || "").trim()) return "Indica la franja horaria.";
       if (!(f.punto || "").trim()) return "Indica un punto de encuentro público.";
       if (!f.checklist) return "Confirma la lista de seguridad.";
     }
+    if (esEmergencia && !f.necesidad) return "Elige de qué se trata.";
+    if (f.wa && !/^9\d{8}$/.test(String(f.tel || ""))) return "Escribe un celular de 9 dígitos o desmarca WhatsApp.";
     if (!zonaConocida && !f.lat) return "Comparte tu ubicación para ubicar tu sector.";
     return "";
   };
@@ -130,16 +156,18 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
     if (err) { setPaso(2); setError(err); return; }
     setGuardando(true); setError("");
     try {
-      const precio = esFavor ? (f.sinPrecio === false && f.precioNum ? `S/ ${Number(f.precioNum).toFixed(2)}` : "Gratis / intercambio")
+      const precio = esFavor ? "Gratis / intercambio"
         : (f.sinPrecio ? "A convenir" : `S/ ${Number(f.precioNum).toFixed(2)}`);
       await api.post("/api/publicaciones", {
         tipo,
-        categoria: esFavor ? (f.categoria || "otros") : (f.categoria || "gasfitería"),
-        subtipo_favor: esFavor ? (f.subtipo || "prestamo") : null,
+        categoria: esEmergencia ? "otros" : categoria,
+        subtipo_favor: esEmergencia
+          ? (f.lado === "ofrezco" ? "donacion" : "ayuda_temporal")
+          : esFavor ? (f.subtipo || "prestamo") : null,
         titulo: f.titulo.trim(),
         descripcion: f.descripcion.trim(),
         precio,
-        stock: tipo === "producto" ? (f.stock === "" ? null : Number(f.stock)) : null,
+        stock: esProducto ? (f.stock === "" || f.stock == null ? null : Number(f.stock)) : null,
         medios_pago: esFavor ? "intercambio" : (f.pagos || "yape,efectivo"),
         politica_pago: f.politica || "contra_entrega",
         zona: zonaActual,
@@ -148,14 +176,15 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
         punto_encuentro: f.punto || "",
         franja_horaria: f.franja || "",
         checklist_ok: Boolean(f.checklist),
-        es_emergencia: Boolean(f.emerg),
+        es_emergencia: Boolean(esEmergencia),
+        necesidad: esEmergencia ? f.necesidad : null,
         mostrar_contacto: f.mostrar !== false,
+        whatsapp: Boolean(f.wa),
+        telefono_whatsapp: f.wa ? f.tel : "",
         fotos,
         client_id: `c-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
       });
-      localStorage.removeItem(BORRADOR);
-      setF({}); setFotos([]); setSubiendo("");
-      toast("¡Publicado! Ya lo ven tus vecinos.");
+      toast(esEmergencia ? "Publicado en el tablero" : "¡Publicado! Ya lo ven tus vecinos.");
       onClose?.(); onPublicado?.();
     } catch (e) {
       setError(e.message); toast(e.message, "err");
@@ -179,12 +208,12 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
     );
   }
 
-  const TIPO_TITULO = esFavor
-    ? (tipo === "favor_solicitado" ? "Pedir ayuda" : "Ofrecer ayuda")
-    : (tipo === "producto" ? "Publicar un producto" : "Publicar un servicio");
+  const lados = esEmergencia
+    ? [{ value: "necesito", label: "Necesito ayuda" }, { value: "ofrezco", label: "Ofrezco un recurso" }]
+    : [{ value: "necesito", label: "Necesito ayuda" }, { value: "ofrezco", label: "Ofrezco ayuda" }];
 
   return (
-    <Sheet open onClose={onClose} titulo={TIPO_TITULO}>
+    <Sheet open onClose={onClose} titulo={titulo} ancho={560}>
       <div className="steps">
         {["1. Qué publicas", "2. Datos y publicación"].map((t, i) => (
           <span key={t} className={`step ${paso === i + 1 ? "on" : ""}`}>{t}</span>
@@ -193,34 +222,39 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
 
       {paso === 1 && (
         <div className="paso">
-          {!esFavor && (
+          {esFavor ? (
+            <Segmented value={f.lado || "necesito"} onChange={(v) => set("lado", v)} options={lados} />
+          ) : (
+            <Segmented value={tipo} onChange={(v) => set("tipo", v)}
+              options={[{ value: "servicio", label: "Un servicio que ofrezco" },
+                        { value: "producto", label: "Un producto que vendo" }]} />
+          )}
+
+          {esEmergencia ? (
             <>
-              <Field label="Tipo" id="p-tipo">
-                <Select id="p-tipo" ariaLabel="Tipo" value={tipo} onChange={(v) => set("tipo", v)}
-                  options={[{ value: "servicio", label: "Un servicio que ofrezco" },
-                            { value: "producto", label: "Un producto que vendo" }]} />
-              </Field>
-              <label>Categoría</label>
-              <div className="pills">
-                {CATS.filter((c) => c !== "movilidad" && c !== "préstamo").map((c) => (
-                  <button key={c} type="button" className={`pill ${(f.categoria || "gasfitería") === c ? "on" : ""}`}
-                    onClick={() => set("categoria", c)}><Icon name={CAT_ICON[c]} />{c}</button>
+              <label>¿Qué hace falta?</label>
+              <div className="pills pills-cat">
+                {NECESIDADES.map(([v, l]) => (
+                  <button key={v} type="button" className={`pill ${(f.necesidad || "agua_potable") === v ? "on" : ""}`}
+                    onClick={() => set("necesidad", v)}>{l}</button>
                 ))}
               </div>
             </>
-          )}
-
-          {esFavor && (
+          ) : (
             <>
-              <Field label="¿Qué tipo de favor?" id="p-sub">
-                <Select id="p-sub" ariaLabel="Tipo de favor" value={f.subtipo || "prestamo"}
-                  onChange={(v) => set("subtipo", v)} options={SUBTIPOS} />
-              </Field>
-              <Field label="¿Para qué categoría?" id="p-cat">
-                <Select id="p-cat" ariaLabel="Categoría" value={f.categoria || "herramientas"}
-                  onChange={(v) => set("categoria", v)}
-                  options={CATS.map((c) => ({ value: c, label: c }))} />
-              </Field>
+              <label>{esFavor ? "¿De qué se trata?" : "Categoría"}</label>
+              <div className="pills pills-cat">
+                {CATS.filter((c) => !esFavor || (c !== "movilidad" && c !== "préstamo") || true).map((c) => (
+                  <button key={c} type="button" className={`pill ${(f.categoria || (esFavor ? "herramientas" : "gasfitería")) === c ? "on" : ""}`}
+                    onClick={() => set("categoria", c)}><Icon name={CAT_ICON[c] || "dots"} />{c}</button>
+                ))}
+              </div>
+              {esFavor && (
+                <Field label="Tipo de favor" id="p-sub">
+                  <Select id="p-sub" ariaLabel="Tipo de favor" value={f.subtipo || "prestamo"}
+                    onChange={(v) => set("subtipo", v)} options={SUBTIPOS} />
+                </Field>
+              )}
             </>
           )}
 
@@ -232,14 +266,17 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
 
       {paso === 2 && (
         <div className="paso">
-          <Field label="Título corto" id="p-titulo" contador={`${(f.titulo || "").length}/120`}>
-            <input id="p-titulo" maxLength={120} value={f.titulo || ""} onChange={(e) => set("titulo", e.target.value)}
-              placeholder={esFavor ? "Ej.: Necesito una muleta por una semana" : "Ej.: Gasfitero para fugas y destapes"} />
+          <Field label="Título corto" id="p-titulo" contador={`${(f.titulo || "").length}/${tituloLargo}`}>
+            <input id="p-titulo" maxLength={tituloLargo} value={f.titulo || ""} onChange={(e) => set("titulo", e.target.value)}
+              placeholder={esEmergencia ? "Ej.: Necesito agua para 8 personas"
+                : esFavor ? "Ej.: Necesito una muleta por una semana" : "Ej.: Gasfitero para fugas y destapes"} />
           </Field>
-          <Field label="Descripción" id="p-desc" contador={`${(f.descripcion || "").length}/600`}>
+
+          <Field label={esEmergencia ? "Dónde" : "Descripción"} id="p-desc" contador={`${(f.descripcion || "").length}/600`}>
             <textarea id="p-desc" rows={3} maxLength={600} value={f.descripcion || ""}
               onChange={(e) => set("descripcion", e.target.value)}
-              placeholder={esFavor ? "Cuenta qué necesitas y hasta cuándo" : "Qué incluye, en cuánto tiempo, qué necesitas saber"} />
+              placeholder={esEmergencia ? "Ej.: parque del sector, frente a la losa deportiva"
+                : esFavor ? "Cuenta qué necesitas y hasta cuándo" : "Qué incluye, en cuánto tiempo, qué necesitas saber"} />
           </Field>
 
           {!esFavor && (
@@ -255,28 +292,34 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
                   A convenir
                 </label>
               </div>
-              {tipo === "producto" && (
+              {esProducto && (
                 <Field label="Disponibles" id="p-stock" hint="Cuántas unidades tienes. Se descuenta al cerrar cada trato.">
                   <input id="p-stock" type="number" inputMode="numeric" min="0" max="9999" placeholder="1"
                     value={f.stock ?? ""} onChange={(e) => set("stock", e.target.value.replace(/\D/g, ""))} />
                 </Field>
               )}
-              <Field label="Formas de pago" id="p-pagos">
-                <Select id="p-pagos" ariaLabel="Formas de pago" value={f.pagos || "yape,efectivo"}
-                  onChange={(v) => set("pagos", v)} options={PAGOS} />
-              </Field>
-              <Field label="Acuerdo de pago" id="p-pol">
-                <Select id="p-pol" ariaLabel="Acuerdo de pago" value={f.politica || "contra_entrega"}
-                  onChange={(v) => set("politica", v)} options={POLITICAS} />
-              </Field>
+              <div className="dos">
+                <Field label="Formas de pago" id="p-pagos">
+                  <Select id="p-pagos" ariaLabel="Formas de pago" value={f.pagos || "yape,efectivo"}
+                    onChange={(v) => set("pagos", v)} options={PAGOS} />
+                </Field>
+                <Field label="Acuerdo de pago" id="p-pol">
+                  <Select id="p-pol" ariaLabel="Acuerdo de pago" value={f.politica || "contra_entrega"}
+                    onChange={(v) => set("politica", v)} options={POLITICAS} />
+                </Field>
+              </div>
             </>
+          )}
+
+          {(esFavor || esEmergencia) && (
+            <Field label={esEmergencia ? "Cuándo hace falta" : "Cuándo"} id="p-franja">
+              <input id="p-franja" value={f.franja || ""} onChange={(e) => set("franja", e.target.value)}
+                placeholder="Ej.: hoy hasta las 8 pm · mañana en la mañana" />
+            </Field>
           )}
 
           {esMovilidad && (
             <>
-              <Field label="Franja horaria" id="p-franja">
-                <input id="p-franja" value={f.franja || ""} onChange={(e) => set("franja", e.target.value)} placeholder="Ej.: 7:00 a 8:00" />
-              </Field>
               <Field label="Punto de encuentro público" id="p-punto">
                 <input id="p-punto" value={f.punto || ""} onChange={(e) => set("punto", e.target.value)} placeholder="Ej.: parque del sector" />
               </Field>
@@ -326,17 +369,30 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
             </div>
           )}
 
-          <label className="check"><input type="checkbox" checked={Boolean(f.emerg)} onChange={(e) => set("emerg", e.target.checked)} /> También disponible en emergencias</label>
+          <div className="wa-bloque">
+            <label className="check">
+              <input type="checkbox" checked={f.wa !== false} onChange={(e) => set("wa", e.target.checked)} />
+              Quiero que me escriban por WhatsApp
+            </label>
+            {f.wa !== false && (
+              <Field label="Número con WhatsApp" id="p-wa" hint="Debe ser un celular de 9 dígitos, con o sin el 9 inicial.">
+                <input id="p-wa" inputMode="numeric" maxLength={9} value={f.tel || ""}
+                  onChange={(e) => set("tel", e.target.value.replace(/\D/g, "").slice(0, 9))} placeholder="999 000 000" />
+              </Field>
+            )}
+          </div>
+
           <label className="check"><input type="checkbox" checked={f.mostrar !== false} onChange={(e) => set("mostrar", e.target.checked)} /> Mostrar mi número y Yape a vecinos con sesión</label>
 
           {error && <p className="error">{error}</p>}
           <div className="pubs-actions">
             <Btn icon="back" onClick={() => setPaso(1)}>Atrás</Btn>
-            <Btn variant="primary" icon="check" onClick={publicar} disabled={guardando}>{guardando ? "Publicando…" : "Publicar"}</Btn>
+            <Btn variant="primary" icon="check" onClick={publicar} disabled={guardando}>
+              {guardando ? "Publicando…" : esEmergencia ? "Publicar en el tablero" : "Publicar"}
+            </Btn>
           </div>
         </div>
       )}
-
     </Sheet>
   );
 }

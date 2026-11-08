@@ -629,3 +629,10 @@ h1,h2,h3,h4,.hero h1,.det2-titulo,.sheet-title,.brand strong,.pub h3,
 .det-barra .cta-67{flex:0 0 calc(67% - 4px)}
 .det-barra .cta-33{flex:1 1 calc(33% - 4px)}
 .det2{padding-bottom:84px}
+
+/* Formulario único: pastillas de categoría y bloque de WhatsApp */
+.pills-cat{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.pills-cat .pill{font-size:.78rem;padding:5px 10px}
+.wa-bloque{display:flex;flex-direction:column;gap:6px;margin:10px 0;padding:10px;
+  border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2)}
+.wa-bloque .field,.wa-bloque label{margin:0}

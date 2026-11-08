@@ -6,8 +6,7 @@ import { useAuth } from "../context/Auth";
 import { useZona } from "../context/Zona";
 import { Icon } from "../lib/icons";
 import { Sheet, Select, Btn, useToast } from "./ui";
-import PublicarNuevo from "./PublicarNuevo";
-import PublicarEmergencia from "./PublicarEmergencia";
+import Publicar from "./Publicar";
 import { useQueryClient } from "@tanstack/react-query";
 import { abrirPublicar } from "../lib/publicar";
 import { useTour } from "./Tour";
@@ -336,10 +335,7 @@ export function Shell({ children }) {
         </div>
       </Sheet>
 
-      <PublicarNuevo key={`serv-${pubForm}`} open={pubForm === "servicio" || pubForm === "favor"}
-        inicial={pubForm === "favor" ? "favor_solicitado" : "servicio"}
-        onClose={() => setPubForm(null)} onPublicado={publicado} />
-      <PublicarEmergencia open={pubForm === "emergencia"} modo="necesito"
+      <Publicar key={pubForm || "cerrado"} open={Boolean(pubForm)} modo={pubForm || "servicio"}
         onClose={() => setPubForm(null)} onPublicado={publicado} />
     </>
   );

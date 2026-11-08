@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.16.3"
+APP_VERSION = "4.17.2"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -250,6 +250,8 @@ class PublicacionIn(BaseModel):
     url_origen: Optional[str] = ""
     fuente: Optional[str] = ""            # facebook | instagram | marketplace
     telefono_externo: Optional[str] = ""  # solo para publicaciones traídas de fuera
+    whatsapp: bool = True                  # el vecino acepta que le escriban por WhatsApp
+    telefono_whatsapp: Optional[str] = ""  # celular para ese WhatsApp (por defecto, el suyo)
     checklist_ok: bool = False
     es_emergencia: bool = False
     recurso_critico: bool = False
@@ -475,10 +477,12 @@ def serializar_publicacion(p: dict, viewer: Optional[dict], con) -> dict:
         if permite or p["es_mio"]:
             externo = (p.get("telefono_externo") or "").strip()
             p["telefono"] = externo or (autor["telefono"] if autor else None)
+            p["whatsapp"] = p["telefono"] if p.get("wa", 1) else None
             p["yape_autor"] = (p.get("yape_snapshot") or (autor["yape"] if autor else None))
             p["plin_autor"] = (p.get("plin_snapshot") or (autor["plin"] if autor else None))
         else:
             p["telefono"] = None
+            p["whatsapp"] = None
             p["yape_autor"] = None
             p["plin_autor"] = None
         p["contacto_visible"] = bool(permite or p["es_mio"])
@@ -1110,6 +1114,11 @@ def crear_publicacion(body: PublicacionIn, request: Request):
          clean_txt(body.url_origen, 300), clean_txt(body.fuente, 30),
          re.sub(r"\D", "", body.telefono_externo or "")[:9]),
     )
+    wa_num = re.sub(r"\D", "", body.telefono_whatsapp or "")[:9]
+    if body.whatsapp and wa_num:
+        con.execute("UPDATE publicaciones SET wa=1, telefono_externo=? WHERE id=?", (wa_num, pid))
+    else:
+        con.execute("UPDATE publicaciones SET wa=? WHERE id=?", (1 if body.whatsapp else 0, pid))
     historial(con, "publicacion", pid, None, "activa", user["id"], "creación")
     log_evento(con, "publicacion_creada", pid, user["id"], body.tipo)
     con.commit()
