@@ -415,3 +415,17 @@ lo enfocara.
 La pantalla de recuperación no tenía retorno: quien tocaba «Olvidé mi contraseña» quedaba
 atrapado. Ahora lleva arriba un botón **Volver a entrar** que regresa a la puerta (o al perfil
 si ya hay sesión), y sigue el «Atrás» entre los dos pasos del formulario.
+
+
+## v4.1.3 — el desplegable ya no se cierra al desplazar
+
+El panel se cerraba al primer evento de scroll porque escuchaba el desplazamiento de toda la
+página en fase de captura, incluido el de su propia lista. Ahora:
+
+- Al desplazar la página, el panel se recoloca y sigue pegado a su campo; solo se cierra si el
+  campo sale de la vista.
+- La rueda y la barra de desplazamiento dentro de la lista no lo cierran.
+- Sigue cerrando con clic fuera, Escape o al elegir una opción.
+
+Aplica a todos los selectores del proyecto (entrada, publicar, sector, categoría y orden):
+todos usan el mismo componente, y se probaron uno por uno.

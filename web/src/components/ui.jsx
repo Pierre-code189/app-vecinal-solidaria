@@ -45,44 +45,57 @@ export function Select({ id, value, onChange, options, ariaLabel, className = ""
 
   const actual = options.find((o) => String(o.value) === String(value)) || options[0];
 
-  const abrir = () => {
-    const r = btn.current.getBoundingClientRect();
+  // Calcula dónde va el panel a partir del campo: pegado, arriba o abajo.
+  const colocar = (abrir = false) => {
+    const el = btn.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
     const margen = 8;
+    if (r.bottom < 0 || r.top > window.innerHeight) { setAbierto(false); return; }
     const ancho = Math.min(r.width, window.innerWidth - margen * 2);
     const abajo = window.innerHeight - r.bottom - margen * 2;
     const arriba = r.top - margen * 2;
-    // El panel siempre cuelga del campo. Si no cabe abajo, se abre hacia arriba.
     const haciaArriba = abajo < 200 && arriba > abajo;
     const alto = Math.max(150, Math.min(320, haciaArriba ? arriba : abajo));
     setPos({
       width: ancho,
       height: alto,
+      maxHeight: alto,
       left: Math.max(margen, Math.min(r.left, window.innerWidth - ancho - margen)),
       ...(haciaArriba
         ? { bottom: window.innerHeight - r.top + 6, top: "auto" }
         : { top: r.bottom + 6, bottom: "auto" }),
-      maxHeight: alto,
     });
-    setAbierto(true);
+    if (abrir) setAbierto(true);
   };
+
+  const abrir = () => colocar(true);
 
   useEffect(() => {
     if (!abierto) return;
+    const dentro = (t) => panel.current && t instanceof Node && panel.current.contains(t);
     const fuera = (e) => {
-      if (btn.current?.contains(e.target) || panel.current?.contains(e.target)) return;
+      if (btn.current?.contains(e.target) || dentro(e.target)) return;
       setAbierto(false);
     };
-    const cerrar = () => setAbierto(false);
+    // Al desplazar la página el panel se recoloca; solo se cierra si el campo sale de vista.
+    let raf = 0;
+    const alDesplazar = (e) => {
+      if (dentro(e.target)) return; // scroll dentro de la propia lista: no cierra
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; colocar(); });
+    };
     document.addEventListener("click", fuera);
-    window.addEventListener("scroll", cerrar, true);
-    window.addEventListener("resize", cerrar);
+    window.addEventListener("scroll", alDesplazar, true);
+    window.addEventListener("resize", alDesplazar);
     const esc = (e) => e.key === "Escape" && setAbierto(false);
     document.addEventListener("keydown", esc);
     return () => {
       document.removeEventListener("click", fuera);
-      window.removeEventListener("scroll", cerrar, true);
-      window.removeEventListener("resize", cerrar);
+      window.removeEventListener("scroll", alDesplazar, true);
+      window.removeEventListener("resize", alDesplazar);
       document.removeEventListener("keydown", esc);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, [abierto]);
 
