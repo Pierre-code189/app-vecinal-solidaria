@@ -97,16 +97,24 @@ export function Shell({ children }) {
           <button type="button" className="chip-zona" data-tour="zona" onClick={() => { setLocSel(zona); setLocOpen(true); }}>
             <Icon name="pin" /><span>{zona}</span>
           </button>
-          <button type="button" className="campana" aria-label="Avisos" onClick={() => setAvisosOpen(true)}>
-            <Icon name="bell" size="1.2em" />
-            {avisos?.sin_leer > 0 && <span className="campana-badge">{avisos.sin_leer > 99 ? "99+" : avisos.sin_leer}</span>}
-          </button>
-          <div className="cuenta" ref={cuenta}>
-            <button type="button" className="avatar-btn" data-tour="cuenta" aria-haspopup="menu"
-              aria-expanded={menu} aria-label="Mi cuenta" onClick={(e) => { e.stopPropagation(); setMenu(!menu); }}>
-              {String(usuario?.nombre || "?").trim()[0]}
+          {usuario && (
+            <button type="button" className="campana" aria-label="Avisos" onClick={() => setAvisosOpen(true)}>
+              <Icon name="bell" size="1.2em" />
+              {avisos?.sin_leer > 0 && <span className="campana-badge">{avisos.sin_leer > 99 ? "99+" : avisos.sin_leer}</span>}
             </button>
-            {menu && (
+          )}
+          <div className="cuenta" ref={cuenta}>
+            <button type="button" className={`avatar-btn ${usuario ? "" : "invitado"}`} data-tour="cuenta"
+              aria-haspopup={usuario ? "menu" : undefined} aria-expanded={usuario ? menu : undefined}
+              aria-label={usuario ? "Mi cuenta" : "Entrar"}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!usuario) { ir("/perfil"); return; }
+                setMenu(!menu);
+              }}>
+              {usuario ? String(usuario.nombre || "?").trim()[0] : <><Icon name="user" size="1.05em" /><span className="entrar-txt">Entrar</span></>}
+            </button>
+            {menu && usuario && (
               <div className="menu-cuenta" role="menu">
                 <div className="menu-cabeza">
                   <b>{usuario?.nombre}</b>

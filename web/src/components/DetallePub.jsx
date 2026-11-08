@@ -46,7 +46,8 @@ export default function DetallePub({ id, onClose }) {
   const abrirChat = Boolean(trato || (cot && cot.estado !== "enviada"));
 
   const acciones = () => {
-    if (!usuario) return [{ texto: "Entra para contactar", primario: true, onClick: onClose }];
+    if (!usuario) return [{ texto: "Entra para contactar", primario: true, icon: "user",
+      onClick: () => { onClose?.(); location.hash = "#/perfil"; } }];
     if (p?.es_mio) return [];
     if (trato) {
       switch (trato.estado) {
@@ -68,8 +69,21 @@ export default function DetallePub({ id, onClose }) {
           return [{ texto: "El trato se canceló", disabled: true }];
       }
     }
-    if (!cot) return [{ texto: p?.tipo?.startsWith("favor") ? "Ofrecer ayuda" : "Pedir cotización",
-                        primario: true, icon: "chat", onClick: () => setAccion("cotizar") }];
+    if (!cot) {
+      const base = [{ texto: p?.tipo?.startsWith("favor") ? "Ofrecer ayuda" : "Pedir cotización",
+                      primario: true, icon: "chat", onClick: () => setAccion("cotizar") }];
+      if (!p?.tipo?.startsWith("favor")) {
+        base.push({ texto: "Solo preguntar", icon: "chat", onClick: async () => {
+          try {
+            await api.post("/api/cotizaciones", {
+              publicacion_id: id, descripcion: "Hola, tengo una consulta sobre esto", medida: "", urgencia: "normal",
+            });
+            refrescar(); setAccion("chat");
+          } catch (e) { setAccion("chat"); }
+        } });
+      }
+      return base;
+    }
     if (cot.estado === "enviada") {
       return [{ texto: "Esperando respuesta del vecino", primario: true, disabled: true },
               { texto: "Ver lo que enviaste", icon: "chat", onClick: () => setAccion("chat") }];

@@ -8,6 +8,26 @@ import { Btn, Badge, Empty, Field, Select, useToast, Segmented } from "../compon
 import Conversacion from "../components/Conversacion";
 import { cap, etiqueta, hace, medios } from "../lib/format";
 
+function comprimirPago(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 900;
+      let { width: w, height: h } = img;
+      if (w >= h && w > max) { h = Math.round((h * max) / w); w = max; }
+      else if (h > w && h > max) { w = Math.round((w * max) / h); h = max; }
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", 0.62));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("No pudimos leer la imagen")); };
+    img.src = url;
+  });
+}
+
 const TABS = [
   { value: "pubs", label: "Publicaciones" },
   { value: "cotiz", label: "Cotizaciones" },
@@ -250,9 +270,25 @@ function Tratos() {
               {t.estado === "pendiente" && vendedor && <Btn size="small" variant="primary" icon="check" onClick={() => accion(t, "confirmar")}>Confirmar trato</Btn>}
               {t.estado === "pendiente" && !vendedor && <span className="hint">Esperando que el vecino confirme</span>}
               {(t.estado === "acordado" || t.estado === "pagado") && !yoPague && (
-                <Btn size="small" variant="primary" icon="wallet" onClick={() => accion(t, "pago")}>
-                  {vendedor ? "Confirmar que recibí el pago" : "Marcar que pagué"}
-                </Btn>
+                <>
+                  <Btn size="small" variant="primary" icon="wallet" onClick={() => accion(t, "pago")}>
+                    {vendedor ? "Confirmar que recibí el pago" : "Marcar que pagué"}
+                  </Btn>
+                  <label className="btn small file-adj">
+                    <Icon name="camera" /> Adjuntar comprobante
+                    <input type="file" accept="image/*" hidden onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!file) return;
+                      try {
+                        const data = await comprimirPago(file);
+                        await api.post(`/api/tratos/${t.id}/comprobante`, { data });
+                        toast("Comprobante adjuntado. Queda como evidencia del pago.");
+                        refrescar();
+                      } catch (err) { toast(err.message, "err"); }
+                    }} />
+                  </label>
+                </>
               )}
               {(t.estado === "acordado" || t.estado === "pagado") && yoPague && !yoCumpli && (
                 <Btn size="small" variant="primary" icon="check" onClick={() => accion(t, "cerrar")}>
@@ -263,6 +299,13 @@ function Tratos() {
                 {chat === t.id ? "Ocultar" : "Conversación"}
               </Btn>
             </div>
+
+            {t.comprobante && (
+              <a className="comprobante" href={t.comprobante} target="_blank" rel="noopener noreferrer">
+                <img src={t.comprobante} alt="Comprobante del pago" />
+                <span>Ver comprobante del pago</span>
+              </a>
+            )}
 
             {t.estado === "cerrado" && (
               <p className="hint fila-ok"><Icon name="check" /> Trato cerrado. Ya pueden dejar su visto bueno en la publicación.</p>

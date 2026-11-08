@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.7.0"
+APP_VERSION = "4.8.0"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -1654,6 +1654,43 @@ def marcar_pago(tid: str, body: PagoIn, request: Request):
     con.commit()
     con.close()
     return {"ok": True}
+
+
+@app.post("/api/tratos/{tid}/comprobante")
+def subir_comprobante(tid: str, payload: dict, request: Request):
+    """El comprador adjunta la foto del Yape/Plin o del recibo: queda como evidencia."""
+    user = require_user(request)
+    data = (payload or {}).get("data", "")
+    if not str(data).startswith("data:image/"):
+        raise HTTPException(400, "Adjunta una imagen del pago")
+    con = connect()
+    tr = con.execute("SELECT * FROM tratos WHERE id=?", (tid,)).fetchone()
+    if not tr:
+        con.close()
+        raise HTTPException(404, "Trato no encontrado")
+    if user["id"] not in (tr["comprador_id"], tr["vendedor_id"]):
+        con.close()
+        raise HTTPException(403, "No participas en este trato")
+    try:
+        cabecera, b64 = data.split(",", 1)
+        binario = base64.b64decode(b64)
+    except Exception:
+        con.close()
+        raise HTTPException(400, "No pudimos leer la imagen")
+    if len(binario) > 700_000:
+        con.close()
+        raise HTTPException(400, "La imagen es muy grande (máximo 700 KB)")
+    ext = "png" if "png" in cabecera else "jpg"
+    nombre = f"pago-{uuid.uuid4().hex}.{ext}"
+    (FOTOS_DIR / nombre).write_bytes(binario)
+    con.execute("UPDATE tratos SET comprobante=?, actualizado=? WHERE id=?",
+                (f"/fotos/{nombre}", int(time.time()), tid))
+    otro = tr["vendedor_id"] if user["id"] == tr["comprador_id"] else tr["comprador_id"]
+    notificar(con, otro, "pago", "Comprobante de pago",
+              f"{user['nombre']} adjuntó el comprobante del trato.", "/?v=mias&tab=tratos")
+    con.commit()
+    con.close()
+    return {"ok": True, "url": f"/fotos/{nombre}"}
 
 
 @app.post("/api/tratos/{tid}/cerrar")

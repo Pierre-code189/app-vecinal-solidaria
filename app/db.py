@@ -169,6 +169,7 @@ MIGRATIONS = {
         "pago_vendedor": "INTEGER DEFAULT 0",
         "confirmado": "INTEGER DEFAULT 0",
         "cotizacion_id": "TEXT DEFAULT ''",
+        "comprobante": "TEXT DEFAULT ''",
     },
     "cotizaciones": {
         "trato_id": "TEXT DEFAULT ''",

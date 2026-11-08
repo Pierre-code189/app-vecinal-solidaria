@@ -63,19 +63,19 @@ function Contenido() {
 
   if (cargando) return <Cargando />;
 
-  if (!usuario) {
-    if (loc.pathname === "/recuperar") {
-      return (
-        <div className="entrada">
-          <header className="entrada-head">
-            <span className="entrada-marca"><Icon name="home" size="1.15em" /> Vecinal Solidaria</span>
-            <span className="entrada-ciudad">Piura</span>
-          </header>
-          <main className="entrada-cuerpo"><Recuperar /></main>
-        </div>
-      );
-    }
-    return <AuthGate />;
+  // El barrio se puede mirar sin cuenta; solo se pide al publicar, contactar o gestionar.
+  const privada = ["/perfil", "/actividad", "/moderacion"].includes(loc.pathname);
+  if (!usuario && privada) return <AuthGate />;
+  if (!usuario && loc.pathname === "/recuperar") {
+    return (
+      <div className="entrada">
+        <header className="entrada-head">
+          <span className="entrada-marca"><Icon name="home" size="1.15em" /> Vecinal Solidaria</span>
+          <span className="entrada-ciudad">Piura</span>
+        </header>
+        <main className="entrada-cuerpo"><Recuperar /></main>
+      </div>
+    );
   }
 
   return (

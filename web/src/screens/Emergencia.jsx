@@ -5,6 +5,8 @@ import { useAuth } from "../context/Auth";
 import { useZona } from "../context/Zona";
 import { Icon } from "../lib/icons";
 import { Btn, Empty, useToast } from "../components/ui";
+import PublicarEmergencia from "../components/PublicarEmergencia";
+import DetallePub from "../components/DetallePub";
 
 const SOS = [
   { num: "105", nombre: "Emergencias (Policía)", icon: "shield" },
@@ -22,6 +24,8 @@ export default function Emergencia() {
   const { data: tablero } = useQuery({ queryKey: ["emergencia"], queryFn: () => api.get("/api/emergencia"), refetchInterval: 60000 });
   const { data: dir } = useQuery({ queryKey: ["directorio"], queryFn: () => api.get("/api/emergencia/directorio") });
   const [necesidad, setNecesidad] = useState("");
+  const [nuevo, setNuevo] = useState(null); // ofrezco | necesito
+  const [detalle, setDetalle] = useState(null);
   const { data: recursos } = useQuery({
     queryKey: ["recursos", zona],
     queryFn: () => api.get(`/api/publicaciones?emergencia=true&limit=20&zona=${encodeURIComponent(zona)}`),
@@ -67,6 +71,11 @@ export default function Emergencia() {
         ))}
       </div>
 
+      <div className="em-publicar">
+        <Btn variant="primary" icon="box" onClick={() => setNuevo("ofrezco")}>Ofrecer un recurso</Btn>
+        <Btn icon="alert" onClick={() => setNuevo("necesito")}>Necesito ayuda</Btn>
+      </div>
+
       <h2 className="sec">Recursos en {zona}</h2>
       <div className="chips-filtro">
         {[["", "Todo"], ["agua_potable", "Agua"], ["alimentos", "Comida"], ["balde_bidon", "Bidones"],
@@ -81,7 +90,9 @@ export default function Emergencia() {
       )}
       <div className="grid">
         {(recursos?.items || []).filter((r) => !necesidad || r.necesidad === necesidad).map((r) => (
-          <article className="card recurso" key={r.id}>
+          <article className="card recurso" key={r.id} role="button" tabIndex={0}
+            onClick={() => setDetalle(r.id)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setDetalle(r.id)}>
             <div className="cat"><Icon name="box" />{r.categoria}</div>
             <h3>{r.titulo}</h3>
             <p className="desc">{r.descripcion}</p>
@@ -109,6 +120,11 @@ export default function Emergencia() {
         ))}
         {(!dir?.items || dir.items.length === 0) && <p className="hint">El directorio aún está vacío.</p>}
       </div>
+
+      <PublicarEmergencia open={Boolean(nuevo)} modo={nuevo || "ofrezco"}
+        onClose={() => setNuevo(null)}
+        onPublicado={() => qc.invalidateQueries({ queryKey: ["recursos"] })} />
+      {detalle && <DetallePub id={detalle} onClose={() => setDetalle(null)} />}
 
       <p className="nota">
         Esta app no reemplaza a los servicios de emergencia. Si hay riesgo de vida, llama primero al 105.

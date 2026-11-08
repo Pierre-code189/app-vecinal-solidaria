@@ -235,7 +235,6 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
             </span>
           </div>
           <h3>{p.titulo}</h3>
-          <p className="desc">{p.descripcion}</p>
           <div className="meta">
             {dist
               ? <span className="dist"><Icon name="pin" />{dist}</span>
@@ -243,7 +242,9 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
                 ? <span className="dist"><Icon name="pin" />{p.distancia_km < 0.05 ? "en tu sector"
                     : `a ${p.distancia_km < 1 ? Math.round(p.distancia_km * 1000) + " m" : p.distancia_km.toFixed(1).replace(".", ",") + " km"}`}</span>
                 : null}
-            <span className="visto" title={nv ? `${nv} vistos buenos` : "Sin visto bueno"}><Icon name="thumb" />{nv}</span>
+            <span className={`visto ${nv ? "si" : ""}`} title={nv ? `${nv} vistos buenos de vecinos` : "Todavía sin visto bueno"}>
+              <Icon name="thumb" />{nv ? `${nv} visto${nv === 1 ? "" : "s"}` : "Nuevo"}
+            </span>
           </div>
           <div className="precio">{p.precio || "A convenir"}</div>
           <div className="badges">
@@ -251,7 +252,7 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
               <span key={m} className="badge">{{ yape: "Yape", plin: "Plin", efectivo: "Efectivo", transferencia: "Transferencia", intercambio: "Intercambio" }[m] || m}</span>
             ))}
           </div>
-          <p className="quien"><Avatar nombre={p.nombre} /><span className="quien-txt">{p.nombre} · {p.zona}</span></p>
+
         </div>
       </div>
     </article>

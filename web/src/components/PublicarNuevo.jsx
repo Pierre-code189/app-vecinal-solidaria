@@ -166,7 +166,9 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
           <div className="gate-icon"><Icon name="user" size="1.4em" /></div>
           <h3>Necesitas una cuenta</h3>
           <p className="hint">Publicar es gratis. Tu número solo lo ven vecinos con sesión.</p>
-          <Btn variant="primary" className="wide" onClick={() => { onClose?.(); location.hash = "#/perfil"; }}>Entrar o crear cuenta</Btn>
+          <Btn variant="primary" className="wide" onClick={() => { onClose?.(); location.hash = "#/perfil"; }}>
+            Entrar para publicar
+          </Btn>
         </div>
       </Sheet>
     );

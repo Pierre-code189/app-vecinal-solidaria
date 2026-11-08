@@ -652,3 +652,29 @@ cuenta. Aparecen en el panel con la evidencia y la nota de que son señales, no 
 
 **Limpieza.** Se borraron las cuentas de prueba de Pierre (4) y las automáticas de las corridas.
 Quedan las 7 cuentas demo.
+
+
+## v4.8.0 — barrio abierto, tarjetas limpias, tablero de emergencia y evidencia de pago
+
+**Se puede mirar sin cuenta.** El barrio se abre directo: servicios, favores y emergencia se
+leen sin sesión. La cuenta se pide solo al **publicar, contactar, cotizar, reportar o
+gestionar** (perfil, actividad, moderación). En la cabecera, el invitado ve **Entrar**; al
+tocarlo aparece la pantalla de acceso y, al volver, sigue donde estaba. El teléfono, Yape y
+las coordenadas siguen ocultos para quien no tiene sesión.
+
+**Tarjetas sin ruido.** Se quitó la descripción y el nombre del autor de todas las tarjetas
+(Local, Favores y Emergencia). Queda: categoría, título, **vistos buenos** (o «Nuevo»),
+distancia, precio y medios de pago. La descripción completa sigue en el detalle.
+
+**Formulario de emergencia de vuelta.** Botones «Ofrecer un recurso» y «Necesito ayuda» en el
+tablero: tipo de recurso (agua, comida, bidones, techo, salud, herramientas, movilidad…),
+título, dónde y cuándo, sector y visibilidad del teléfono. Lo publicado entra al tablero y a
+los filtros por recurso. Las tarjetas del tablero abren el detalle para coordinar.
+
+**Evidencia del pago.** El comprador puede adjuntar la foto del Yape/Plin o del recibo
+(`/api/tratos/{id}/comprobante`, máximo 700 KB, se guarda comprimida). Queda visible para
+ambas partes en el trato, antes de que se confirme el pago. Ya no es solo una palabra.
+
+**Chat propio.** Además de la conversación de cotización y trato, el detalle ofrece
+«Solo preguntar»: abre un hilo dentro de la app sin pedir precio. WhatsApp queda como
+alternativa en los datos de pago, no como camino obligado.
