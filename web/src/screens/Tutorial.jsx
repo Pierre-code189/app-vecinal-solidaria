@@ -25,7 +25,6 @@ export default function Tutorial() {
         <h1>Cómo funciona Vecinal
           <span className="sub">Un recorrido por la app, pantalla por pantalla. Dura menos de un minuto.</span>
         </h1>
-        <Btn variant="primary" icon="book" onClick={abrir}>Empezar el recorrido</Btn>
       </div>
 
       <div className="tuto-hero">

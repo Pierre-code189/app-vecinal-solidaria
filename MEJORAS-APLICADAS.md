@@ -532,3 +532,21 @@ La hoja de estilos traía una regla de la versión anterior (`.avatar-btn{displa
 JavaScript antiguo encendía al iniciar sesión. En React el botón se dibujaba pero quedaba
 oculto: se podía abrir el menú solo desde código. Ahora la regla del contexto (`.topbar .avatar-btn`)
 fuerza `inline-flex` con su tamaño de 36 px, y el botón muestra la inicial en escritorio y móvil.
+
+
+## v4.5.2 — el recorrido ya no se corta
+
+La tarjeta del tour se colocaba pegada al elemento resaltado con un alto estimado: en pantallas
+pequeñas se salía por abajo y tapaba los botones. Ahora:
+
+- **Móvil**: la tarjeta es una hoja inferior (46 % del alto, ancho completo menos 24 px) con
+  scroll propio, y el elemento resaltado se sube a la mitad superior para que se vea.
+- **Escritorio**: se mide la tarjeta ya pintada y se elige debajo o arriba según el espacio real;
+  si no cabe en ninguno, se fija abajo a la derecha.
+- Se limitan ancho y alto al viewport, con scroll interno.
+
+Comprobado paso por paso en 390 × 844 y 1280 × 900: las diez tarjetas quedan dentro de la
+pantalla, no se solapan con lo resaltado y los botones están siempre visibles.
+
+**Tutorial sin duplicados**: el botón «Empezar el recorrido» aparecía dos veces (cabecera y
+bloque de bienvenida). Queda solo en el bloque de bienvenida.

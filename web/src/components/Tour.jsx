@@ -26,7 +26,7 @@ const PASOS = [
     texto: "Publicas en tres pasos: qué ofreces, los datos y la confirmación. Puedes poner precio o dejarlo a convenir.",
   },
   {
-    ruta: "/favores", selector: '[data-tour="favores"]', titulo: "Economía solidaria",
+    ruta: "/favores", selector: '[data-tour="favores"] .pub', titulo: "Economía solidaria",
     texto: "Aquí se pide y se ofrece ayuda sin dinero: préstamos, movilidad, compañía. Con garante cuando hace falta.",
   },
   {
@@ -34,7 +34,7 @@ const PASOS = [
     texto: "Los teléfonos 105, 116, 115 y 106 siempre a la vista, y lo que tus vecinos ofrecen para esa emergencia.",
   },
   {
-    ruta: "/actividad", selector: '[data-tour="actividad"]', titulo: "Mi actividad",
+    ruta: "/actividad", selector: '[data-tour="actividad"] .segmented', titulo: "Mi actividad",
     texto: "Tus publicaciones, cotizaciones, tratos y favores. Aquí también ves quién consultó tu contacto.",
   },
   {
@@ -65,6 +65,8 @@ function Tour({ onClose }) {
   const [i, setI] = useState(0);
   const [rect, setRect] = useState(null);
   const [listo, setListo] = useState(false);
+  const [alto, setAlto] = useState(0);
+  const cardRef = useRef(null);
   const nav = useNavigate();
   const loc = useLocation();
   const paso = PASOS[i];
@@ -81,6 +83,12 @@ function Tour({ onClose }) {
       const el = document.querySelector(paso.selector);
       if (!el) { setListo(true); return; }
       el.scrollIntoView({ block: "center", behavior: "instant" });
+      if (window.innerWidth < 760) {
+        // en móvil la tarjeta vive abajo: subimos el objetivo a la mitad superior
+        const r = el.getBoundingClientRect();
+        const limite = window.innerHeight * 0.46;
+        if (r.bottom > limite) window.scrollBy(0, r.bottom - limite + 14);
+      }
       const medir2 = () => {
         const r = el.getBoundingClientRect();
         setRect({ x: r.x, y: r.y, w: r.width, h: r.height });
@@ -92,6 +100,13 @@ function Tour({ onClose }) {
     return () => { clearTimeout(t); clearTimeout(pendiente.current); };
   }, [i, loc.pathname, paso.ruta, paso.selector, nav]);
 
+  /* mide la tarjeta ya pintada para colocarla sin cortarse */
+  useEffect(() => {
+    if (!listo || !cardRef.current) return;
+    const h = cardRef.current.offsetHeight;
+    if (h && Math.abs(h - alto) > 2) setAlto(h);
+  }, [listo, i, rect, alto]);
+
   const siguiente = () => {
     if (i >= PASOS.length - 1) { localStorage.setItem("vecinal-tour", "1"); onClose(); return; }
     setI(i + 1);
@@ -99,21 +114,34 @@ function Tour({ onClose }) {
   const anterior = () => setI(Math.max(0, i - 1));
   const saltar = () => { localStorage.setItem("vecinal-tour", "1"); onClose(); };
 
-  const margen = 16;
-  const ancho = 360;
-  let estiloCaja = { position: "fixed", zIndex: 1200 };
-  if (rect) {
-    const abajo = rect.y + rect.h + 210 < window.innerHeight;
-    estiloCaja = {
-      ...estiloCaja,
-      left: Math.min(Math.max(margen, rect.x + rect.w / 2 - ancho / 2), window.innerWidth - ancho - margen),
-      ...(abajo
-        ? { top: rect.y + rect.h + 14 }
-        : { bottom: window.innerHeight - rect.y + 14 }),
-      width: ancho,
-    };
+  /* la tarjeta nunca puede salirse de la pantalla */
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const movil = vw < 760;
+  const ancho = Math.min(movil ? vw - 24 : 360, vw - 24);
+  const altoReal = Math.min(alto || 220, vh - 24);
+
+  let estiloCaja = {
+    position: "fixed", zIndex: 1200, width: ancho,
+    maxHeight: vh - 24, overflowY: "auto",
+  };
+
+  if (movil) {
+    // en móvil, siempre abajo y a todo el ancho: predecible y sin cortes
+    estiloCaja = { ...estiloCaja, left: 12, right: 12, bottom: 12, width: "auto", maxHeight: Math.round(vh * 0.46) };
+  } else if (rect) {
+    const abajo = vh - (rect.y + rect.h) - 12;
+    const arriba = rect.y - 12;
+    const izquierda = Math.min(Math.max(12, rect.x + rect.w / 2 - ancho / 2), vw - ancho - 12);
+    if (abajo >= altoReal + 8) {
+      estiloCaja = { ...estiloCaja, left: izquierda, top: rect.y + rect.h + 12 };
+    } else if (arriba >= altoReal + 8) {
+      estiloCaja = { ...estiloCaja, left: izquierda, bottom: vh - rect.y + 12 };
+    } else {
+      estiloCaja = { ...estiloCaja, right: 20, bottom: 20 };
+    }
   } else {
-    estiloCaja = { ...estiloCaja, left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: Math.min(380, window.innerWidth - 32) };
+    estiloCaja = { ...estiloCaja, left: "50%", top: "50%", transform: "translate(-50%,-50%)" };
   }
 
   return (
@@ -124,7 +152,7 @@ function Tour({ onClose }) {
           left: rect.x - 6, top: rect.y - 6, width: rect.w + 12, height: rect.h + 12,
         }} />
       )}
-      <div className="tour-card" style={estiloCaja} role="dialog" aria-modal="true" aria-label={paso.titulo}>
+      <div ref={cardRef} className="tour-card" style={estiloCaja} role="dialog" aria-modal="true" aria-label={paso.titulo}>
         <div className="tour-paso">{i + 1} de {PASOS.length}</div>
         <h3>{paso.titulo}</h3>
         <p>{paso.texto}</p>
