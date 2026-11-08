@@ -215,55 +215,72 @@ export function ToastProvider({ children }) {
 export function Tarjeta({ p, onOpen, zona, dataTour }) {
   const cat = CAT_ICON[p.categoria] || "dots";
   const nv = p.vistos || 0;
-  let dist = null;
-  if (p.ubicacion_aproximada && p.zona === zona) dist = "en tu sector";
-  else if (p.distancia_km != null) dist = null; // se formatea abajo
+  const esFavor = String(p.tipo || "").startsWith("favor");
+  const esEmergencia = Boolean(p.es_emergencia);
+  const reciente = Boolean(p.creado) && (Date.now() / 1000 - p.creado) < 86400;
   const foto = p.fotos && p.fotos.length ? p.fotos[0] : null;
+  const aval = (p.avaladores || [])[0]?.nombre || "";
+  const dist = p.ubicacion_aproximada && p.zona === zona
+    ? "en tu sector"
+    : p.distancia_km != null
+      ? (p.distancia_km < 0.05 ? "en tu sector"
+        : p.distancia_km < 1 ? `a ${Math.round(p.distancia_km * 1000)} m`
+        : `a ${p.distancia_km.toFixed(1).replace(".", ",")} km`)
+      : "";
+  const medios = String(p.medios_pago || "").split(",").filter(Boolean)
+    .filter((m) => !(esFavor && m === "intercambio"));
 
   return (
     <article className="card pub" data-tour={dataTour} tabIndex={0} role="button"
       aria-label={`Ver detalle de ${p.titulo}`}
       onClick={() => onOpen(p)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen(p)}>
-      <div className="pub-top">
-        {foto
-          ? <img className="thumb" src={foto} alt="" loading="lazy" />
-          : <span className={`cover cat-${(p.categoria || "otros").replace(/[^a-z]/g, "")}`} aria-hidden="true">
-              <Icon name={cat} size="2.05em" /></span>}
-        <div className="pub-info">
-          <div className="catrow">
-            <span className="cat"><Icon name={cat} />{cap(String(p.categoria || "").replace(/_/g, " "))}</span>
-            <span className="catrow-right">
-              {Boolean(p.es_emergencia) && <span className="badge rojo"><Icon name="alert" />Emergencia</span>}
-              <span className="ver-mas" aria-hidden="true"><Icon name="back" /></span>
-            </span>
-          </div>
-          <h3>{p.titulo}</h3>
-          <div className="meta">
-            {dist
-              ? <span className="dist"><Icon name="pin" />{dist}</span>
-              : p.distancia_km != null
-                ? <span className="dist"><Icon name="pin" />{p.distancia_km < 0.05 ? "en tu sector"
-                    : `a ${p.distancia_km < 1 ? Math.round(p.distancia_km * 1000) + " m" : p.distancia_km.toFixed(1).replace(".", ",") + " km"}`}</span>
-                : null}
-            <span className={`visto ${nv ? "si" : ""}`} title={nv ? `${nv} vistos buenos de vecinos` : "Todavía sin visto bueno"}>
-              <Icon name="thumb" />{nv ? `${nv} visto${nv === 1 ? "" : "s"}` : "Nuevo"}
-            </span>
-          </div>
-          {String(p.tipo || "").startsWith("favor") ? (
-            <span className={`badge-favor ${p.tipo === "favor_solicitado" ? "nec" : "ofr"}`}>
+
+      <div className="pub-cab">
+        <span className="cat"><Icon name={cat} />{cap(String(p.categoria || "").replace(/_/g, " "))}</span>
+        {esEmergencia
+          ? <span className="badge rojo"><Icon name="alert" />Emergencia</span>
+          : reciente
+            ? <span className="pub-disp"><Icon name="clock" />Hoy</span>
+            : null}
+      </div>
+
+      <h3>{p.titulo}</h3>
+
+      <div className="pub-meta">
+        {dist && <span className="dist"><Icon name="pin" />{dist}</span>}
+        {dist && <span className="punto" aria-hidden="true">•</span>}
+        {esFavor
+          ? <span className={`badge-favor ${p.tipo === "favor_solicitado" ? "nec" : "ofr"}`}>
               {p.tipo === "favor_solicitado" ? "Necesito" : "Ofrezco"}
             </span>
-          ) : (
-            <div className={`precio ${String(p.precio || "").length > 14 ? "largo" : ""}`}>{p.precio || "A convenir"}</div>
-          )}
-          {p.stock === 0 && <span className="badge agotado-badge">Agotado</span>}
-          <div className="badges">
-            {String(p.medios_pago || "").split(",").filter((m) => m && !(String(p.tipo || "").startsWith("favor") && m === "intercambio")).map((m) => (
-              <span key={m} className="badge">{{ yape: "Yape", plin: "Plin", efectivo: "Efectivo", transferencia: "Transferencia", intercambio: "Intercambio" }[m] || m}</span>
-            ))}
-          </div>
+          : <span className={`precio ${String(p.precio || "").length > 14 ? "largo" : ""}`}>{p.precio || "A convenir"}</span>}
+        {p.stock === 0 && <span className="badge agotado-badge">Agotado</span>}
+      </div>
 
+      {aval && (
+        <span className="pub-aval" title={`Avalado por ${aval}`}>
+          <Icon name="shield" />Avalado por {aval}
+        </span>
+      )}
+
+      <div className={`pub-foto ${foto ? "" : "sin-foto"}`}>
+        {foto
+          ? <img src={foto} alt="" loading="lazy" />
+          : <span className={`cover cat-${(p.categoria || "otros").replace(/[^a-z]/g, "")}`} aria-hidden="true">
+              <Icon name={esFavor ? "handshake" : cat} size="3.6em" />
+            </span>}
+      </div>
+
+      <div className="pub-pie">
+        <div className="badges">
+          {medios.map((m) => (
+            <span key={m} className="badge">{{ yape: "Yape", plin: "Plin", efectivo: "Efectivo", transferencia: "Transferencia", intercambio: "Intercambio" }[m] || m}</span>
+          ))}
         </div>
+        <span className={`visto ${nv ? "si" : "nuevo"}`}
+          title={nv ? `${nv} vistos buenos de vecinos` : "Todavía sin visto bueno"}>
+          <Icon name="thumb" />{nv || "Nuevo"}
+        </span>
       </div>
     </article>
   );
