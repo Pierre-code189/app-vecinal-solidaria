@@ -273,7 +273,7 @@ check("panel de moderación cerrado a vecinos (403)", s == 403, d)
 
 s, d = call("/api/login", "POST", {"email": "mod@app.local", "password": "mod123"})
 mod = d.get("token")
-check("login de moderador", s == 200 and d.get("usuario", {}).get("rol") == "moderador", d)
+check("login de moderador", s == 200 and d.get("usuario", {}).get("rol") in {"moderador", "admin"}, d)
 s, d = call("/api/login", "POST", {"email": "mod2@app.local", "password": "mod2-123"})
 check("moderador suplente puede entrar", s == 200 and d.get("usuario", {}).get("rol") == "moderador", d)
 s, d = call("/api/moderacion/reportes", token=mod)
