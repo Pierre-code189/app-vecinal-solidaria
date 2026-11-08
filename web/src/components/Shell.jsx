@@ -7,6 +7,7 @@ import { useZona } from "../context/Zona";
 import { Icon } from "../lib/icons";
 import { Sheet, Select, Btn, useToast } from "./ui";
 import Publicar from "./Publicar";
+import ChatFlotante from "./ChatFlotante";
 import { useQueryClient } from "@tanstack/react-query";
 import { abrirPublicar } from "../lib/publicar";
 import { useTour } from "./Tour";
@@ -102,11 +103,82 @@ export function Shell({ children }) {
 
   const [subir, setSubir] = useState(false);
   const [acces, setAcces] = useState(false);
+  /* El botón de mensajes se mueve por toda la pantalla, con rebote. */
   const [pos, setPos] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("vecinal-fab") || '{"x":0,"y":0}'); }
-    catch { return { x: 0, y: 0 }; }
+    try { return JSON.parse(localStorage.getItem("vecinal-fab2") || "null"); }
+    catch { return null; }
   });
+  const [chatAbierto, setChatAbierto] = useState(false);
+  const [moviendo, setMoviendo] = useState(false);
   const arrastre = useRef(null);
+
+  const limitesFab = () => {
+    const bajo = window.innerWidth < 720;
+    return {
+      lMin: 8, lMax: window.innerWidth - 54 - 8,
+      tMin: 64 + 8, tMax: window.innerHeight - 54 - 8 - (bajo ? 64 : 0),
+    };
+  };
+
+  useEffect(() => {
+    document.body.classList.toggle("chat-abierto", chatAbierto);
+  }, [chatAbierto]);
+
+  /* Red de seguridad: pase lo que pase, el botón nunca sale de su franja. */
+  useEffect(() => {
+    if (!pos) return;
+    const { lMin, lMax, tMin, tMax } = limitesFab();
+    const l = Math.min(Math.max(pos.l, lMin), Math.max(lMin, lMax));
+    const t = Math.min(Math.max(pos.t, tMin), Math.max(tMin, tMax));
+    if (l !== pos.l || t !== pos.t) setPos({ l, t });
+  }, [pos]);
+
+  useEffect(() => {
+    if (pos) return;
+    const { lMax, tMax } = limitesFab();
+    setPos({ l: lMax, t: tMax });
+  }, [pos]);
+
+  /* Arrastre con escucha en window: así sigue aunque el dedo salga del botón. */
+  const arrastrarFab = (e) => {
+    if (!pos) return;
+    const ini = { x: e.clientX, y: e.clientY, l: pos.l, t: pos.t };
+    let movido = 0;
+    setMoviendo(true);
+
+    const mover = (ev) => {
+      const dx = ev.clientX - ini.x;
+      const dy = ev.clientY - ini.y;
+      movido = Math.max(movido, Math.abs(dx) + Math.abs(dy));
+      const { lMin, lMax, tMin, tMax } = limitesFab();
+      setPos({
+        l: Math.min(Math.max(ini.l + dx, lMin - 24), Math.max(lMin, lMax) + 24),
+        t: Math.min(Math.max(ini.t + dy, tMin - 24), Math.max(tMin, tMax) + 24),
+      });
+    };
+
+    const fin = (ev) => {
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", fin);
+      window.removeEventListener("pointercancel", fin);
+      const { lMin, lMax, tMin, tMax } = limitesFab();
+      const nl = Math.min(Math.max(ini.l + (ev.clientX - ini.x), lMin), Math.max(lMin, lMax));
+      const nt = Math.min(Math.max(ini.t + (ev.clientY - ini.y), tMin), Math.max(tMin, tMax));
+      let l = nl;
+      const cx = (nl + 27) / window.innerWidth;
+      const cy = (nt + 27) / window.innerHeight;
+      /* si lo sueltan en el centro, se va al borde horizontal más cercano */
+      if (cx > 0.32 && cx < 0.68 && cy > 0.25 && cy < 0.75) l = cx < 0.5 ? lMin : lMax;
+      arrastre.current = { movido };
+      setMoviendo(false);
+      setPos({ l, t: nt });
+      localStorage.setItem("vecinal-fab2", JSON.stringify({ l, t: nt }));
+    };
+
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", fin);
+    window.addEventListener("pointercancel", fin);
+  };
   const accesRef = useRef(null);
 
   useEffect(() => {
@@ -249,27 +321,31 @@ export function Shell({ children }) {
         </NavLink>
       </nav>
 
-      <div className="flotantes" style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}>
+      <div className="flotantes"
+        style={{
+          left: pos?.l, top: pos?.t,
+          transition: moviendo ? "none" : "left .22s var(--ease), top .22s var(--ease)",
+        }}>
         <button type="button" className={`fab-top ${subir ? "vis" : ""}`} aria-label="Volver arriba"
           aria-hidden={!subir} tabIndex={subir ? 0 : -1}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
           <span className="arrow-up" aria-hidden="true">↑</span>
         </button>
         <button type="button" className="fab-msg" aria-label="Mensajes"
+          aria-expanded={chatAbierto}
           style={{ touchAction: "none" }}
-          onPointerDown={(e) => { arrastre.current = { sx: e.clientX, sy: e.clientY, x: pos.x, y: pos.y }; e.currentTarget.setPointerCapture(e.pointerId); }}
-          onPointerMove={(e) => {
-            if (!arrastre.current) return;
-            const nx = Math.max(-140, Math.min(140, arrastre.current.x + (e.clientX - arrastre.current.sx)));
-            const ny = Math.max(-260, Math.min(60, arrastre.current.y + (e.clientY - arrastre.current.sy)));
-            setPos({ x: nx, y: ny });
-          }}
-          onPointerUp={() => { if (arrastre.current) { localStorage.setItem("vecinal-fab", JSON.stringify(pos)); } arrastre.current = null; }}
-          onClick={() => ir(usuario ? "/mensajes" : "/perfil")}>
+          onPointerDown={arrastrarFab}
+          onClick={() => {
+            if ((arrastre.current?.movido || 0) > 8) return;   // fue un arrastre, no un toque
+            if (!usuario) { ir("/perfil"); return; }
+            setChatAbierto((v) => !v);
+          }}>
           <Icon name="chat" />
           {avisos?.sin_leer > 0 && <span className="fab-msg-badge">{avisos.sin_leer > 9 ? "9+" : avisos.sin_leer}</span>}
         </button>
       </div>
+
+      <ChatFlotante abierto={chatAbierto} onCerrar={() => setChatAbierto(false)} />
 
       {/* ---- sector ---- */}
       <Sheet open={locOpen} onClose={() => setLocOpen(false)} titulo="Elegir sector" ancho={440}>

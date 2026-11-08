@@ -636,3 +636,32 @@ h1,h2,h3,h4,.hero h1,.det2-titulo,.sheet-title,.brand strong,.pub h3,
 .wa-bloque{display:flex;flex-direction:column;gap:6px;margin:10px 0;padding:10px;
   border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2)}
 .wa-bloque .field,.wa-bloque label{margin:0}
+
+/* ---------- Messenger flotante (v4.18) ---------- */
+.flotantes{position:fixed;right:auto;bottom:auto;width:54px;height:54px;z-index:70}
+.flotantes .fab-top{position:absolute;right:0;bottom:62px;margin:0}
+.chatflotante{position:fixed;z-index:85;display:flex;flex-direction:column;background:var(--surface);
+  border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 44px rgba(16,24,20,.24);overflow:hidden}
+.chatflotante-cab{display:flex;align-items:center;gap:8px;padding:10px 10px 9px;
+  border-bottom:1px solid var(--line);background:var(--surface);touch-action:none;user-select:none}
+.chatflotante-ico{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;
+  background:var(--brand-50);color:var(--brand-700);flex:0 0 auto}
+.chatflotante-quien{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.chatflotante-quien b{font-size:.92rem;color:var(--ink)}
+.chatflotante-quien span{font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chatflotante-x{margin-left:auto;flex:0 0 auto}
+.chatflotante-lista{flex:1;overflow:auto;padding:6px;display:flex;flex-direction:column;gap:2px;min-height:0}
+.chatflotante-hilo{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.chatflotante-hilo .chat{display:flex;flex-direction:column;gap:8px;min-height:0;flex:1}
+.chatflotante-hilo .chat-lista{max-height:none;flex:1;overflow:auto}
+.chatflotante-hilo .hilo-acciones{padding:8px}
+.chatflotante-hilo .hilo-acciones .hint{font-size:.76rem}
+.cobro{background:#fff6e8;border:1px solid #f2ddb4;border-radius:10px;padding:10px;
+  display:flex;flex-direction:column;gap:6px}
+.cobro b{color:#8a5a00;font-size:.92rem}
+.file-adj{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+/* Con el chat abierto, los botones flotantes no deben invadirlo */
+body.chat-abierto .flotantes,
+body.chat-abierto .tab-publicar{opacity:0;pointer-events:none;transition:opacity .15s}
+.chatflotante-hilo{padding-bottom:14px}
+.chatflotante-hilo .chat-form{padding-bottom:2px}
