@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
@@ -29,6 +29,7 @@ function comprimirPago(file) {
 }
 
 const TABS = [
+  { value: "registro", label: "Registro" },
   { value: "pubs", label: "Publicaciones" },
   { value: "cotiz", label: "Cotizaciones" },
   { value: "tratos", label: "Tratos" },
@@ -36,10 +37,86 @@ const TABS = [
   { value: "privacidad", label: "Privacidad" },
 ];
 
+/* Panel de registro: qué hizo el vecino y qué quedó pendiente, en orden. */
+function Registro() {
+  const { usuario } = useAuth();
+  const pubs = useQuery({ queryKey: ["mis-pubs"], queryFn: () => api.get("/api/mis-publicaciones") });
+  const cots = useQuery({ queryKey: ["cotizaciones"], queryFn: () => api.get("/api/cotizaciones") });
+  const tratos = useQuery({ queryKey: ["tratos"], queryFn: () => api.get("/api/tratos") });
+
+  const listaPubs = Array.isArray(pubs.data) ? pubs.data : (pubs.data?.items || []);
+  const listaCots = Array.isArray(cots.data) ? cots.data : (cots.data?.items || []);
+  const listaTratos = Array.isArray(tratos.data) ? tratos.data : (tratos.data?.items || []);
+
+  const eventos = useMemo(() => {
+    const out = [];
+    listaPubs.forEach((p) => out.push({
+      ts: p.creado, icono: "store", tono: "",
+      texto: `Publicaste «${p.titulo}»`,
+      detalle: p.estado === "activa" ? "Activa" : cap(p.estado || ""),
+    }));
+    listaCots.forEach((c) => {
+      out.push({ ts: c.creado, icono: "chat", tono: "", texto: `Pediste «${c.titulo}»`, detalle: cap(c.estado || "") });
+      if (c.respuesta && c.respuesta !== "no_puedo") {
+        out.push({
+          ts: c.creado + 1, icono: "check", tono: "ok",
+          texto: `El vecino respondió por «${c.titulo}»`,
+          detalle: c.precio_respuesta ? `Precio: ${c.precio_respuesta}` : "Sí puede",
+        });
+      }
+    });
+    listaTratos.forEach((t) => {
+      out.push({
+        ts: t.creado, icono: "handshake", tono: "",
+        texto: `Trato con ${t.vendedor_id === usuario?.id ? (t.comprador_nombre || "un vecino") : (t.vendedor_nombre || "un vecino")} por «${t.titulo}»`,
+        detalle: `${t.monto || "monto a convenir"} · ${etiqueta(t.estado)[0]}`,
+      });
+      if (t.cerrado_en) out.push({
+        ts: t.cerrado_en, icono: "thumb", tono: "ok",
+        texto: `Trato cerrado: «${t.titulo}»`, detalle: "Ya puedes dejar tu visto bueno",
+      });
+    });
+    return out.sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 40);
+  }, [listaPubs, listaCots, listaTratos, usuario?.id]);
+
+  const cerrados = listaTratos.filter((t) => t.estado === "cerrado").length;
+  const pendientes = listaTratos.filter((t) => t.estado !== "cerrado" && t.estado !== "cancelado").length;
+  const cargando = pubs.isLoading || cots.isLoading || tratos.isLoading;
+
+  return (
+    <>
+      <div className="registro-kpis">
+        <div><b>{listaPubs.length}</b><span>Publicaciones</span></div>
+        <div><b>{pendientes}</b><span>Tratos en curso</span></div>
+        <div><b>{cerrados}</b><span>Cerrados</span></div>
+      </div>
+
+      {cargando && <div className="skeleton tall" />}
+      {!cargando && eventos.length === 0 && (
+        <Empty icon="clipboard" titulo="Sin actividad todavía"
+          texto="Publica algo o pide un favor y aquí queda el registro." />
+      )}
+
+      <div className="registro">
+        {eventos.map((e, i) => (
+          <div className="evento" key={`${e.ts}-${i}`}>
+            <span className={`evento-ico ${e.tono}`}><Icon name={e.icono} /></span>
+            <div className="evento-txt">
+              <b>{e.texto}</b>
+              <span>{e.detalle}</span>
+            </div>
+            <time>{hace(e.ts)}</time>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export default function MiActividad() {
   const { usuario } = useAuth();
   const nav = useNavigate();
-  const [tab, setTab] = useState("pubs");
+  const [tab, setTab] = useState("registro");
 
   if (!usuario) return <Empty titulo="Entra a tu cuenta" />;
 
@@ -56,6 +133,7 @@ export default function MiActividad() {
 
       <Segmented scroll value={tab} onChange={setTab} options={TABS} />
 
+      {tab === "registro" && <Registro />}
       {tab === "pubs" && <Publicaciones />}
       {tab === "cotiz" && <Cotizaciones />}
       {tab === "tratos" && <Tratos />}

@@ -8,6 +8,7 @@ import { Icon } from "../lib/icons";
 import { Sheet, Select, Btn, useToast } from "./ui";
 import Publicar from "./Publicar";
 import ChatFlotante from "./ChatFlotante";
+import LectorVoz from "./LectorVoz";
 import { useQueryClient } from "@tanstack/react-query";
 import { abrirPublicar } from "../lib/publicar";
 import { useTour } from "./Tour";
@@ -34,6 +35,7 @@ export function Shell({ children }) {
   const [grande, setGrande] = useState(() => localStorage.getItem("vecinal-letra") === "grande");
   const [contraste, setContraste] = useState(() => localStorage.getItem("vecinal-contraste") === "1");
   const [menosMov, setMenosMov] = useState(() => localStorage.getItem("vecinal-movimiento") === "0");
+  const [voz, setVoz] = useState(() => localStorage.getItem("vecinal-voz") === "1");
   const nav = useNavigate();
   const loc = useLocation();
   const publicado = () => {
@@ -58,6 +60,10 @@ export function Shell({ children }) {
     document.documentElement.classList.toggle("menos-movimiento", menosMov);
     localStorage.setItem("vecinal-movimiento", menosMov ? "0" : "1");
   }, [menosMov]);
+
+  useEffect(() => {
+    localStorage.setItem("vecinal-voz", voz ? "1" : "0");
+  }, [voz]);
 
   /* el botón central (y cualquier pantalla) piden publicar */
   useEffect(() => {
@@ -242,6 +248,9 @@ export function Shell({ children }) {
                 <button type="button" role="menuitem" onClick={() => setMenosMov(!menosMov)}>
                   <Icon name="clock" /> {menosMov ? "Animaciones normales" : "Reducir movimiento"}
                 </button>
+                <button type="button" role="menuitem" onClick={() => setVoz(!voz)}>
+                  <Icon name="speaker" /> {voz ? "Detener lectura" : "Leer en voz alta"}
+                </button>
               </div>
             )}
           </div>
@@ -251,7 +260,7 @@ export function Shell({ children }) {
               {avisos?.sin_leer > 0 && <span className="campana-badge">{avisos.sin_leer > 99 ? "99+" : avisos.sin_leer}</span>}
             </button>
           )}
-          <button type="button" className="btn primary publicar-top" onClick={() => setPubMenu(true)}>
+          <button type="button" className="btn primary publicar-top" data-tour="publicar" onClick={() => setPubMenu(true)}>
             <Icon name="plus" /> Publicar
           </button>
           <div className="cuenta" ref={cuenta}>
@@ -286,6 +295,9 @@ export function Shell({ children }) {
                 <button type="button" role="menuitem" onClick={() => setMenosMov(!menosMov)}>
                   <Icon name="clock" /> {menosMov ? "Animaciones normales" : "Reducir movimiento"}
                 </button>
+                <button type="button" role="menuitem" onClick={() => setVoz(!voz)}>
+                  <Icon name="speaker" /> {voz ? "Detener lectura" : "Leer en voz alta"}
+                </button>
                 <button type="button" role="menuitem" className="peligro" onClick={async () => { await salir(); nav("/"); }}>
                   <Icon name="logout" /> Cerrar sesión
                 </button>
@@ -313,6 +325,7 @@ export function Shell({ children }) {
           </NavLink>
         ))}
         <button type="button" aria-label="Publicar" onClick={() => setPubMenu(true)}
+          data-tour="publicar"
           className={`tab-publicar ${loc.pathname === "/favores" ? "sec-favores"
             : loc.pathname === "/emergencia" ? "sec-emergencia"
             : loc.pathname === "/" ? "sec-local" : "sec-perfil"}`}>
@@ -351,6 +364,7 @@ export function Shell({ children }) {
       </div>
 
       <ChatFlotante abierto={chatAbierto} onCerrar={() => setChatAbierto(false)} />
+      <LectorVoz activo={voz} />
 
       {/* ---- sector ---- */}
       <Sheet open={locOpen} onClose={() => setLocOpen(false)} titulo="Elegir sector" ancho={440}>

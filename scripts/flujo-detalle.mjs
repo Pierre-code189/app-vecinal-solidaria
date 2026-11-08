@@ -151,7 +151,7 @@ const main = async () => {
   // ---------- 1. la ficha es corta y lleva al chat ----------
   let r = await abrirDetalle(TITULO);
   paso("la ficha del servicio abre desde la tarjeta", r === "OK", r);
-  const cta = await js(`document.querySelector(".det2-cta")?.innerText.replace(/\\n/g, " ") || ""`);
+  const cta = await js(`document.querySelector(".det-barra")?.innerText.replace(/\\n/g, " ") || ""`);
   paso("la ficha solo ofrece «Enviar mensaje» y WhatsApp", cta.includes("Enviar mensaje") && cta.includes("WhatsApp"), cta);
 
   r = await clickTexto("Enviar mensaje");
@@ -220,7 +220,10 @@ const main = async () => {
       paso("comprobante del pago adjuntado y visible en el hilo", false, "sin input de archivo");
     }
   }
-  r = await clickEnHilo("Confirmar que recibí el pago");
+  /* Con el cobro pendiente, el botón es «Sí, recibí el pago»; si ya estaba
+     marcado, el genérico. Se acepta cualquiera de los dos. */
+  r = await clickEnHilo("recibí el pago");
+  if (r !== "OK") r = await clickEnHilo("Confirmar que recibí");
   paso("el vendedor confirma que recibió el pago", r === "OK", r);
   await sleep(2800);
   r = await clickEnHilo("Marcar que entregué");

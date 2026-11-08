@@ -113,8 +113,8 @@ paso("si lo sacan por abajo, se queda sobre la barra", abajo.t + abajo.h <= abaj
 
 // la ventana arrastrable tampoco debe tapar la cabecera
 const cw = await js(`(() => { const r = document.querySelector(".chatflotante").getBoundingClientRect(); return { l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), vw: innerWidth, vh: innerHeight, desborde: document.documentElement.scrollWidth - innerWidth }; })()`);
-paso("la ventana flotante cabe en pantalla sin desbordar",
-  cw.l >= 0 && cw.t >= 64 && cw.l + cw.w <= cw.vw + 1 && cw.t + cw.h <= cw.vh + 1 && cw.desborde === 0, JSON.stringify(cw));
+paso("la ventana ocupa la pantalla sin desbordar",
+  cw.l <= 10 && cw.t <= 10 && cw.l + cw.w <= cw.vw + 1 && cw.t + cw.h >= cw.vh - 10 && cw.desborde === 0, JSON.stringify(cw));
 await foto("3-final");
 
 console.log(fallos ? `\n${fallos} paso(s) fallaron` : "\nTodo en verde");

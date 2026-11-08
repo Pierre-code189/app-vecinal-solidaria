@@ -7,39 +7,47 @@ import { Btn } from "./ui";
 const PASOS = [
   {
     ruta: "/", selector: null, titulo: "Bienvenido a Vecinal",
-    texto: "Te muestro en un minuto dónde está cada cosa. Puedes salir cuando quieras.",
+    texto: "Te muestro en un minuto cómo se usa el barrio. Puedes salir cuando quieras.",
   },
   {
     ruta: "/", selector: '[data-tour="zona"]', titulo: "Tu sector",
-    texto: "Aquí vive tu sector. Tócalo para cambiarlo o para usar tu ubicación; con eso ordenamos todo por cercanía.",
+    texto: "Aquí vive tu sector. Tócalo para cambiarlo o usar tu ubicación: con eso ordenamos todo por cercanía.",
   },
   {
-    ruta: "/", selector: '[data-tour="buscar"]', titulo: "Buscar y filtrar",
-    texto: "Escribe lo que necesitas o usa el micrófono. Abajo puedes filtrar por categoría y por distancia.",
+    ruta: "/", selector: '[data-tour="buscar"]', titulo: "Buscar",
+    texto: "Escribe lo que necesitas o usa el micrófono. Debajo quedan dos filtros rápidos: cerca y mejor valorados.",
   },
   {
     ruta: "/", selector: '[data-tour="tarjeta"]', titulo: "Cada tarjeta te dice lo importante",
-    texto: "Categoría, distancia real, precio, cómo pagan y quién lo ofrece. Toca una para ver el detalle y pedir una cotización.",
+    texto: "Categoría, distancia, precio, cómo pagan y los vistos buenos. Si tiene aval, verás quién lo respalda.",
   },
   {
-    ruta: "/", selector: '[data-tour="publicar"]', titulo: "Publicar",
-    texto: "Publicas en tres pasos: qué ofreces, los datos y la confirmación. Puedes poner precio o dejarlo a convenir.",
+    ruta: "/", selector: '[data-tour="publicar"]', titulo: "Un solo botón para publicar",
+    texto: "El + del centro publica las tres cosas: servicio o producto, favor y aviso de emergencia. Cada una abre su formulario.",
   },
   {
-    ruta: "/favores", selector: '[data-tour="favores"] .pub', titulo: "Economía solidaria",
-    texto: "Aquí se pide y se ofrece ayuda sin dinero: préstamos, movilidad, compañía. Con garante cuando hace falta.",
+    ruta: "/", selector: ".fab-msg", titulo: "Mensajes",
+    texto: "El botón flotante abre tus conversaciones sin salir de la pantalla. Puedes arrastrarlo a donde te estorbe menos.",
+  },
+  {
+    ruta: "/", selector: '[data-tour="tarjeta"]', titulo: "Hablar con el vecino",
+    texto: "Dentro de una publicación, «Enviar mensaje» abre el chat con el contexto de lo que pides. Ahí se responde, se acuerda y se confirma el pago.",
+  },
+  {
+    ruta: "/favores", selector: '[data-tour="favores"] .pub', titulo: "Favores",
+    texto: "Aquí se pide y se ofrece ayuda sin dinero: préstamos, movilidad, compañía. El color te dice si es un pedido o algo que se ofrece.",
   },
   {
     ruta: "/emergencia", selector: '[data-tour="sos"]', titulo: "Emergencias",
-    texto: "Los teléfonos 105, 116, 115 y 106 siempre a la vista, y lo que tus vecinos ofrecen para esa emergencia.",
+    texto: "Los teléfonos 105, 116, 115 y 106 siempre a la vista, y los recursos que ofrecen tus vecinos en el tablero.",
   },
   {
     ruta: "/actividad", selector: '[data-tour="actividad"] .segmented', titulo: "Mi actividad",
-    texto: "Tus publicaciones, cotizaciones, tratos y favores. Aquí también ves quién consultó tu contacto.",
+    texto: "El registro de lo que haces: publicaciones, cotizaciones, tratos y favores, con lo que quedó pendiente.",
   },
   {
-    ruta: "/", selector: '[data-tour="cuenta"]', titulo: "Tu cuenta",
-    texto: "Tocando tu inicial abres tu perfil, tu actividad, el tutorial y el cierre de sesión.",
+    ruta: "/", selector: '[data-tour="cuenta"]', titulo: "Tu cuenta y la accesibilidad",
+    texto: "Tocando tu inicial abres tu perfil, la actividad y el tutorial. Junto a la campana está el ojo: letra grande, alto contraste y lectura en voz alta.",
   },
   {
     ruta: "/", selector: null, titulo: "Listo",
