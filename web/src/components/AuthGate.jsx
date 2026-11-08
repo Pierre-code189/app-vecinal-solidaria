@@ -173,7 +173,7 @@ export default function AuthGate() {
             <Field label="Teléfono (9 dígitos)" id="g-tel"
               hint={modo === "registro" ? "Te enviaremos un código para confirmar que es tuyo." : "El número con el que te registraste."}>
               <div className="telwrap">
-                <input id="g-tel" type="tel" inputMode="numeric" maxLength={9} placeholder="999888777"
+                <input id="g-tel" type="tel" inputMode="numeric" maxLength={9} placeholder="Ej.: 987654321"
                   autoComplete="tel" value={f.telefono || ""}
                   onChange={(e) => set("telefono", e.target.value.replace(/\D/g, ""))} />
                 {modo === "registro" && (
@@ -187,7 +187,7 @@ export default function AuthGate() {
             {modo === "registro" && (
               <>
                 <Field label="Código del SMS" id="g-cod"
-                  hint={codigoDemo ? `En la demo no hay SMS: tu código es ${codigoDemo}` : "Seis dígitos, válido 10 minutos."}>
+                  hint="Seis dígitos, válido 10 minutos.">
                   <input id="g-cod" inputMode="numeric" maxLength={6} value={f.codigo || ""}
                     onChange={(e) => set("codigo", e.target.value.replace(/\D/g, ""))} />
                 </Field>
