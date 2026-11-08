@@ -934,3 +934,10 @@ main{max-width:1240px;margin:0 auto;padding:24px 20px 60px}
   .pub .precio{font-size:1.02rem}
   .pub h3{font-size:1.02rem}
 }
+
+/* el botón de cuenta estaba oculto por una regla antigua de la versión vanilla */
+.topbar .avatar-btn{display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;font-size:.86rem;font-weight:700;border:1px solid rgba(255,255,255,.5);
+  background:rgba(255,255,255,.16);color:#fff;border-radius:50%;cursor:pointer;padding:0}
+.topbar .avatar-btn:hover{background:rgba(255,255,255,.3)}
+.topbar .avatar-btn[aria-expanded="true"]{background:#fff;color:var(--brand-700);border-color:#fff}

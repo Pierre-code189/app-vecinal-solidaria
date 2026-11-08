@@ -524,3 +524,11 @@ todo sigue igual que antes.
 elemento real de cada pantalla (sector, buscador, tarjeta, publicar, favores, emergencia,
 actividad, cuenta), cambia de sección cuando toca y avanza con Siguiente/Atrás. Se abre solo la
 primera vez que alguien entra y se puede repetir desde el menú de la cuenta o desde Tutorial.
+
+
+## v4.5.1 — el avatar de la cabecera no se veía
+
+La hoja de estilos traía una regla de la versión anterior (`.avatar-btn{display:none}`) que el
+JavaScript antiguo encendía al iniciar sesión. En React el botón se dibujaba pero quedaba
+oculto: se podía abrir el menú solo desde código. Ahora la regla del contexto (`.topbar .avatar-btn`)
+fuerza `inline-flex` con su tamaño de 36 px, y el botón muestra la inicial en escritorio y móvil.
