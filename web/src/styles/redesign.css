@@ -665,3 +665,18 @@ body.chat-abierto .flotantes,
 body.chat-abierto .tab-publicar{opacity:0;pointer-events:none;transition:opacity .15s}
 .chatflotante-hilo{padding-bottom:14px}
 .chatflotante-hilo .chat-form{padding-bottom:2px}
+
+/* Chat a pantalla completa (deja el borde superior) y botón fijo en la esquina */
+.chatflotante{left:8px;right:8px;top:8px;bottom:8px;width:auto;height:auto;border-radius:18px}
+@media(max-width:719px){.chatflotante{bottom:calc(var(--tabbar-h) + 8px)}}
+body.chat-abierto .flotantes{opacity:1;pointer-events:auto;z-index:90}
+body.chat-abierto .fab-msg{background:var(--brand-600);color:#fff}
+
+/* Dos campos por fila solo si caben; el selector ya no se sale del formulario */
+.dos{grid-template-columns:1fr 1fr}
+.dos>*{min-width:0}
+.sel-btn,.sel-txt{min-width:0;max-width:100%}
+@media(max-width:600px){.dos{grid-template-columns:1fr}}
+/* El chat cubre también la barra inferior: solo queda el borde de la pantalla */
+.chatflotante{bottom:8px}
+@media(max-width:719px){.chatflotante{bottom:8px}}

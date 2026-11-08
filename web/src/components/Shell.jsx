@@ -122,6 +122,11 @@ export function Shell({ children }) {
 
   useEffect(() => {
     document.body.classList.toggle("chat-abierto", chatAbierto);
+    if (!chatAbierto) return;
+    /* con el chat abierto el botón se queda en su esquina: no estorba ni se mueve */
+    const { lMax, tMax } = limitesFab();
+    setPos({ l: lMax, t: tMax });
+    localStorage.setItem("vecinal-fab2", JSON.stringify({ l: lMax, t: tMax }));
   }, [chatAbierto]);
 
   /* Red de seguridad: pase lo que pase, el botón nunca sale de su franja. */
@@ -141,7 +146,7 @@ export function Shell({ children }) {
 
   /* Arrastre con escucha en window: así sigue aunque el dedo salga del botón. */
   const arrastrarFab = (e) => {
-    if (!pos) return;
+    if (!pos || chatAbierto) return;
     const ini = { x: e.clientX, y: e.clientY, l: pos.l, t: pos.t };
     let movido = 0;
     setMoviendo(true);
@@ -331,7 +336,7 @@ export function Shell({ children }) {
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
           <span className="arrow-up" aria-hidden="true">↑</span>
         </button>
-        <button type="button" className="fab-msg" aria-label="Mensajes"
+        <button type="button" className="fab-msg" aria-label={chatAbierto ? "Cerrar mensajes" : "Mensajes"}
           aria-expanded={chatAbierto}
           style={{ touchAction: "none" }}
           onPointerDown={arrastrarFab}
@@ -340,8 +345,8 @@ export function Shell({ children }) {
             if (!usuario) { ir("/perfil"); return; }
             setChatAbierto((v) => !v);
           }}>
-          <Icon name="chat" />
-          {avisos?.sin_leer > 0 && <span className="fab-msg-badge">{avisos.sin_leer > 9 ? "9+" : avisos.sin_leer}</span>}
+          <Icon name={chatAbierto ? "close" : "chat"} />
+          {!chatAbierto && avisos?.sin_leer > 0 && <span className="fab-msg-badge">{avisos.sin_leer > 9 ? "9+" : avisos.sin_leer}</span>}
         </button>
       </div>
 

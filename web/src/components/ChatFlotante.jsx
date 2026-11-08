@@ -14,15 +14,8 @@ import { hace, etiqueta } from "../lib/format";
  * chats que nacieron de una publicación: no hay buscador ni chats nuevos.
  */
 
-const MARGEN = 8;
-
 export default function ChatFlotante({ abierto, onCerrar, inicial = null }) {
-  const [pos, setPos] = useState(null);          // {l, t} en px de viewport
-  const [tam, setTam] = useState({ w: 360, h: 520 });
-  const [drag, setDrag] = useState(false);
   const [hilo, setHilo] = useState(inicial);     // {contexto, ref_id, ...}
-  const caja = useRef(null);
-  const suje = useRef(null);
 
   const { data } = useQuery({
     queryKey: ["conversaciones"],
@@ -32,74 +25,7 @@ export default function ChatFlotante({ abierto, onCerrar, inicial = null }) {
   });
   const qc = useQueryClient();
 
-  /* tamaño y posición inicial: abajo a la derecha, sobre la barra inferior */
-  useEffect(() => {
-    if (!abierto) return;
-    const medir = () => {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const bajo = window.matchMedia("(max-width:719px)").matches;
-      const w = Math.min(380, vw - MARGEN * 2);
-      const h = Math.min(540, vh - 150);
-      setTam({ w, h });
-      setPos((p) => p || {
-        l: Math.max(MARGEN, vw - w - 16),
-        t: Math.max(72, vh - (bajo ? 64 : 0) - h - 16),
-      });
-    };
-    medir();
-    window.addEventListener("resize", medir);
-    return () => window.removeEventListener("resize", medir);
-  }, [abierto]);
-
   useEffect(() => { if (inicial) setHilo(inicial); }, [inicial]);
-
-  const limites = () => {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const bajo = window.matchMedia("(max-width:719px)").matches;
-    const arriba = 64 + MARGEN;                       // barra superior
-    const abajo = vh - (bajo ? 64 : 0) - MARGEN;      // barra inferior + margen
-    return {
-      lMin: MARGEN, lMax: vw - tam.w - MARGEN,
-      tMin: arriba, tMax: Math.max(arriba, abajo - tam.h),
-      vw, vh, bajo,
-    };
-  };
-
-  /* Arrastre desde la cabecera con escucha en window: sigue fuera de la caja. */
-  const arrastrar = (e) => {
-    if (e.target.closest("button") || !pos) return;
-    const ini = { x: e.clientX, y: e.clientY, l: pos.l, t: pos.t };
-    setDrag(true);
-
-    const mover = (ev) => {
-      const { lMin, lMax, tMin, tMax } = limites();
-      setPos({
-        l: Math.min(Math.max(ini.l + (ev.clientX - ini.x), lMin - 28), Math.max(lMin, lMax) + 28),
-        t: Math.min(Math.max(ini.t + (ev.clientY - ini.y), tMin - 28), Math.max(tMin, tMax) + 28),
-      });
-    };
-
-    const fin = (ev) => {
-      window.removeEventListener("pointermove", mover);
-      window.removeEventListener("pointerup", fin);
-      window.removeEventListener("pointercancel", fin);
-      const { lMin, lMax, tMin, tMax, vw, vh } = limites();
-      let l = Math.min(Math.max(ini.l + (ev.clientX - ini.x), lMin), Math.max(lMin, lMax));
-      const t = Math.min(Math.max(ini.t + (ev.clientY - ini.y), tMin), Math.max(tMin, tMax));
-      /* en el centro estorba: se va al borde horizontal más cercano */
-      const cx = (l + tam.w / 2) / vw;
-      const cy = (t + tam.h / 2) / vh;
-      if (cx > 0.32 && cx < 0.68 && cy > 0.28 && cy < 0.72) l = cx < 0.5 ? lMin : lMax;
-      setDrag(false);
-      setPos({ l, t });
-    };
-
-    window.addEventListener("pointermove", mover);
-    window.addEventListener("pointerup", fin);
-    window.addEventListener("pointercancel", fin);
-  };
 
   if (!abierto) return null;
 
@@ -108,13 +34,8 @@ export default function ChatFlotante({ abierto, onCerrar, inicial = null }) {
   const [estadoTxt, estadoTono] = activo ? etiqueta(activo.estado) : ["", ""];
 
   return (
-    <aside className="chatflotante" ref={caja} role="dialog" aria-label="Mensajes"
-      style={{
-        left: pos?.l, top: pos?.t, width: tam.w, height: tam.h,
-        transition: drag ? "none" : "left .22s var(--ease), top .22s var(--ease)",
-      }}>
-      <header className="chatflotante-cab" onPointerDown={arrastrar}
-        style={{ cursor: drag ? "grabbing" : "grab" }}>
+    <aside className="chatflotante" role="dialog" aria-label="Mensajes">
+      <header className="chatflotante-cab">
         {activo ? (
           <button type="button" className="linkbtn" aria-label="Volver a conversaciones"
             onClick={() => setHilo(null)}><Icon name="back" /></button>
@@ -124,9 +45,6 @@ export default function ChatFlotante({ abierto, onCerrar, inicial = null }) {
           <span>{activo ? activo.titulo : "Conversaciones de tus publicaciones"}</span>
         </div>
         {activo && <Badge tono={estadoTono}>{estadoTxt}</Badge>}
-        <button type="button" className="linkbtn chatflotante-x" aria-label="Cerrar mensajes" onClick={onCerrar}>
-          <Icon name="close" />
-        </button>
       </header>
 
       {!activo && (
