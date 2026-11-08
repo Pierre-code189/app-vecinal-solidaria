@@ -319,3 +319,32 @@ cabecera cuando no la hay; se acabó el «Entrar» con texto junto a la campana.
 
 **Cabecera sin sesión.** El botón de entrar no se pintaba para invitados
 (`pintarUsuario` solo corría al cargar un perfil). Corregido en el arranque.
+
+
+## v4.0.0 — migración a React
+
+El frontend pasó de un `app.js` de 1.500 líneas a una aplicación React 19 con Vite,
+React Router y TanStack Query. El backend FastAPI no cambió: la app consume los mismos
+endpoints, así que las 103 comprobaciones siguen en verde.
+
+**Estructura nueva** (`web/`): `screens/` una pantalla por sección, `components/` piezas
+reutilizables, `context/` sesión y sector, `lib/` cliente de API, formato e iconos.
+Compila a `app/static` y se sirve desde el mismo dominio.
+
+**Ideas incorporadas de BarrioConecta**
+
+- **SOS fijo** en Emergencia: 105, 116, 115 y 106 como botones `tel:` grandes.
+- **SMS sin internet** en los recursos de emergencia, junto a WhatsApp.
+- **Buscador por voz** con `SpeechRecognition` y aviso cuando el navegador no lo tiene.
+- **Filtro por distancia** (1, 2 y 5 km) sobre la distancia real del servidor.
+- **Tutorial por pasos** con lectura en voz alta y frase en quechua.
+- **Letra grande** en toda la app, recordada entre visitas.
+- **Radio de visibilidad** y **punto de encuentro** en publicaciones de movilidad.
+
+**Lo que se conservó del proyecto propio**: backend real, visto bueno solo tras trato
+cerrado, consentimiento de contacto, registro de consultas, moderación con métricas,
+cola de envío sin conexión y sistema visual con contraste AA.
+
+**Verificado**: registro, inicio de sesión, publicación en tres pasos, detalle con pagos y
+mapa (9 de 9 mosaicos), actividad con pestañas, emergencia, tutorial y moderación;
+sin errores de consola en móvil (390×844) ni en escritorio (1280×900).
