@@ -16,17 +16,13 @@ const NAV = [
 
 export function Shell({ children }) {
   const { usuario, salir, esModerador } = useAuth();
-  const { zonas, setZonas, zona, setZona, usarGPS } = useZona();
+  const { zonas, zona, setZona, usarGPS } = useZona();
   const [locOpen, setLocOpen] = useState(false);
   const [locSel, setLocSel] = useState(zona);
   const [avisosOpen, setAvisosOpen] = useState(false);
   const [grande, setGrande] = useState(() => localStorage.getItem("vecinal-letra") === "grande");
   const nav = useNavigate();
   const loc = useLocation();
-
-  useEffect(() => {
-    api.get("/api/zonas").then(setZonas).catch(() => {});
-  }, [setZonas]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("letra-grande", grande);

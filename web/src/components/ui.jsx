@@ -47,16 +47,22 @@ export function Select({ id, value, onChange, options, ariaLabel, className = ""
 
   const abrir = () => {
     const r = btn.current.getBoundingClientRect();
-    const ancho = Math.min(r.width, window.innerWidth - 16);
-    const abajo = window.innerHeight - r.bottom - 12;
-    const arriba = r.top - 12;
-    const hoja = abajo < 220 || window.matchMedia("(max-width: 759px)").matches;
-    setPos(hoja
-      ? { hoja: true }
-      : {
-          hoja: false, width: ancho, maxHeight: Math.max(160, Math.min(300, abajo)),
-          left: Math.max(8, Math.min(r.left, window.innerWidth - ancho - 8)), top: r.bottom + 6,
-        });
+    const margen = 8;
+    const ancho = Math.min(r.width, window.innerWidth - margen * 2);
+    const abajo = window.innerHeight - r.bottom - margen * 2;
+    const arriba = r.top - margen * 2;
+    // El panel siempre cuelga del campo. Si no cabe abajo, se abre hacia arriba.
+    const haciaArriba = abajo < 200 && arriba > abajo;
+    const alto = Math.max(150, Math.min(320, haciaArriba ? arriba : abajo));
+    setPos({
+      width: ancho,
+      height: alto,
+      left: Math.max(margen, Math.min(r.left, window.innerWidth - ancho - margen)),
+      ...(haciaArriba
+        ? { bottom: window.innerHeight - r.top + 6, top: "auto" }
+        : { top: r.bottom + 6, bottom: "auto" }),
+      maxHeight: alto,
+    });
     setAbierto(true);
   };
 
@@ -82,15 +88,14 @@ export function Select({ id, value, onChange, options, ariaLabel, className = ""
 
   return (
     <div className={`sel ${className}`}>
-      <button ref={btn} type="button" className="sel-btn" aria-haspopup="listbox"
+      <button ref={btn} id={id} type="button" className="sel-btn" aria-haspopup="listbox"
         aria-expanded={abierto} aria-label={`${ariaLabel || "Opción"}: ${actual?.label || ""}`}
         onClick={(e) => { e.stopPropagation(); abierto ? setAbierto(false) : abrir(); }}>
         <span className="sel-txt">{actual?.label}</span>
         <Icon name="chevron" className="sel-chev" />
       </button>
       {abierto && createPortal(
-        <ul ref={panel} className={`sel-panel ${pos.hoja ? "hoja" : ""}`} role="listbox"
-          style={pos.hoja ? undefined : pos}>
+        <ul ref={panel} className={`sel-panel ${pos.top === "auto" ? "arriba" : ""}`} role="listbox" style={pos}>
           {options.map((o) => (
             <li key={o.value} role="option" aria-selected={String(o.value) === String(value)}
               className="sel-op"

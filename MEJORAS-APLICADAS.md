@@ -396,3 +396,15 @@ solo los ve alguien con sesión, y queda registrado quién consultó el contacto
 Verificado en navegador: puerta visible sin sesión, ruta directa bloqueada, registro entra,
 recarga mantiene la sesión, cerrar sesión devuelve a la puerta; 105 comprobaciones del API
 siguen en verde.
+
+
+## v4.1.1 — el desplegable cuelga del campo, siempre
+
+Se eliminó la hoja inferior para los selectores. El panel calcula su posición desde el campo:
+se abre hacia abajo si hay espacio y hacia arriba si no lo hay, con una flecha que apunta al
+campo y scroll propio cuando la lista es larga. Vale igual en la pantalla de entrada, en el
+formulario de publicar y en la ventana de sector, en móvil y en escritorio.
+
+De paso: los sectores se cargan al abrir la app (antes solo con sesión, así que en la puerta
+solo aparecía «Piura Centro») y el campo ahora lleva su `id`, que faltaba para que la etiqueta
+lo enfocara.

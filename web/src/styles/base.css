@@ -759,3 +759,17 @@ main{padding-bottom:104px}
   .entrada-intro p{font-size:1rem;line-height:1.6}
   .entrada-nota{margin-top:16px;max-width:420px}
 }
+
+/* el desplegable cuelga siempre del campo; nunca como hoja suelta */
+.sel-panel{position:fixed;z-index:1100;border-radius:12px;padding:6px;overflow:auto;
+  overscroll-behavior:contain;animation:selin .12s ease-out}
+.sel-panel::before{content:"";position:absolute;inset:auto;width:10px;height:10px;background:var(--surface);
+  border-left:1px solid var(--line);border-top:1px solid var(--line);transform:rotate(45deg);top:-6px;left:18px}
+@keyframes selin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.sel-panel.hoja{position:fixed;left:8px;right:8px;bottom:0;top:auto;width:auto;
+  max-height:min(74vh,560px);border-radius:16px 16px 0 0}
+
+/* cuando se abre hacia arriba, la flecha va abajo */
+.sel-panel.arriba::before{top:auto;bottom:-6px;transform:rotate(225deg)}
+.sel-panel.arriba{animation:selinup .12s ease-out}
+@keyframes selinup{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}

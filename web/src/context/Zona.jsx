@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "./Auth";
+import { api } from "../lib/api";
 
 const Ctx = createContext(null);
 
@@ -12,6 +13,11 @@ export function ZonaProvider({ children }) {
     const lng = parseFloat(localStorage.getItem("vecinal-lng") || "");
     return lat && lng ? { lat, lng } : null;
   });
+
+  // los sectores se piden al abrir la app, haya o no sesión
+  useEffect(() => {
+    api.get("/api/zonas").then((z) => Array.isArray(z) && setZonas(z)).catch(() => {});
+  }, []);
 
   // el sector de la cuenta manda, salvo que la persona lo haya cambiado a mano
   useEffect(() => {
