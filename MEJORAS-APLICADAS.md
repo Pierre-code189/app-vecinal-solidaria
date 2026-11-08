@@ -721,3 +721,18 @@ Hallazgos y correcciones:
 
 Resultado del recorrido: **0 desbordes, 0 errores de consola, 0 respuestas 4xx** en las 12
 vistas medidas (invitado y con sesión, móvil y escritorio). Suite: 105/105 y 11/11.
+
+## v4.9.2 — chat propio y publicaciones traídas de fuera
+
+El detalle separa dos orígenes con una fila de acciones 67 / 33:
+
+- **Publicación creada en la app:** 67 % **Chat con el vecino** (conversación interna, sin salir)
+  y 33 % **WhatsApp** con mensaje ya escrito.
+- **Publicación traída del scraping:** 67 % **Ir a la publicación** (abre el enlace original de
+  Facebook, Instagram o marketplace) y 33 % **WhatsApp** si la publicación trae teléfono. Se avisa
+  «Publicación tomada de {red}».
+- Si no hay teléfono, el tercio derecho queda como «Sin WhatsApp» y el botón principal no se estira.
+
+Backend: `publicaciones.origen` (nativo | scraping), `url_origen`, `fuente` y
+`telefono_externo` (este último solo se entrega con sesión, igual que el resto de contactos).
+Dos ejemplos cargados: una de Facebook y una de Instagram.

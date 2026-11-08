@@ -1107,3 +1107,14 @@ html.menos-movimiento *,html.menos-movimiento *::before,html.menos-movimiento *:
 .hechos>div:last-child:nth-child(odd){grid-column:1/-1}
 /* QA: objetivos táctiles cómodos en cabecera y navegación */
 .chip-zona,.avatar-btn,.campana,.mainnav a,.mainnav button,.volver,.segmented button{min-height:38px}
+
+/* CTA del detalle: 67% chat propio / 33% WhatsApp, o 67% ir a la publicación */
+.det2-cta{display:flex;gap:8px;margin:12px 0 4px;align-items:stretch}
+.det2-cta>a.btn,.det2-cta>button{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:44px;border-radius:11px;text-decoration:none;font-weight:600;font-size:.88rem;padding:0 10px}
+.det2-cta .cta-67{flex:0 0 67%}
+.det2-cta .cta-33{flex:1 1 33%;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--text)}
+.det2-cta a.cta-33:hover{border-color:var(--brand-600);color:var(--brand-700)}
+.det2-cta .sin-wa{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);
+  border-radius:11px;color:var(--muted);font-size:.78rem;text-align:center}
+.det2-fuente{margin:8px 0 0}

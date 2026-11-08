@@ -44,6 +44,21 @@ export default function DetallePub({ id, onClose }) {
   const trato = p?.mi_trato;
   const cot = p?.mi_cotizacion;
   const abrirChat = Boolean(trato || (cot && cot.estado !== "enviada"));
+  const esExterno = p?.origen === "scraping";
+  const waLink = p?.telefono
+    ? `https://wa.me/51${p.telefono}?text=${encodeURIComponent("Hola, vi tu publicación en Vecinal Solidaria: " + (p.titulo || ""))}`
+    : "";
+
+  const abrirConversacion = async () => {
+    if (cot) { setAccion("chat"); return; }
+    try {
+      await api.post("/api/cotizaciones", {
+        publicacion_id: id, descripcion: "Hola, quiero conversar sobre esto", medida: "", urgencia: "normal",
+      });
+    } catch (e) { /* si ya existe, igual abrimos */ }
+    refrescar();
+    setAccion("chat");
+  };
 
   const acciones = () => {
     if (!usuario) return [{ texto: "Entra para contactar", primario: true, icon: "user",
@@ -72,16 +87,6 @@ export default function DetallePub({ id, onClose }) {
     if (!cot) {
       const base = [{ texto: p?.tipo?.startsWith("favor") ? "Ofrecer ayuda" : "Pedir cotización",
                       primario: true, icon: "chat", onClick: () => setAccion("cotizar") }];
-      if (!p?.tipo?.startsWith("favor")) {
-        base.push({ texto: "Solo preguntar", icon: "chat", onClick: async () => {
-          try {
-            await api.post("/api/cotizaciones", {
-              publicacion_id: id, descripcion: "Hola, tengo una consulta sobre esto", medida: "", urgencia: "normal",
-            });
-            refrescar(); setAccion("chat");
-          } catch (e) { setAccion("chat"); }
-        } });
-      }
       return base;
     }
     if (cot.estado === "enviada") {
@@ -266,6 +271,34 @@ export default function DetallePub({ id, onClose }) {
                   if (ok) { setAccion(null); toast("Reporte enviado. Un moderador lo revisará."); }
                 }}>Enviar reporte</Btn>
             </div>
+          )}
+
+          {usuario && !p.es_mio && !p.tipo?.startsWith("favor") && (
+            <>
+              {esExterno && (
+                <p className="hint det2-fuente">
+                  <Icon name="link" /> Publicación tomada de {p.fuente || "otra red"}. Se abre en su sitio original.
+                </p>
+              )}
+              <div className="det2-cta">
+                {esExterno ? (
+                  <a className="btn cta-67" href={p.url_origen} target="_blank" rel="noopener noreferrer">
+                    <Icon name="link" /> Ir a la publicación
+                  </a>
+                ) : (
+                  <Btn className="cta-67" variant="primary" icon="chat" onClick={abrirConversacion}>
+                    Chat con el vecino
+                  </Btn>
+                )}
+                {waLink ? (
+                  <a className="btn cta-33" href={waLink} target="_blank" rel="noopener noreferrer">
+                    <Icon name="whatsapp" /> WhatsApp
+                  </a>
+                ) : (
+                  <span className="cta-33 sin-wa">Sin WhatsApp</span>
+                )}
+              </div>
+            </>
           )}
 
           {!p.es_mio && (

@@ -51,6 +51,11 @@ Para probar como **invitado**, abre la URL en una ventana privada: se puede mira
 - «Datos para pagar» muestra Yape/Plin con botón copiar.
 - El mapa debe abrir **Google Maps** al tocarlo.
 
+**5b. Botones de contacto (67 / 33)**
+- Abrir un servicio creado en la app (por ejemplo «Gasfitero 24h»): 67 % «Chat con el vecino» + 33 % «WhatsApp».
+- Abrir «Reparación de celulares» o «Clases de reforzamiento» (traídas de Instagram/Facebook): 67 % «Ir a la publicación» + 33 % «WhatsApp», con el aviso «Publicación tomada de…».
+- El chat debe abrir la conversación dentro de la app, sin salir a otra aplicación.
+
 **6. Publicar**
 - Publicar un **servicio**: tipo, categoría, título, descripción, precio (no acepta letras), pago, sector, fotos.
 - Publicar un **producto** con «Disponibles = 1».

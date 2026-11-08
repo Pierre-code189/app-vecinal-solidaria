@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.9.1"
+APP_VERSION = "4.9.2"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -246,6 +246,10 @@ class PublicacionIn(BaseModel):
     franja_horaria: Optional[str] = ""
     cupo: Optional[int] = None
     stock: Optional[int] = Field(default=None, ge=0, le=9999)
+    origen: Optional[str] = "nativo"      # nativo | scraping
+    url_origen: Optional[str] = ""
+    fuente: Optional[str] = ""            # facebook | instagram | marketplace
+    telefono_externo: Optional[str] = ""  # solo para publicaciones traídas de fuera
     checklist_ok: bool = False
     es_emergencia: bool = False
     recurso_critico: bool = False
@@ -469,7 +473,8 @@ def serializar_publicacion(p: dict, viewer: Optional[dict], con) -> dict:
         p["distancia_km"] = haversine_km(ref_lat, ref_lng, p.get("lat"), p.get("lng"))
         p["es_mio"] = viewer["id"] == p["autor_id"]
         if permite or p["es_mio"]:
-            p["telefono"] = autor["telefono"] if autor else None
+            externo = (p.get("telefono_externo") or "").strip()
+            p["telefono"] = externo or (autor["telefono"] if autor else None)
             p["yape_autor"] = (p.get("yape_snapshot") or (autor["yape"] if autor else None))
             p["plin_autor"] = (p.get("plin_snapshot") or (autor["plin"] if autor else None))
         else:
@@ -1089,8 +1094,8 @@ def crear_publicacion(body: PublicacionIn, request: Request):
         "INSERT INTO publicaciones(id,autor_id,tipo,categoria,subtipo_favor,titulo,descripcion,"
         "precio,medios_pago,qr_yape,politica_pago,zona,lat,lng,punto_encuentro,franja_horaria,cupo,"
         "checklist_ok,estado,es_emergencia,recurso_critico,expira_en,creado,actualizado,client_id,"
-        "yape_snapshot,plin_snapshot,mostrar_contacto,fotos,necesidad,stock)"
-        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'activa',?,?,?,?,?,?,?,?,?,?,?,?)",
+        "yape_snapshot,plin_snapshot,mostrar_contacto,fotos,necesidad,stock,origen,url_origen,fuente,telefono_externo)"
+        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'activa',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (pid, user["id"], body.tipo, cat, body.subtipo_favor, titulo, desc,
          clean_txt(body.precio, 40), ",".join(medios), body.qr_yape or "",
          body.politica_pago, zona, lat, lng,
@@ -1100,7 +1105,10 @@ def crear_publicacion(body: PublicacionIn, request: Request):
          1 if (body.recurso_critico and body.es_emergencia) else 0,
          now + 30 * 86400, now, now, cid,
          yape_pub, plin_pub, 1 if body.mostrar_contacto else 0, fotos_json, necesidad,
-         body.stock if str(body.tipo) == "producto" else None),
+         body.stock if str(body.tipo) == "producto" else None,
+         "scraping" if (body.origen or "").lower() == "scraping" else "nativo",
+         clean_txt(body.url_origen, 300), clean_txt(body.fuente, 30),
+         re.sub(r"\D", "", body.telefono_externo or "")[:9]),
     )
     historial(con, "publicacion", pid, None, "activa", user["id"], "creación")
     log_evento(con, "publicacion_creada", pid, user["id"], body.tipo)

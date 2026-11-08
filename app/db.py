@@ -217,6 +217,10 @@ MIGRATIONS = {
         "fotos": "TEXT DEFAULT ''",
         "necesidad": "TEXT DEFAULT ''",
         "stock": "INTEGER",
+        "origen": "TEXT DEFAULT 'nativo'",
+        "url_origen": "TEXT DEFAULT ''",
+        "fuente": "TEXT DEFAULT ''",
+        "telefono_externo": "TEXT DEFAULT ''",
     },
     "tratos": {
         "stock_descontado": "INTEGER DEFAULT 0",
