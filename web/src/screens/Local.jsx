@@ -5,7 +5,7 @@ import { useZona } from "../context/Zona";
 import { useAuth } from "../context/Auth";
 import { Icon } from "../lib/icons";
 import { Btn, Segmented, Select, Tarjeta, Empty, useToast } from "../components/ui";
-import DetallePub from "../components/DetallePub";
+import Detalle from "../components/detalle";
 import PublicarNuevo from "../components/PublicarNuevo";
 
 const CATS = ["", "gasfitería", "carpintería", "electricidad", "cerrajería", "clases", "alimentos",
@@ -137,7 +137,7 @@ export default function Local() {
         ))}
       </div>
 
-      {detalle && <DetallePub id={detalle} onClose={() => setDetalle(null)} />}
+      {detalle && <Detalle id={detalle} onClose={() => setDetalle(null)} />}
       <PublicarNuevo open={publicar} inicial="servicio" onClose={() => setPublicar(false)} onPublicado={refetch} />
 
       {usuario && <button type="button" className="fab" aria-label="Publicar" onClick={() => setPublicar(true)}><Icon name="plus" size="1.6em" /></button>}

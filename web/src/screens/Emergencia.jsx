@@ -6,7 +6,7 @@ import { useZona } from "../context/Zona";
 import { Icon } from "../lib/icons";
 import { Btn, Empty, useToast } from "../components/ui";
 import PublicarEmergencia from "../components/PublicarEmergencia";
-import DetallePub from "../components/DetallePub";
+import Detalle from "../components/detalle";
 
 const SOS = [
   { num: "105", nombre: "Emergencias (Policía)", icon: "shield" },
@@ -146,7 +146,7 @@ export default function Emergencia() {
       <PublicarEmergencia open={Boolean(nuevo)} modo={nuevo || "ofrezco"}
         onClose={() => setNuevo(null)}
         onPublicado={() => qc.invalidateQueries({ queryKey: ["recursos"] })} />
-      {detalle && <DetallePub id={detalle} onClose={() => setDetalle(null)} />}
+      {detalle && <Detalle id={detalle} onClose={() => setDetalle(null)} />}
 
       <p className="nota">
         Esta app no reemplaza a los servicios de emergencia. Si hay riesgo de vida, llama primero al 105.

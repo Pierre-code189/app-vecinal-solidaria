@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useZona } from "../context/Zona";
 import { Btn, Segmented, Select, Tarjeta, Empty } from "../components/ui";
-import DetallePub from "../components/DetallePub";
+import Detalle from "../components/detalle";
 import PublicarNuevo from "../components/PublicarNuevo";
 import { Icon } from "../lib/icons";
 
@@ -104,7 +104,7 @@ export default function Favores() {
         ))}
       </div>
 
-      {detalle && <DetallePub id={detalle} onClose={() => setDetalle(null)} />}
+      {detalle && <Detalle id={detalle} onClose={() => setDetalle(null)} />}
       <PublicarNuevo open={publicar} inicial={nuevoTipo} onClose={() => setPublicar(false)} onPublicado={refetch} />
     </section>
   );

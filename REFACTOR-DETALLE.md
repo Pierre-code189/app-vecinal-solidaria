@@ -1,6 +1,6 @@
 # Refactor: dividir el detalle en tres componentes
 
-Estado: **pendiente de ejecutar** en una sesión dedicada.
+Estado: **ejecutado en v4.12.1** (sesión dedicada; `DetallePub.jsx` eliminado).
 Archivo actual: `web/src/components/DetallePub.jsx` (~300 líneas, un solo componente con condicionales por tipo).
 
 ## Por qué
