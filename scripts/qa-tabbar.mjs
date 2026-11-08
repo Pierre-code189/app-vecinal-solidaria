@@ -43,9 +43,10 @@ await go(BASE + "/?r=" + Date.now() + "#/");
 await sleep(1500);
 
 // 1. barra con cinco posiciones
-const orden = await js(`[...document.querySelectorAll(".tabbar > *")].map(e => e.getAttribute("data-sec") || e.className || e.tagName).join(",")`);
+const orden = await js(`[...document.querySelectorAll(".tabbar > *")].map(e =>
+  e.getAttribute("data-sec") || (String(e.className).includes("tab-publicar") ? "publicar" : e.tagName)).join(",")`);
 paso("la barra tiene Local, Favores, +, Emergencia y Perfil en ese orden",
-  orden === "local,favores,tab-publicar,emergencia,perfil", orden);
+  orden === "local,favores,publicar,emergencia,perfil", orden);
 paso("el botón central es un +", (await js(`Boolean(document.querySelector(".tab-publicar svg"))`)));
 paso("Local ya no tiene el botón Publicar junto al buscador", (await js(`!document.querySelector(".toolbar .btn-publicar")`)));
 paso("Local ya no tiene el botón flotante +", (await js(`!document.querySelector(".fab")`)));

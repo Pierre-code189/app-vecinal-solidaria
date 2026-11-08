@@ -3,7 +3,8 @@ import React from "react";
 /* Un solo sprite de trazos, igual que la versión anterior: nada de emojis. */
 const PATHS = {
   home: <><path d="M4 11 12 4l8 7v9H4v-9Z" /><path d="M10 20v-5h4v5" /></>,
-  store: <><path d="M4 9h16l-1.5-5h-13L4 9Z" /><path d="M4 9v11h16V9" /><path d="M9 20v-6h6v6" /></>,
+  store: <><path d="M4 9.6 5.9 4.5h12.2L20 9.6" /><path d="M4 9.6h16V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.6Z" /><path d="M4 9.6a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0" /><path d="M9.6 20v-4.8h4.8V20" /></>,
+  solidaridad: <><path d="M12 10.4c-.9-1.6-3.3-1.5-4 .4-.5 1.4.5 2.6 4 4.7 3.5-2.1 4.5-3.3 4-4.7-.7-1.9-3.1-2-4-.4Z" /><path d="M3.8 13.4 7.4 17.6l2.7-2.1" /><path d="M20.2 13.4 16.6 17.6l-2.7-2.1" /></>,
   heart: <path d="M12 20C7 16.5 4 13.6 4 10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 3.5c0 3.1-3 6-8 9.5Z" />,
   alert: <><path d="M12 3 2.5 20h19L12 3Z" /><path d="M12 8.5v5" /><path d="M12 16.6v.6" /></>,
   clipboard: <><path d="M9 4h6v3H9V4Z" /><path d="M7 5H5v15h14V5h-2" /><path d="M9 12h6M9 16h4" /></>,

@@ -1,22 +1,32 @@
 import React from "react";
 import { Icon } from "../../lib/icons";
-import { Hechos, Descripcion, useDetalle } from "./DetalleBase";
+import { Datos, Dato, Hero, Tarjeta, Proveedor, Ubicacion, useDetalle } from "./DetalleBase";
 
 /* Favor (pedido u ofrecido): sin dinero. Estado, cuándo y aval vecinal. */
 export default function DetalleFavor() {
   const { p } = useDetalle();
   const abierto = p.estado === "activa";
+  const esPedido = p.tipo === "favor_solicitado";
 
   return (
     <>
-      <Hechos>
-        <div><span>Estado</span><b className={abierto ? "abierto" : ""}>{abierto ? "Abierto" : "Pausado"}</b></div>
-        {p.franja_horaria && <div><span>Cuándo</span><b>{p.franja_horaria}</b></div>}
-        <div><span>Vistos buenos</span><b><Icon name="thumb" /> {p.vistos || 0}</b></div>
-        {p.garante_nombre && <div><span>Garante</span><b>{p.garante_nombre}</b></div>}
-      </Hechos>
+      <Datos>
+        <Dato icono={esPedido ? "handshake" : "solidaridad"} tono={esPedido ? "rojo" : "verde"}>
+          {esPedido ? "Necesito" : "Ofrezco"}
+        </Dato>
+        <Dato icono="clock">{abierto ? "Abierto" : "Pausado"}</Dato>
+        {p.franja_horaria && <Dato icono="clock">{p.franja_horaria}</Dato>}
+      </Datos>
 
-      <Descripcion />
+      <Hero />
+
+      <Tarjeta icono="solidaridad" titulo={esPedido ? "Qué necesita" : "Qué ofrece"}>
+        <p className="det-texto">{p.descripcion}</p>
+        {p.garante_nombre && <p className="det-linea"><Icon name="shield" /> Garante: {p.garante_nombre}</p>}
+      </Tarjeta>
+
+      <Proveedor />
+      <Ubicacion />
     </>
   );
 }

@@ -4,7 +4,6 @@ import { api } from "../lib/api";
 import { useZona } from "../context/Zona";
 import { Btn, Segmented, Select, Tarjeta, Empty } from "../components/ui";
 import Detalle from "../components/detalle";
-import PublicarNuevo from "../components/PublicarNuevo";
 import { Icon } from "../lib/icons";
 
 const TIPOS_FAVOR = [
@@ -23,8 +22,6 @@ export default function Favores() {
   const [q, setQ] = useState("");
   const [rapidos, setRapidos] = useState({ cerca: false, top: false });
   const [detalle, setDetalle] = useState(null);
-  const [publicar, setPublicar] = useState(false);
-  const [nuevoTipo, setNuevoTipo] = useState("favor_solicitado");
 
   const params = new URLSearchParams({ limit: "50", solo_favores: "true" });
   if (filtro) params.set("tipo", filtro);
@@ -45,7 +42,6 @@ export default function Favores() {
     return l;
   }, [data, q, rapidos]);
 
-  const abrirPublicar = (t) => { setNuevoTipo(t); setPublicar(true); };
 
   return (
     <section className="view on">
@@ -63,10 +59,6 @@ export default function Favores() {
       <div className="buscador buscador-solo">
         <Icon name="search" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar un favor…" aria-label="Buscar favores" />
-      </div>
-      <div className="toolbar-cta">
-        <Btn icon="plus" onClick={() => abrirPublicar("favor_solicitado")}>Necesito ayuda</Btn>
-        <Btn icon="heart" onClick={() => abrirPublicar("favor_ofrecido")}>Ofrezco ayuda</Btn>
       </div>
       </div>
 
@@ -105,7 +97,6 @@ export default function Favores() {
       </div>
 
       {detalle && <Detalle id={detalle} onClose={() => setDetalle(null)} />}
-      <PublicarNuevo open={publicar} inicial={nuevoTipo} onClose={() => setPublicar(false)} onPublicado={refetch} />
     </section>
   );
 }

@@ -5,7 +5,6 @@ import { useAuth } from "../context/Auth";
 import { useZona } from "../context/Zona";
 import { Icon } from "../lib/icons";
 import { Btn, Empty, useToast } from "../components/ui";
-import PublicarEmergencia from "../components/PublicarEmergencia";
 import Detalle from "../components/detalle";
 
 const SOS = [
@@ -25,7 +24,6 @@ export default function Emergencia() {
   const { data: dir } = useQuery({ queryKey: ["directorio"], queryFn: () => api.get("/api/emergencia/directorio") });
   const [necesidad, setNecesidad] = useState("");
   const [rapidos, setRapidos] = useState({ cerca: false, urg: false });
-  const [nuevo, setNuevo] = useState(null); // ofrezco | necesito
   const [detalle, setDetalle] = useState(null);
   const { data: recursos } = useQuery({
     queryKey: ["recursos", zona],
@@ -77,17 +75,12 @@ export default function Emergencia() {
         ))}
       </div>
 
-      <div className="em-publicar">
-        <Btn icon="box" onClick={() => setNuevo("ofrezco")}>Ofrecer un recurso</Btn>
-        <Btn variant="primary" icon="alert" className="btn-necesito" onClick={() => setNuevo("necesito")}>Necesito ayuda</Btn>
-      </div>
 
       <h2 className="sec">Recursos en {zona}</h2>
       {((recursos?.items?.length ? recursos.items : otros?.items) || []).length === 0 && (
         <div className="card vacio-em">
           <b>No hay recursos en tu sector todavía</b>
-          <p className="hint">Publica qué ofreces o qué necesitas y el barrio lo verá al instante.</p>
-          <Btn variant="primary" icon="box" onClick={() => setNuevo("ofrezco")}>Ofrecer un recurso</Btn>
+          <p className="hint">Toca el botón + de la barra para publicar lo que ofreces o necesitas.</p>
         </div>
       )}
 
@@ -143,9 +136,6 @@ export default function Emergencia() {
         {(!dir?.items || dir.items.length === 0) && <p className="hint">El directorio aún está vacío.</p>}
       </div>
 
-      <PublicarEmergencia open={Boolean(nuevo)} modo={nuevo || "ofrezco"}
-        onClose={() => setNuevo(null)}
-        onPublicado={() => qc.invalidateQueries({ queryKey: ["recursos"] })} />
       {detalle && <Detalle id={detalle} onClose={() => setDetalle(null)} />}
 
       <p className="nota">

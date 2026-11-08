@@ -66,16 +66,24 @@ for (const [i, caso] of CASOS.entries()) {
     await sleep(2400);
     const datos = await js(`(() => {
       const t = document.querySelector(".det2-titulo")?.textContent || "";
-      const hechos = [...document.querySelectorAll(".hechos>div")].map((d) => d.querySelector("span").textContent + ": " + d.querySelector("b").textContent.trim());
-      const cta = document.querySelector(".det2-cta");
-      const ctaTxt = cta ? [...cta.children].map((e) => e.textContent.trim()).join(" | ") : "sin fila 67/33";
+      const chips = [...document.querySelectorAll(".chip-dato")].map((c) => c.textContent.trim());
+      const cta = document.querySelector(".det-barra");
+      const ctaTxt = cta ? [...cta.children].map((e) => e.textContent.trim()).join(" | ") : "sin barra";
       const medidas = cta ? [...cta.children].map((e) => Math.round((e.getBoundingClientRect().width / cta.getBoundingClientRect().width) * 100)).join("/") : "";
       const caja = document.querySelector(".modalbox")?.getBoundingClientRect();
       const desborde = document.documentElement.scrollWidth - window.innerWidth;
-      return { titulo: t, hechos, ctaTxt, medidas, anchoCaja: Math.round(caja?.width || 0), desborde };
+      return { titulo: t, chips, ctaTxt, medidas, anchoCaja: Math.round(caja?.width || 0), desborde };
     })()`);
     const archivo = await foto(`${i + 1}-${caso.nombre}-${vp.k}`);
     console.log(JSON.stringify({ caso: caso.nombre, vista: vp.k, tarjeta: ok, archivo, ...datos }));
+    // segunda toma: la hoja ampliada a pantalla completa con el tirador
+    if (vp.k === "movil") {
+      await js(`document.querySelector(".sheet-grip")?.click(); true`);
+      await sleep(900);
+      const alta = await js(`document.querySelector(".modalbox")?.classList.contains("expandido") || false`);
+      const archivo2 = await foto(`${i + 1}-${caso.nombre}-completa`);
+      console.log(JSON.stringify({ caso: caso.nombre, vista: "completa", expandido: alta, archivo: archivo2 }));
+    }
     await js(`document.querySelector(".modalbox .close")?.click(); true`);
   }
 }

@@ -169,7 +169,12 @@ export function Empty({ icon = "search", titulo, texto, accion }) {
   );
 }
 
-export function Sheet({ open, onClose, titulo, children, ancho = 720 }) {
+export function Sheet({ open, onClose, titulo, children, ancho = 720, arrastrable = true }) {
+  const [alto, setAlto] = useState("media"); // media | full
+  const [dy, setDy] = useState(0);
+  const arr = useRef(null);
+
+  useEffect(() => { if (open) { setAlto("media"); setDy(0); } }, [open]);
   useEffect(() => {
     if (!open) return;
     const esc = (e) => e.key === "Escape" && onClose?.();
@@ -179,10 +184,33 @@ export function Sheet({ open, onClose, titulo, children, ancho = 720 }) {
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const soltar = () => {
+    const d = dy;
+    arr.current = null;
+    setDy(0);
+    if (Math.abs(d) < 6) return;                 // fue un toque: lo decide el onClick
+    if (d < -60) setAlto("full");
+    else if (d > 60) setAlto("media");
+  };
+
   return createPortal(
     <div className="modal" onClick={(e) => e.target.classList.contains("modal") && onClose?.()}>
-      <div className="modalbox" style={{ maxWidth: ancho }} role="dialog" aria-modal="true" aria-label={titulo}>
+      <div className={`modalbox ${alto === "full" ? "expandido" : ""}`}
+        style={{ maxWidth: ancho, transform: dy ? `translateY(${Math.max(0, dy)}px)` : undefined }}
+        role="dialog" aria-modal="true" aria-label={titulo}>
         <button type="button" className="close" aria-label="Cerrar" onClick={onClose}><Icon name="close" /></button>
+        {arrastrable && (
+          <button type="button" className="sheet-grip"
+            aria-label={alto === "full" ? "Reducir la ventana" : "Ampliar la ventana a pantalla completa"}
+            onPointerDown={(e) => { arr.current = { y: e.clientY }; e.currentTarget.setPointerCapture(e.pointerId); }}
+            onPointerMove={(e) => { if (arr.current) setDy(e.clientY - arr.current.y); }}
+            onPointerUp={soltar}
+            onPointerCancel={soltar}
+            onClick={() => setAlto(alto === "full" ? "media" : "full")}>
+            <span aria-hidden="true" />
+          </button>
+        )}
         {children}
       </div>
     </div>,

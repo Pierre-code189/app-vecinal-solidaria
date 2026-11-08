@@ -15,7 +15,7 @@ import { hace } from "../lib/format";
 
 const NAV = [
   { to: "/", icon: "store", label: "Economía Local", end: true, tour: "local" },
-  { to: "/favores", icon: "handshake", label: "Favores", tour: "favores" },
+  { to: "/favores", icon: "solidaridad", label: "Favores", tour: "favores" },
   { to: "/emergencia", icon: "alert", label: "Emergencia", tour: "emergencia" },
 ];
 
@@ -236,7 +236,10 @@ export function Shell({ children }) {
             <Icon name={n.icon} /><span>{i === 0 ? "Local" : n.label}</span>
           </NavLink>
         ))}
-        <button type="button" className="tab-publicar" aria-label="Publicar" onClick={() => setPubMenu(true)}>
+        <button type="button" aria-label="Publicar" onClick={() => setPubMenu(true)}
+          className={`tab-publicar ${loc.pathname === "/favores" ? "sec-favores"
+            : loc.pathname === "/emergencia" ? "sec-emergencia"
+            : loc.pathname === "/" ? "sec-local" : "sec-perfil"}`}>
           <Icon name="plus" size="1.5em" />
         </button>
         <NavLink to="/emergencia" end data-sec="emergencia" className={({ isActive }) => (isActive ? "on" : "")}>
@@ -320,7 +323,7 @@ export function Shell({ children }) {
         <div className="pub-opciones">
           {[
             { tipo: "servicio", ico: "store", tono: "verde", t: "Ofrecer un servicio o producto", d: "Lo que sabes hacer o lo que vendes" },
-            { tipo: "favor", ico: "handshake", tono: "azul", t: "Pedir u ofrecer ayuda", d: "Un favor entre vecinos, sin dinero" },
+            { tipo: "favor", ico: "solidaridad", tono: "azul", t: "Pedir u ofrecer ayuda", d: "Un favor entre vecinos, sin dinero" },
             { tipo: "emergencia", ico: "alert", tono: "rojo", t: "Aviso de emergencia", d: "Agua, comida, techo o traslado urgente" },
           ].map((o) => (
             <button key={o.tipo} type="button" className="pub-opcion"

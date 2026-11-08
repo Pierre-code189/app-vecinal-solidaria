@@ -11,7 +11,7 @@ function Ficha() {
   return <DetalleServicio />;
 }
 
-/* Punto de entrada del detalle: elige la ficha según el tipo de publicación. */
+/* Punto de entrada del panel de publicación. */
 export default function Detalle({ id, onClose }) {
   return (
     <DetalleBase id={id} onClose={onClose}>
