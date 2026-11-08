@@ -1048,3 +1048,22 @@ main{max-width:1240px;margin:0 auto;padding:24px 20px 60px}
   .entrada-cuerpo.solo-codigo{grid-template-columns:1fr;grid-template-areas:none}
   .solo-codigo .entrada-card{grid-area:auto}
 }
+
+/* accesibilidad extra */
+html.alto-contraste{--ink:#000;--text:#111;--muted:#333;--muted-2:#444;--line:#8d9a92;--line-strong:#5c6a62;
+  --bg:#fff;--surface:#fff;--surface-2:#fff;--surface-3:#eef2ef;--brand-600:#00501f;--brand-700:#003d18}
+html.alto-contraste .pub,html.alto-contraste .fila,html.alto-contraste .card{border-width:2px}
+html.alto-contraste a{text-decoration:underline}
+html.menos-movimiento *,html.menos-movimiento *::before,html.menos-movimiento *::after{
+  animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+/* filtros rápidos tipo chip */
+.chips-filtro{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:.84rem;cursor:pointer}
+.chip:hover{border-color:var(--brand-500);color:var(--brand-700)}
+.chip.on{background:var(--brand-600);border-color:var(--brand-600);color:#fff;font-weight:600}
+.chip.limpiar{border-style:dashed;color:var(--muted)}

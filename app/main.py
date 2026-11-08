@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.6.0"
+APP_VERSION = "4.7.0"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -214,6 +214,11 @@ class PagoIn(BaseModel):
     medio: Optional[str] = ""
 
 
+class RolIn(BaseModel):
+    telefono: str
+    rol: str  # vecino | moderador | admin
+
+
 class PerfilIn(BaseModel):
     nombre: Optional[str] = None
     zona: Optional[str] = None
@@ -363,8 +368,15 @@ def require_user(request: Request) -> dict:
 
 def require_moderador(request: Request) -> dict:
     user = require_user(request)
-    if user["rol"] != "moderador":
+    if user["rol"] not in {"moderador", "admin"}:
         raise HTTPException(403, "Solo el moderador puede hacer esto")
+    return user
+
+
+def require_admin(request: Request) -> dict:
+    user = require_user(request)
+    if user["rol"] != "admin":
+        raise HTTPException(403, "Solo el administrador puede hacer esto")
     return user
 
 
@@ -897,6 +909,8 @@ def listar(request: Request, tipo: Optional[str] = None, categoria: Optional[str
            q: Optional[str] = None, zona: Optional[str] = None, emergencia: bool = False,
            tipo_favor: Optional[str] = None, solo_recomendadas: bool = False,
            solo_favores: bool = False, orden: str = "cercania",
+           medios: Optional[str] = None, precio_max: Optional[float] = None,
+           necesidad: Optional[str] = None,
            lat: Optional[float] = None, lng: Optional[float] = None,
            limit: int = Query(20, ge=1, le=50), offset: int = Query(0, ge=0)):
     viewer = current_user(request)
@@ -924,6 +938,15 @@ def listar(request: Request, tipo: Optional[str] = None, categoria: Optional[str
                          tipo_favor=tipo_favor)
     if solo_favores:
         rows = [r for r in rows if str(r.get("tipo", "")).startswith("favor")]
+    if medios:
+        rows = [r for r in rows if medios.lower() in str(r.get("medios_pago") or "").lower()]
+    if precio_max is not None:
+        def _num(txt):
+            m = re.search(r"(\d+(?:[.,]\d+)?)", txt or "")
+            return float(m.group(1).replace(",", ".")) if m else None
+        rows = [r for r in rows if (_num(r.get("precio")) is not None and _num(r["precio"]) <= precio_max)]
+    if necesidad:
+        rows = [r for r in rows if r.get("necesidad") == necesidad]
     total = len(rows)
     if orden == "reciente":
         rows.sort(key=lambda r: r.get("creado") or 0, reverse=True)
@@ -2007,6 +2030,74 @@ def marcar_trato(tid: str, body: TratoEstadoIn, request: Request):
     con.close()
     return {"ok": True}
 
+
+
+# ------------------------------------------------------------ equipo y abuso
+@app.get("/api/admin/equipo")
+def equipo(request: Request):
+    require_admin(request)
+    con = connect()
+    filas = con.execute(
+        "SELECT id, nombre, telefono, rol, zona FROM usuarios WHERE rol!='vecino' ORDER BY rol, nombre"
+    ).fetchall()
+    con.close()
+    return {"items": [dict(f) for f in filas]}
+
+
+@app.post("/api/admin/rol")
+def cambiar_rol(body: RolIn, request: Request):
+    """Solo el administrador reparte roles. Queda registrado quién lo hizo."""
+    admin = require_admin(request)
+    if body.rol not in {"vecino", "moderador", "admin"}:
+        raise HTTPException(400, "Rol inválido")
+    con = connect()
+    u = con.execute("SELECT id, nombre, rol FROM usuarios WHERE telefono=?", (body.telefono,)).fetchone()
+    if not u:
+        con.close()
+        raise HTTPException(404, "No hay cuenta con ese teléfono")
+    if u["id"] == admin["id"] and body.rol != "admin":
+        con.close()
+        raise HTTPException(400, "No puedes quitarte el rol a ti mismo")
+    con.execute("UPDATE usuarios SET rol=? WHERE id=?", (body.rol, u["id"]))
+    log_evento(con, "cambio_rol", None, admin["id"], f"{u['nombre']} → {body.rol}")
+    notificar(con, u["id"], "rol", "Cambió tu rol",
+              f"Ahora eres {body.rol}. Cierra sesión y vuelve a entrar para verlo.", "/")
+    con.commit()
+    con.close()
+    return {"ok": True}
+
+
+@app.get("/api/admin/colusion")
+def colusion(request: Request):
+    """Señales de círculos cerrados: mismos pares repitiéndose y vistos concentrados."""
+    require_moderador(request)
+    con = connect()
+    pares = con.execute(
+        "SELECT t.comprador_id a, t.vendedor_id b, COUNT(*) n FROM tratos t"
+        " WHERE t.estado='cerrado' GROUP BY a,b HAVING n>=3 ORDER BY n DESC LIMIT 20"
+    ).fetchall()
+    nombres = {}
+    salida = []
+    for p in pares:
+        for uid in (p["a"], p["b"]):
+            if uid not in nombres:
+                r = con.execute("SELECT nombre FROM usuarios WHERE id=?", (uid,)).fetchone()
+                nombres[uid] = r["nombre"] if r else "—"
+        salida.append({"tipo": "tratos_repetidos", "a": nombres[p["a"]], "b": nombres[p["b"]],
+                       "veces": p["n"]})
+    concentrados = con.execute(
+        "SELECT v.usuario_id u, p.autor_id a, COUNT(*) n FROM vistos v"
+        " JOIN publicaciones p ON p.id=v.publicacion_id GROUP BY u,a HAVING n>=2 ORDER BY n DESC LIMIT 20"
+    ).fetchall()
+    for c in concentrados:
+        for uid in (c["u"], c["a"]):
+            if uid not in nombres:
+                r = con.execute("SELECT nombre FROM usuarios WHERE id=?", (uid,)).fetchone()
+                nombres[uid] = r["nombre"] if r else "—"
+        salida.append({"tipo": "vistos_concentrados", "a": nombres[c["u"]], "b": nombres[c["a"]],
+                       "veces": c["n"]})
+    con.close()
+    return {"items": salida, "nota": "Señales para revisar, no pruebas. Un moderador decide."}
 
 # ----------------------------------------------------------------- notificaciones
 @app.get("/api/notificaciones")

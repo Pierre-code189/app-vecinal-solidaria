@@ -47,8 +47,14 @@ export default function Favores() {
         { value: "favor_ofrecido", label: "Ofrezco" },
       ]} />
 
+      <div className="chips-filtro">
+        {TIPOS_FAVOR.map((o) => (
+          <button key={o.value} type="button" className={`chip ${subtipo === o.value ? "on" : ""}`}
+            onClick={() => setSubtipo(o.value)}>{o.label}</button>
+        ))}
+      </div>
+
       <div className="toolbar">
-        <Select ariaLabel="Tipo de favor" value={subtipo} onChange={setSubtipo} options={TIPOS_FAVOR} className="sel-toolbar" />
         <Btn icon="plus" onClick={() => abrirPublicar("favor_solicitado")}>Necesito ayuda</Btn>
         <Btn icon="heart" onClick={() => abrirPublicar("favor_ofrecido")}>Ofrezco ayuda</Btn>
       </div>

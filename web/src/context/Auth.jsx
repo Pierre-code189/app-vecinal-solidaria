@@ -53,7 +53,8 @@ export function AuthProvider({ children }) {
 
   const valor = useMemo(
     () => ({ usuario, cargando, entrar, registrar, entrarPin, registrarPin, salir, recargar: cargar,
-      esModerador: usuario?.rol === "moderador" }),
+      esModerador: usuario?.rol === "moderador" || usuario?.rol === "admin",
+      esAdmin: usuario?.rol === "admin" }),
     [usuario, cargando],
   );
 

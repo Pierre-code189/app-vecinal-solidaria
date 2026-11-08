@@ -628,3 +628,27 @@ cuántas se tocaron.
 
 **Entrada.** En web ahora es un panel con beneficios a la izquierda y el formulario a la
 derecha; menos vacío y más contexto. En móvil, igual que antes.
+
+
+## v4.7.0 — filtros útiles, accesibilidad, equipo y señales de abuso
+
+**Filtros que sirven.** Local suma chips «Acepta Yape», «Hasta S/ 20» y «Para emergencias»
+(el servidor filtra de verdad: 30 → 20 → 7 → 1). Favores cambia el desplegable por chips por
+tipo (préstamo, movilidad, donación, habilidades). Emergencia filtra recursos por necesidad
+(agua, comida, bidones, herramientas, movilidad, salud, techo).
+
+**Accesibilidad.** Además de la letra grande: **alto contraste** (paleta reforzada, bordes de
+2 px, enlaces subrayados) y **reducir movimiento** (apaga animaciones y transiciones).
+Se eligen desde el menú de la cuenta y se recuerdan. También se respeta
+`prefers-reduced-motion` del sistema.
+
+**Equipo y roles.** Existe rol **administrador** además de moderador. Solo el admin reparte
+roles por teléfono (`/api/admin/rol`), cada cambio queda en el registro y se avisa al afectado.
+`mod@app.local` quedó como administrador; `mod2@app.local` como moderador.
+
+**Señales de círculos cerrados.** `/api/admin/colusion` detecta dos patrones: pares que cierran
+tres o más tratos solo entre ellos, y personas que concentran sus vistos buenos en una misma
+cuenta. Aparecen en el panel con la evidencia y la nota de que son señales, no pruebas.
+
+**Limpieza.** Se borraron las cuentas de prueba de Pierre (4) y las automáticas de las corridas.
+Quedan las 7 cuentas demo.

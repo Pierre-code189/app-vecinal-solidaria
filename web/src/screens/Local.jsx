@@ -36,15 +36,19 @@ export default function Local() {
   const [detalle, setDetalle] = useState(null);
   const [publicar, setPublicar] = useState(false);
   const [escuchando, setEscuchando] = useState(false);
+  const [rapidos, setRapidos] = useState({ yape: false, barato: false, emerg: false });
 
   const params = new URLSearchParams({ limit: "30", orden });
   if (tipo) params.set("tipo", tipo);
   if (cat) params.set("categoria", cat);
   if (q) params.set("q", q);
+  if (rapidos.yape) params.set("medios", "yape");
+  if (rapidos.barato) params.set("precio_max", "20");
+  if (rapidos.emerg) params.set("emergencia", "true");
   if (ref[0]) { params.set("lat", ref[0]); params.set("lng", ref[1]); }
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["lista", tipo, cat, orden, q, ref[0], ref[1]],
+    queryKey: ["lista", tipo, cat, orden, q, ref[0], ref[1], rapidos.yape, rapidos.barato, rapidos.emerg],
     queryFn: () => api.get(`/api/publicaciones?${params}`),
   });
 
@@ -98,6 +102,27 @@ export default function Local() {
         <Select ariaLabel="Categoría" value={cat} onChange={setCat} className="sel-toolbar"
           options={CATS.map((c) => ({ value: c, label: c || "Todas" }))} />
         <Btn variant="primary" icon="plus" onClick={() => setPublicar(true)} className="btn-publicar" data-tour="publicar">Publicar</Btn>
+      </div>
+
+      <div className="chips-filtro">
+        <button type="button" className={`chip ${rapidos.yape ? "on" : ""}`}
+          onClick={() => setRapidos({ ...rapidos, yape: !rapidos.yape })}>
+          <Icon name="wallet" /> Acepta Yape
+        </button>
+        <button type="button" className={`chip ${rapidos.barato ? "on" : ""}`}
+          onClick={() => setRapidos({ ...rapidos, barato: !rapidos.barato })}>
+          Hasta S/ 20
+        </button>
+        <button type="button" className={`chip ${rapidos.emerg ? "on" : ""}`}
+          onClick={() => setRapidos({ ...rapidos, emerg: !rapidos.emerg })}>
+          <Icon name="alert" /> Para emergencias
+        </button>
+        {(rapidos.yape || rapidos.barato || rapidos.emerg) && (
+          <button type="button" className="chip limpiar"
+            onClick={() => setRapidos({ yape: false, barato: false, emerg: false })}>
+            Limpiar
+          </button>
+        )}
       </div>
 
       <div className="orden">

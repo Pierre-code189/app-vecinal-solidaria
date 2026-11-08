@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
@@ -21,6 +21,7 @@ export default function Emergencia() {
 
   const { data: tablero } = useQuery({ queryKey: ["emergencia"], queryFn: () => api.get("/api/emergencia"), refetchInterval: 60000 });
   const { data: dir } = useQuery({ queryKey: ["directorio"], queryFn: () => api.get("/api/emergencia/directorio") });
+  const [necesidad, setNecesidad] = useState("");
   const { data: recursos } = useQuery({
     queryKey: ["recursos", zona],
     queryFn: () => api.get(`/api/publicaciones?emergencia=true&limit=20&zona=${encodeURIComponent(zona)}`),
@@ -67,11 +68,19 @@ export default function Emergencia() {
       </div>
 
       <h2 className="sec">Recursos en {zona}</h2>
+      <div className="chips-filtro">
+        {[["", "Todo"], ["agua_potable", "Agua"], ["alimentos", "Comida"], ["balde_bidon", "Bidones"],
+          ["herramientas", "Herramientas"], ["movilidad", "Movilidad"], ["salud", "Salud"], ["techo", "Techo"]]
+          .map(([v, etiqueta]) => (
+            <button key={v} type="button" className={`chip ${necesidad === v ? "on" : ""}`}
+              onClick={() => setNecesidad(v)}>{etiqueta}</button>
+          ))}
+      </div>
       {(!recursos?.items || recursos.items.length === 0) && (
         <Empty icon="box" titulo="Aún no hay recursos marcados aquí" texto="Si tienes agua, bidones o víveres, publícalo y marca «también disponible en emergencias»." />
       )}
       <div className="grid">
-        {(recursos?.items || []).map((r) => (
+        {(recursos?.items || []).filter((r) => !necesidad || r.necesidad === necesidad).map((r) => (
           <article className="card recurso" key={r.id}>
             <div className="cat"><Icon name="box" />{r.categoria}</div>
             <h3>{r.titulo}</h3>

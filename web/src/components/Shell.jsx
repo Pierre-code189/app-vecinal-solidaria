@@ -24,6 +24,8 @@ export function Shell({ children }) {
   const [avisosOpen, setAvisosOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const [grande, setGrande] = useState(() => localStorage.getItem("vecinal-letra") === "grande");
+  const [contraste, setContraste] = useState(() => localStorage.getItem("vecinal-contraste") === "1");
+  const [menosMov, setMenosMov] = useState(() => localStorage.getItem("vecinal-movimiento") === "0");
   const nav = useNavigate();
   const loc = useLocation();
   const cuenta = useRef(null);
@@ -32,6 +34,16 @@ export function Shell({ children }) {
     document.documentElement.classList.toggle("letra-grande", grande);
     localStorage.setItem("vecinal-letra", grande ? "grande" : "normal");
   }, [grande]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("alto-contraste", contraste);
+    localStorage.setItem("vecinal-contraste", contraste ? "1" : "0");
+  }, [contraste]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("menos-movimiento", menosMov);
+    localStorage.setItem("vecinal-movimiento", menosMov ? "0" : "1");
+  }, [menosMov]);
 
   /* primer ingreso: recorrido guiado */
   useEffect(() => {
@@ -107,6 +119,12 @@ export function Shell({ children }) {
                 <hr />
                 <button type="button" role="menuitem" onClick={() => setGrande(!grande)}>
                   <Icon name="text" /> {grande ? "Letra normal" : "Letra grande"}
+                </button>
+                <button type="button" role="menuitem" onClick={() => setContraste(!contraste)}>
+                  <Icon name="eye" /> {contraste ? "Contraste normal" : "Alto contraste"}
+                </button>
+                <button type="button" role="menuitem" onClick={() => setMenosMov(!menosMov)}>
+                  <Icon name="clock" /> {menosMov ? "Animaciones normales" : "Reducir movimiento"}
                 </button>
                 <button type="button" role="menuitem" className="peligro" onClick={async () => { await salir(); nav("/"); }}>
                   <Icon name="logout" /> Cerrar sesión
