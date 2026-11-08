@@ -2,10 +2,14 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { Btn, Field, useToast } from "../components/ui";
+import { useAuth } from "../context/Auth";
+import { Icon } from "../lib/icons";
 
 export default function Recuperar() {
   const toast = useToast();
   const nav = useNavigate();
+  const { usuario } = useAuth();
+  const volver = () => nav(usuario ? "/perfil" : "/");
   const [paso, setPaso] = useState(1);
   const [ident, setIdent] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -31,12 +35,15 @@ export default function Recuperar() {
     try {
       await api.post("/api/password/confirmar", { identificador: ident, codigo, password: pass }, { queue: false });
       toast("Contraseña actualizada. Entra con la nueva.");
-      nav("/perfil");
+      nav(usuario ? "/perfil" : "/");
     } catch (err) { setError(err.message); }
   };
 
   return (
     <section className="view on">
+      <button type="button" className="volver" onClick={volver}>
+        <Icon name="back" /> {usuario ? "Volver a mi perfil" : "Volver a entrar"}
+      </button>
       <h1>Recuperar acceso
         <span className="sub">Te damos un código de 6 dígitos válido por 15 minutos</span>
       </h1>

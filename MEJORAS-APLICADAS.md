@@ -408,3 +408,10 @@ formulario de publicar y en la ventana de sector, en móvil y en escritorio.
 De paso: los sectores se cargan al abrir la app (antes solo con sesión, así que en la puerta
 solo aparecía «Piura Centro») y el campo ahora lleva su `id`, que faltaba para que la etiqueta
 lo enfocara.
+
+
+## v4.1.2 — salida de «Recuperar acceso»
+
+La pantalla de recuperación no tenía retorno: quien tocaba «Olvidé mi contraseña» quedaba
+atrapado. Ahora lleva arriba un botón **Volver a entrar** que regresa a la puerta (o al perfil
+si ya hay sesión), y sigue el «Atrás» entre los dos pasos del formulario.
