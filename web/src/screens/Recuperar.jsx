@@ -49,7 +49,6 @@ export default function Recuperar() {
         setRellenando(true);
         setTimeout(() => { setCodigo(r.codigo_demo); setRellenando(false); }, 3000);
       }
-      toast("Si el número tiene cuenta, el código ya se generó.");
     } catch (err) { setError(err.message); }
     finally { setEnviando(false); }
   };

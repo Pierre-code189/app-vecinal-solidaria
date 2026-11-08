@@ -62,7 +62,6 @@ export default function AuthGate() {
       const r = await api.post("/api/telefono/solicitar",
         { telefono: f.telefono, proposito: "registro" }, { queue: false });
       setCodigoDemo(r.codigo_demo || "");
-      toast("Código enviado al " + f.telefono);
       setEspera(45);
       clearInterval(timer.current);
       timer.current = setInterval(() => setEspera((s) => {

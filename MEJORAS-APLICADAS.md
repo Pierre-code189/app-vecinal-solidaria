@@ -496,3 +496,14 @@ casillas. En la demo, a los 3 segundos el código se rellena solo; se pulsa *Con
 cuenta* y recién ahí se crea la cuenta. Con SMS real, las casillas se llenan al escribir.
 
 La misma pantalla de seis casillas se usa en «Olvidé mi PIN».
+
+
+## v4.4.1 — la confirmación del código en escritorio
+
+En escritorio la pantalla heredaba la rejilla de dos columnas de la entrada (texto + tarjeta).
+Al ocultar la columna de texto, la tarjeta se metía en la columna estrecha de 246 px y las
+casillas quedaban diminutas. Ahora esa pantalla usa una sola columna de 520 px, centrada
+vertical y horizontalmente, con casillas de 64 × 62 px.
+
+También se quitó el aviso duplicado: ya no salen «Código enviado» y «Código recibido» juntos;
+queda solo el segundo.

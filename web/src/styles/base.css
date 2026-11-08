@@ -828,3 +828,17 @@ input.pin{letter-spacing:.42em;font-variant-numeric:tabular-nums;font-size:1.05r
 /* el paso del código ocupa la pantalla: sin intro ni tarjeta de ubicación */
 .entrada-cuerpo.solo-codigo{max-width:430px;align-content:start;padding-top:26px}
 .solo-codigo .entrada-intro,.solo-codigo .ubic-card,.solo-codigo .ubic-ok{display:none}
+
+/* el paso del código en escritorio: una sola columna, centrada y con casillas grandes */
+@media (min-width:900px){
+  .entrada-cuerpo.solo-codigo{max-width:520px;grid-template-columns:1fr;margin:0 auto;
+    padding-top:64px;gap:0;align-content:start}
+  .solo-codigo .entrada-card{padding:22px 22px 18px}
+  .solo-codigo .cod6{gap:9px}
+  .solo-codigo .cod6 input{height:62px;font-size:1.5rem;border-radius:13px}
+  .solo-codigo .codigo-titulo{font-size:1.3rem}
+}
+
+@media (min-width:900px){
+  .entrada-cuerpo.solo-codigo{min-height:calc(100vh - 54px);align-content:center;padding-top:0;padding-bottom:48px}
+}
