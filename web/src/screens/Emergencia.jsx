@@ -80,7 +80,7 @@ export default function Emergencia() {
             {r.contacto_visible && r.telefono ? (
               <>
                 <a className="btn small" href={`https://wa.me/51${r.telefono}`} target="_blank" rel="noopener noreferrer"><Icon name="whatsapp" />WhatsApp</a>
-                <a className="btn small" href={`sms:+51${r.telefono}?body=${encodeURIComponent("Necesito: " + r.titulo)}`}><Icon name="chat" />SMS sin internet</a>
+                <a className="btn small" href={`sms:+51${r.telefono}?body=${encodeURIComponent("Necesito: " + r.titulo)}`}><Icon name="chat" />Enviar SMS</a>
               </>
             ) : (
               <p className="hint"><Icon name="lock" /> Contacto visible solo con sesión.</p>

@@ -579,3 +579,52 @@ demás se cierran. Probado: categoría → orden → distancia, siempre un solo 
 veía un rompecabezas. Ahora cada mosaico se coloca en píxeles a su tamaño nativo de 256 px,
 centrado en la coordenada exacta del punto, con el alfiler justo en el centro. Se añadió un
 tercer proveedor de respaldo (`tile.openstreetmap.de`).
+
+
+## v4.6.0 — pulido de flujos, formularios y diseño
+
+**Flujo de la cotización, completo.** Antes la cotización llegaba y moría ahí. Ahora:
+cotización → el vendedor responde (puedo / con otro precio / no puedo) → conversación libre
+entre ambos (tabla `mensajes`, sin plantillas) → el comprador acepta y se abre el trato →
+el vendedor confirma → **cada parte marca el pago** (solo cuando ambos coinciden queda
+«pagado») → cada parte marca que se cumplió → al coincidir queda «cerrado» → recién ahí se
+puede dar el visto bueno.
+
+Con eso se cierra el agujero de «el comprador dice que pagó»: nadie puede cerrar solo, y el
+vendedor puede confirmar, negar o acordar por la conversación.
+
+**Vistos buenos con freno.** Solo se puede recomendar con un trato cerrado, uno por trato y
+máximo 5 al día por persona. El contador de tratos cerrados queda como señal de confianza
+además del número de vistos.
+
+**Formularios separados.** Publicar servicio, producto o favor tiene ahora cada uno sus campos
+(el favor ya no muestra precio ni medios de pago; el servicio no pide urgencia). El precio es
+numérico (`type=number`, prefijo S/), con casilla «A convenir». Las fotos se comprimen a 900 px
+y suben con mensajes de error claros.
+
+**Sector libre.** Si el barrio no está en la lista, se escribe el nombre y se comparte la
+ubicación; el servidor acepta zonas nuevas con coordenadas.
+
+**Detalle renovado.** Lo importante arriba (precio, pago, vistos, distancia), descripción
+recortada a tres líneas con «Ver más», datos de pago plegados y acciones fijas abajo.
+
+**Mapa.** El enlace abre **Google Maps**, no OpenStreetMap.
+
+**Reportar.** Se corrigió el 422 (el motivo no se enviaba si no se tocaba el selector), ahora
+son opciones visibles y el botón se habilita al elegir. Ya existía el límite de un reporte por
+persona y publicación.
+
+**Mi actividad.** Pestañas desplazables en web, botón «Volver a mi perfil», edición de
+publicaciones (título, descripción, precio, sector), conversación dentro de cotizaciones y
+tratos, y la pestaña «Contacto» pasó a **Privacidad**: muestra quién consultó el contacto y
+permite ocultar el número.
+
+**Avisos.** Icono en color de acento, lista con scroll si hay muchas, sin choque con la X, y
+cada aviso abre la sección que corresponde.
+
+**Perfil.** «Salir» en rojo. «Cambiar mi PIN» pide el PIN actual (nuevo endpoint
+`/api/perfil/pin`). Al cambiar Yape o Plin se actualizan las publicaciones activas y se avisa
+cuántas se tocaron.
+
+**Entrada.** En web ahora es un panel con beneficios a la izquierda y el formulario a la
+derecha; menos vacío y más contexto. En móvil, igual que antes.

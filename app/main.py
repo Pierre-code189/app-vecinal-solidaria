@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.5.4"
+APP_VERSION = "4.6.0"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -175,6 +175,8 @@ class RegistroPinIn(BaseModel):
     pin: str
     nombre: str = Field(min_length=2, max_length=80)
     zona: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
     yape: Optional[str] = ""
     plin: Optional[str] = ""
     acepta_privacidad: bool = True
@@ -189,6 +191,27 @@ class ResetPinIn(BaseModel):
     telefono: str
     codigo: str
     pin: str
+
+
+class PinPerfilIn(BaseModel):
+    pin_actual: str
+    pin_nuevo: str
+
+
+class MensajeIn(BaseModel):
+    contexto: str  # cotizacion | trato
+    ref_id: str
+    texto: str = Field(min_length=1, max_length=600)
+
+
+class AceptarCotizacionIn(BaseModel):
+    monto: Optional[str] = ""
+    nota: Optional[str] = ""
+    politica: Optional[str] = "contra_entrega"
+
+
+class PagoIn(BaseModel):
+    medio: Optional[str] = ""
 
 
 class PerfilIn(BaseModel):
@@ -674,8 +697,11 @@ def registro_pin(body: RegistroPinIn, request: Request):
         raise HTTPException(400, "El teléfono debe tener 9 dígitos y empezar por 9.")
     if not _pin_ok(body.pin):
         raise HTTPException(400, "El PIN debe tener exactamente 6 dígitos.")
-    if body.zona not in ZONAS:
-        raise HTTPException(400, "Elige un sector de la lista")
+    zona_nueva = (body.zona or "").strip()[:60]
+    if len(zona_nueva) < 2:
+        raise HTTPException(400, "Elige un sector o escribe el tuyo")
+    if zona_nueva not in ZONAS and (body.lat is None or body.lng is None):
+        raise HTTPException(400, "Si tu zona no está en la lista, comparte tu ubicación (GPS)")
     if not body.acepta_privacidad:
         raise HTTPException(400, "Debes aceptar el aviso de privacidad")
     for numero, nombre in ((body.yape, "Yape"), (body.plin, "Plin")):
@@ -693,12 +719,12 @@ def registro_pin(body: RegistroPinIn, request: Request):
     email_interno = f"{tel}@tel.vecinal"
     con.execute(
         "INSERT INTO usuarios(id,nombre,zona,telefono,email,pass,rol,yape,plin,creado,"
-        "telefono_verificado,acepta_privacidad,salt,pin_hash,pin_salt)"
-        " VALUES(?,?,?,?,?,?,'vecino',?,?,?,1,1,?,?,?)",
-        (uid, clean_txt(body.nombre, 80), body.zona, tel, email_interno,
+        "telefono_verificado,acepta_privacidad,salt,pin_hash,pin_salt,zona_lat,zona_lng)"
+        " VALUES(?,?,?,?,?,?,'vecino',?,?,?,1,1,?,?,?,?,?)",
+        (uid, clean_txt(body.nombre, 80), zona_nueva, tel, email_interno,
          hash_pw_salted(uuid.uuid4().hex, sal), (body.yape or "").strip() or None,
          (body.plin or "").strip() or None, int(time.time()), sal,
-         hash_pw_salted(body.pin, pin_sal), pin_sal))
+         hash_pw_salted(body.pin, pin_sal), pin_sal, body.lat, body.lng))
     con.commit()
     token = _crear_sesion(con, uid)
     fila = con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
@@ -781,10 +807,11 @@ def editar_perfil(body: PerfilIn, request: Request):
         campos.append("nombre=?")
         valores.append(clean_txt(body.nombre, 80))
     if body.zona:
-        if body.zona not in ZONAS:
+        z = (body.zona or "").strip()[:60]
+        if len(z) < 2:
             raise HTTPException(400, "Zona inválida")
         campos.append("zona=?")
-        valores.append(body.zona)
+        valores.append(z)
     if body.descripcion is not None:
         campos.append("descripcion=?")
         valores.append(clean_txt(body.descripcion, 500))
@@ -811,10 +838,42 @@ def editar_perfil(body: PerfilIn, request: Request):
     valores.append(user["id"])
     con = connect()
     con.execute(f"UPDATE usuarios SET {', '.join(campos)} WHERE id=?", valores)
+    # Si cambia su Yape o Plin, se actualizan las publicaciones activas:
+    # nadie debe pagar a un número viejo por un dato desactualizado.
+    tocados = 0
+    if body.yape is not None or body.plin is not None:
+        nuevo = con.execute("SELECT yape, plin FROM usuarios WHERE id=?", (user["id"],)).fetchone()
+        tocados = con.execute(
+            "UPDATE publicaciones SET yape_snapshot=?, plin_snapshot=? "
+            "WHERE autor_id=? AND deleted_at IS NULL AND estado='activa'",
+            (nuevo["yape"] or "", nuevo["plin"] or "", user["id"])).rowcount
     con.commit()
     row = con.execute("SELECT * FROM usuarios WHERE id=?", (user["id"],)).fetchone()
     con.close()
-    return public_user(dict(row))
+    salida = public_user(dict(row))
+    salida["publicaciones_actualizadas"] = tocados
+    return salida
+
+
+@app.post("/api/perfil/pin")
+def cambiar_pin_perfil(body: PinPerfilIn, request: Request):
+    """Cambiar el PIN desde la cuenta: exige el PIN actual."""
+    rate_limit(request, "/api/login")
+    user = require_user(request)
+    if not _pin_ok(body.pin_nuevo):
+        raise HTTPException(400, "El PIN nuevo debe tener 6 dígitos")
+    con = connect()
+    row = con.execute("SELECT * FROM usuarios WHERE id=?", (user["id"],)).fetchone()
+    sal = row["pin_salt"] or ""
+    if not sal or row["pin_hash"] != hash_pw_salted(body.pin_actual, sal):
+        con.close()
+        raise HTTPException(401, "El PIN actual no coincide")
+    nueva_sal = uuid.uuid4().hex[:16]
+    con.execute("UPDATE usuarios SET pin_hash=?, pin_salt=? WHERE id=?",
+                (hash_pw_salted(body.pin_nuevo, nueva_sal), nueva_sal, row["id"]))
+    con.commit()
+    con.close()
+    return {"ok": True, "mensaje": "PIN actualizado"}
 
 
 @app.get("/api/mis-publicaciones")
@@ -914,6 +973,20 @@ def detalle(pid: str, request: Request, lat: Optional[float] = None, lng: Option
             (str(uuid.uuid4()), pid, viewer["id"], int(time.time())),
         )
         con.commit()
+    # estado del trato entre quien mira y el autor (para saber qué botón mostrar)
+    pub["mi_trato"] = None
+    pub["mi_cotizacion"] = None
+    if viewer and viewer["id"] != row["autor_id"]:
+        tr = con.execute(
+            "SELECT * FROM tratos WHERE publicacion_id=? AND comprador_id=? "
+            "ORDER BY creado DESC LIMIT 1", (pid, viewer["id"])).fetchone()
+        if tr:
+            pub["mi_trato"] = dict(tr)
+        cot = con.execute(
+            "SELECT * FROM cotizaciones WHERE publicacion_id=? AND comprador_id=? "
+            "ORDER BY creado DESC LIMIT 1", (pid, viewer["id"])).fetchone()
+        if cot:
+            pub["mi_cotizacion"] = dict(cot)
     pub["vistos_detalle"] = [dict(r) for r in con.execute(
         "SELECT v.comentario, v.creado, u.nombre, u.zona FROM vistos v"
         " JOIN usuarios u ON u.id=v.usuario_id WHERE v.publicacion_id=?"
@@ -961,10 +1034,15 @@ def crear_publicacion(body: PublicacionIn, request: Request):
     if body.es_emergencia and body.necesidad and body.necesidad not in NECESIDADES_72H:
         raise HTTPException(400, "Tipo de necesidad inválido")
 
-    zona = body.zona if body.zona in ZONAS else user["zona"]
+    zona = (body.zona or "").strip()[:60] or user["zona"]
     lat, lng = body.lat, body.lng
     if lat is None or lng is None:
-        lat, lng = ZONA_CENTRO.get(zona, (None, None))
+        if zona in ZONA_CENTRO:
+            lat, lng = ZONA_CENTRO[zona]
+        elif user["zona"] == zona and user["zona_lat"] is not None:
+            lat, lng = user["zona_lat"], user["zona_lng"]
+        else:
+            raise HTTPException(400, "Si tu zona no está en la lista, comparte tu ubicación (GPS)")
     # El número de pago se copia a la publicación al crearla: si el vecino
     # cambia su Yape después, el historial no se reescribe.
     yape_pub = body.yape_snapshot if False else (user.get("yape") or "")
@@ -1120,11 +1198,23 @@ def dar_visto(body: VistoIn, request: Request):
         raise HTTPException(
             400, "Solo puedes recomendar un servicio que hayas cerrado con la otra persona. "
                  "Marca primero \"cerramos el trato\".")
+    # Freno al "visto bueno en manada": máximo 5 al día por persona.
+    hoy = con.execute("SELECT COUNT(*) c FROM vistos WHERE usuario_id=? AND creado>?",
+                      (user["id"], int(time.time()) - 86400)).fetchone()["c"]
+    if hoy >= 5:
+        con.close()
+        raise HTTPException(429, "Diste 5 vistos buenos hoy. Mañana podrás dar más.")
+    trato_id = ""
+    if trato:
+        fila = con.execute(
+            "SELECT id FROM tratos WHERE publicacion_id=? AND comprador_id=? AND estado='cerrado'"
+            " ORDER BY cerrado_en DESC LIMIT 1", (body.publicacion_id, user["id"])).fetchone()
+        trato_id = fila["id"] if fila else ""
     try:
         con.execute(
-            "INSERT INTO vistos(id,publicacion_id,usuario_id,comentario,creado) VALUES(?,?,?,?,?)",
+            "INSERT INTO vistos(id,publicacion_id,usuario_id,comentario,creado,trato_id) VALUES(?,?,?,?,?,?)",
             (str(uuid.uuid4()), body.publicacion_id, user["id"],
-             clean_txt(body.comentario, 300), int(time.time())),
+             clean_txt(body.comentario, 300), int(time.time()), trato_id),
         )
         con.commit()
     except Exception:
@@ -1310,6 +1400,10 @@ def crear_cotizacion(body: CotizacionIn, request: Request):
         (cid, body.publicacion_id, user["id"], clean_txt(body.descripcion, 500),
          clean_txt(body.medida, 100), body.urgencia or "normal", now, now + 7 * 86400),
     )
+    con.execute("INSERT INTO mensajes(id,contexto,ref_id,de_id,texto,creado) VALUES(?,?,?,?,?,?)",
+                (str(uuid.uuid4()), "cotizacion", cid, user["id"],
+                 f"{clean_txt(body.descripcion, 500)}"
+                 + (f" · {clean_txt(body.medida, 100)}" if body.medida else ""), now))
     log_evento(con, "cotizacion_enviada", body.publicacion_id, user["id"])
     pub_autor = con.execute("SELECT autor_id, titulo FROM publicaciones WHERE id=?",
                             (body.publicacion_id,)).fetchone()
@@ -1359,7 +1453,8 @@ def responder_cotizacion(cid: str, body: CotizacionRespIn, request: Request):
         con.close()
         raise HTTPException(400, "Esta cotización ya fue respondida")
     con.execute(
-        "UPDATE cotizaciones SET estado=?, precio_respuesta=?, nota_vendedor=? WHERE id=?",
+        "UPDATE cotizaciones SET estado='respondida', respuesta=?, precio_respuesta=?, nota_vendedor=?"
+        " WHERE id=?",
         (body.respuesta, clean_txt(body.precio_respuesta, 40), clean_txt(body.nota, 300), cid))
     log_evento(con, "cotizacion_respondida", cot["publicacion_id"], user["id"], body.respuesta)
     titulo_pub = con.execute("SELECT titulo FROM publicaciones WHERE id=?",
@@ -1369,6 +1464,204 @@ def responder_cotizacion(cid: str, body: CotizacionRespIn, request: Request):
               f"{user['nombre']}: {body.respuesta.replace('_', ' ')}"
               + (f" ({body.precio_respuesta})" if body.precio_respuesta else ""),
               "/?v=mias")
+    con.commit()
+    con.close()
+    return {"ok": True}
+
+
+
+# ------------------------------------------- conversación y cierre del trato
+def _participantes(con, contexto: str, ref_id: str):
+    """Devuelve (publicacion_id, comprador_id, vendedor_id) o None."""
+    if contexto == "cotizacion":
+        r = con.execute(
+            "SELECT c.publicacion_id, c.comprador_id, p.autor_id FROM cotizaciones c"
+            " JOIN publicaciones p ON p.id=c.publicacion_id WHERE c.id=?", (ref_id,)).fetchone()
+        return (r["publicacion_id"], r["comprador_id"], r["autor_id"]) if r else None
+    if contexto == "trato":
+        r = con.execute(
+            "SELECT publicacion_id, comprador_id, vendedor_id FROM tratos WHERE id=?", (ref_id,)).fetchone()
+        return (r["publicacion_id"], r["comprador_id"], r["vendedor_id"]) if r else None
+    return None
+
+
+@app.get("/api/mensajes")
+def leer_mensajes(contexto: str, ref: str, request: Request):
+    """Conversación de una cotización o de un trato. Solo sus dos participantes."""
+    user = require_user(request)
+    con = connect()
+    partes = _participantes(con, contexto, ref)
+    if not partes:
+        con.close()
+        raise HTTPException(404, "Conversación no encontrada")
+    if user["id"] not in (partes[1], partes[2]):
+        con.close()
+        raise HTTPException(403, "No participas en esta conversación")
+    filas = con.execute(
+        "SELECT m.*, u.nombre AS de_nombre FROM mensajes m JOIN usuarios u ON u.id=m.de_id"
+        " WHERE m.contexto=? AND m.ref_id=? ORDER BY m.creado ASC", (contexto, ref)).fetchall()
+    con.execute("UPDATE mensajes SET leido=1 WHERE contexto=? AND ref_id=? AND de_id!=?",
+                (contexto, ref, user["id"]))
+    con.commit()
+    con.close()
+    return {"items": [dict(f) for f in filas], "yo": user["id"]}
+
+
+@app.post("/api/mensajes")
+def enviar_mensaje(body: MensajeIn, request: Request):
+    rate_limit(request, "/api/cotizaciones")
+    user = require_user(request)
+    if body.contexto not in {"cotizacion", "trato"}:
+        raise HTTPException(400, "Contexto inválido")
+    texto = clean_txt(body.texto, 600)
+    if len(texto) < 1:
+        raise HTTPException(400, "Escribe un mensaje")
+    con = connect()
+    partes = _participantes(con, body.contexto, body.ref_id)
+    if not partes:
+        con.close()
+        raise HTTPException(404, "Conversación no encontrada")
+    if user["id"] not in (partes[1], partes[2]):
+        con.close()
+        raise HTTPException(403, "No participas en esta conversación")
+    con.execute("INSERT INTO mensajes(id,contexto,ref_id,de_id,texto,creado) VALUES(?,?,?,?,?,?)",
+                (str(uuid.uuid4()), body.contexto, body.ref_id, user["id"], texto, int(time.time())))
+    otro = partes[2] if user["id"] == partes[1] else partes[1]
+    notificar(con, otro, "mensaje", "Nuevo mensaje", f"{user['nombre']}: {texto[:90]}",
+              "/?v=mias&tab=cotiz")
+    con.commit()
+    con.close()
+    return {"ok": True}
+
+
+@app.post("/api/cotizaciones/{cid}/aceptar")
+def aceptar_cotizacion(cid: str, body: AceptarCotizacionIn, request: Request):
+    """Quien pidió la cotización acepta el precio y abre el trato."""
+    user = require_user(request)
+    if body.politica not in POLITICAS_PAGO:
+        raise HTTPException(400, "Acuerdo de pago inválido")
+    con = connect()
+    cot = con.execute(
+        "SELECT c.*, p.autor_id, p.titulo FROM cotizaciones c"
+        " JOIN publicaciones p ON p.id=c.publicacion_id WHERE c.id=?", (cid,)).fetchone()
+    if not cot:
+        con.close()
+        raise HTTPException(404, "Cotización no encontrada")
+    if cot["comprador_id"] != user["id"]:
+        con.close()
+        raise HTTPException(403, "Solo quien pidió la cotización puede aceptarla")
+    if cot["estado"] not in {"respondida", "puedo", "precio", "no_puedo"}:
+        con.close()
+        raise HTTPException(400, "La cotización todavía no tiene respuesta")
+    if (cot["respuesta"] or cot["estado"]) == "no_puedo":
+        con.close()
+        raise HTTPException(400, "El vecino indicó que no puede. Busca otra opción.")
+    if cot["trato_id"]:
+        con.close()
+        raise HTTPException(400, "Esta cotización ya tiene un trato")
+    tid = str(uuid.uuid4())
+    ahora = int(time.time())
+    con.execute(
+        "INSERT INTO tratos(id,publicacion_id,comprador_id,vendedor_id,estado,monto,nota,"
+        "creado,actualizado,cotizacion_id) VALUES(?,?,?,?,'pendiente',?,?,?,?,?)",
+        (tid, cot["publicacion_id"], user["id"], cot["autor_id"],
+         clean_txt(body.monto, 40), clean_txt(body.nota, 200), ahora, ahora, cid))
+    con.execute("UPDATE cotizaciones SET estado='aceptada', trato_id=? WHERE id=?", (tid, cid))
+    notificar(con, cot["autor_id"], "trato", "Aceptaron tu cotización",
+              f"{user['nombre']} acepta y abre el trato de «{cot['titulo']}». Confírmalo tú.",
+              "/?v=mias&tab=tratos")
+    con.commit()
+    con.close()
+    return {"ok": True, "trato_id": tid}
+
+
+@app.post("/api/tratos/{tid}/confirmar")
+def confirmar_trato(tid: str, request: Request):
+    """El vendedor confirma que acepta el trato y el monto."""
+    user = require_user(request)
+    con = connect()
+    tr = con.execute("SELECT * FROM tratos WHERE id=?", (tid,)).fetchone()
+    if not tr:
+        con.close()
+        raise HTTPException(404, "Trato no encontrado")
+    if user["id"] != tr["vendedor_id"]:
+        con.close()
+        raise HTTPException(403, "Solo quien ofrece el servicio confirma el trato")
+    if tr["estado"] != "pendiente":
+        con.close()
+        raise HTTPException(400, "Este trato ya fue confirmado")
+    con.execute("UPDATE tratos SET estado='acordado', confirmado=1, actualizado=? WHERE id=?",
+                (int(time.time()), tid))
+    notificar(con, tr["comprador_id"], "trato", "Trato confirmado",
+              f"{user['nombre']} confirmó el trato. Coordinen el pago y el servicio.",
+              "/?v=mias&tab=tratos")
+    con.commit()
+    con.close()
+    return {"ok": True}
+
+
+@app.post("/api/tratos/{tid}/pago")
+def marcar_pago(tid: str, body: PagoIn, request: Request):
+    """Cada parte marca que pagó o recibió el pago. Al coincidir queda pagado."""
+    user = require_user(request)
+    con = connect()
+    tr = con.execute("SELECT * FROM tratos WHERE id=?", (tid,)).fetchone()
+    if not tr:
+        con.close()
+        raise HTTPException(404, "Trato no encontrado")
+    if user["id"] not in (tr["comprador_id"], tr["vendedor_id"]):
+        con.close()
+        raise HTTPException(403, "No participas en este trato")
+    if tr["estado"] not in {"acordado", "pagado"}:
+        con.close()
+        raise HTTPException(400, "Primero hay que confirmar el trato")
+    campo = "pago_comprador" if user["id"] == tr["comprador_id"] else "pago_vendedor"
+    con.execute(f"UPDATE tratos SET {campo}=1, actualizado=? WHERE id=?", (int(time.time()), tid))
+    nuevo = con.execute("SELECT * FROM tratos WHERE id=?", (tid,)).fetchone()
+    if nuevo["pago_comprador"] and nuevo["pago_vendedor"]:
+        con.execute("UPDATE tratos SET estado='pagado' WHERE id=?", (tid,))
+        for quien in (tr["comprador_id"], tr["vendedor_id"]):
+            notificar(con, quien, "trato", "Pago confirmado por ambos",
+                      "Ya pueden marcar el servicio como cumplido.", "/?v=mias&tab=tratos")
+    else:
+        otro = tr["vendedor_id"] if user["id"] == tr["comprador_id"] else tr["comprador_id"]
+        notificar(con, otro, "trato", "Pago marcado",
+                  f"{user['nombre']} marcó el pago. Confírmalo tú también.",
+                  "/?v=mias&tab=tratos")
+    con.commit()
+    con.close()
+    return {"ok": True}
+
+
+@app.post("/api/tratos/{tid}/cerrar")
+def cerrar_trato(tid: str, request: Request):
+    """Cada parte marca que el servicio se cumplió. Al coincidir queda cerrado."""
+    user = require_user(request)
+    con = connect()
+    tr = con.execute("SELECT * FROM tratos WHERE id=?", (tid,)).fetchone()
+    if not tr:
+        con.close()
+        raise HTTPException(404, "Trato no encontrado")
+    if user["id"] not in (tr["comprador_id"], tr["vendedor_id"]):
+        con.close()
+        raise HTTPException(403, "No participas en este trato")
+    if tr["estado"] not in {"pagado", "acordado"}:
+        con.close()
+        raise HTTPException(400, "El trato ya está cerrado o cancelado")
+    campo = "marca_comprador" if user["id"] == tr["comprador_id"] else "marca_vendedor"
+    con.execute(f"UPDATE tratos SET {campo}=1, actualizado=? WHERE id=?", (int(time.time()), tid))
+    nuevo = con.execute("SELECT * FROM tratos WHERE id=?", (tid,)).fetchone()
+    if nuevo["marca_comprador"] and nuevo["marca_vendedor"]:
+        con.execute("UPDATE tratos SET estado='cerrado', cerrado_en=? WHERE id=?",
+                    (int(time.time()), tid))
+        for quien in (tr["comprador_id"], tr["vendedor_id"]):
+            notificar(con, quien, "trato_cerrado", "Trato cerrado",
+                      "Ya pueden dejar su visto bueno.", "/?v=mias&tab=tratos")
+    else:
+        otro = tr["vendedor_id"] if user["id"] == tr["comprador_id"] else tr["comprador_id"]
+        notificar(con, otro, "trato", "Falta tu confirmación",
+                  f"{user['nombre']} marcó el servicio como cumplido. Confírmalo tú.",
+                  "/?v=mias&tab=tratos")
     con.commit()
     con.close()
     return {"ok": True}

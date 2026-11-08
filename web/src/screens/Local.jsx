@@ -5,8 +5,8 @@ import { useZona } from "../context/Zona";
 import { useAuth } from "../context/Auth";
 import { Icon } from "../lib/icons";
 import { Btn, Segmented, Select, Tarjeta, Empty, useToast } from "../components/ui";
-import { Detalle } from "../components/Detalle";
-import { Publicar } from "../components/Publicar";
+import DetallePub from "../components/DetallePub";
+import PublicarNuevo from "../components/PublicarNuevo";
 
 const CATS = ["", "gasfitería", "carpintería", "electricidad", "cerrajería", "clases", "alimentos",
   "paseo de mascotas", "herramientas", "movilidad", "préstamo", "otros"];
@@ -82,9 +82,9 @@ export default function Local() {
       </h1>
 
       <Segmented value={tipo} onChange={setTipo} options={[
+        { value: "", label: "Todo" },
         { value: "servicio", label: "Servicios" },
         { value: "producto", label: "Productos" },
-        { value: "", label: "Todo" },
       ]} />
 
       <div className="toolbar">
@@ -123,8 +123,8 @@ export default function Local() {
         ))}
       </div>
 
-      {detalle && <Detalle id={detalle} onClose={() => setDetalle(null)} />}
-      <Publicar open={publicar} inicial="servicio" onClose={() => setPublicar(false)} onPublicado={refetch} />
+      {detalle && <DetallePub id={detalle} onClose={() => setDetalle(null)} />}
+      <PublicarNuevo open={publicar} inicial="servicio" onClose={() => setPublicar(false)} onPublicado={refetch} />
 
       {usuario && <button type="button" className="fab" aria-label="Publicar" onClick={() => setPublicar(true)}><Icon name="plus" size="1.6em" /></button>}
     </section>

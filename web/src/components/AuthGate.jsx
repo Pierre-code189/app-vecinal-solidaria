@@ -24,6 +24,7 @@ export default function AuthGate() {
   const [espera, setEspera] = useState(0);
   const [ubic, setUbic] = useState(() => localStorage.getItem("vecinal-ubicacion") || "pendiente");
   const [ubicCargando, setUbicCargando] = useState(false);
+  const [otroSector, setOtroSector] = useState(false);
   const timer = useRef(null);
 
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -34,6 +35,9 @@ export default function AuthGate() {
       const z = await usarGPS();
       if (!z) throw new Error("No pudimos ubicarte en un sector. Elígelo a mano.");
       set("zona", z);
+      const la = parseFloat(localStorage.getItem("vecinal-lat") || "");
+      const ln = parseFloat(localStorage.getItem("vecinal-lng") || "");
+      if (!isNaN(la) && !isNaN(ln)) { set("lat", la); set("lng", ln); }
       setUbic("detectado");
       localStorage.setItem("vecinal-ubicacion", "detectado");
       if (!silencioso) toast(`Estás cerca de ${z}`);
@@ -145,6 +149,14 @@ export default function AuthGate() {
             Entras con tu teléfono y un PIN de 6 dígitos, para que sepas con quién tratas y
             para que tu número solo lo vean vecinos reales.
           </p>
+          <ul className="beneficios">
+            <li><span className="ben-ico"><Icon name="pin" /></span>
+              <div><b>Primero lo de tu sector</b><p>Servicios y productos ordenados por cercanía real.</p></div></li>
+            <li><span className="ben-ico"><Icon name="heart" /></span>
+              <div><b>Favores sin dinero</b><p>Préstamos, movilidad y ayuda entre vecinos, con garante.</p></div></li>
+            <li><span className="ben-ico"><Icon name="alert" /></span>
+              <div><b>Emergencias a mano</b><p>105, 116, 115 y 106, y lo que el barrio ofrece.</p></div></li>
+          </ul>
           <p className="entrada-nota">
             <Icon name="lock" /> Nadie sin cuenta puede ver teléfonos, Yape ni ubicaciones.
             Tu sector se muestra solo de forma aproximada.
@@ -230,9 +242,23 @@ export default function AuthGate() {
                   <input id="g-nombre" autoComplete="name" value={f.nombre || ""} onChange={(e) => set("nombre", e.target.value)} />
                 </Field>
                 <Field label="Sector donde vives" id="g-zona">
-                  <Select id="g-zona" ariaLabel="Sector" value={f.zona} onChange={(v) => set("zona", v)}
-                    options={(zonas.length ? zonas : [{ nombre: "Piura Centro" }]).map((z) => ({ value: z.nombre, label: z.nombre }))} />
+                  <Select id="g-zona" ariaLabel="Sector" value={f.zona} onChange={(v) => {
+                    if (v === "OTRO") { setOtroSector(true); set("zona", ""); }
+                    else { setOtroSector(false); set("zona", v); set("lat", null); set("lng", null); }
+                  }}
+                    options={[...(zonas.length ? zonas : [{ nombre: "Piura Centro" }]).map((z) => ({ value: z.nombre, label: z.nombre })),
+                              { value: "OTRO", label: "Mi sector no está en la lista" }]} />
                 </Field>
+                {otroSector && (
+                  <div className="sector-libre">
+                    <Field label="Escribe tu sector" id="g-sector-libre">
+                      <input id="g-sector-libre" maxLength={60} value={f.zona || ""}
+                        onChange={(e) => set("zona", e.target.value)} placeholder="Ej.: Urb. San Ramón, Piura" />
+                    </Field>
+                    <Btn size="small" icon="pin" onClick={() => detectar()}>Usar mi ubicación</Btn>
+                    <p className="hint">Guardamos el nombre del sector, no tu dirección exacta.</p>
+                  </div>
+                )}
               </>
             )}
 

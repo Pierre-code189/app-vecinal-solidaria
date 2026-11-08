@@ -956,3 +956,95 @@ main{max-width:1240px;margin:0 auto;padding:24px 20px 60px}
 .minimapa .tiles{position:absolute;inset:0;display:block}
 .minimapa .tiles img{position:absolute;width:256px;height:256px;max-width:none;object-fit:fill;
   filter:saturate(.95)}
+
+/* ---------- detalle renovado ---------- */
+.det2{display:grid;gap:8px}
+.det2-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.det2-titulo{font-size:1.32rem;line-height:1.25;margin:2px 0 2px;color:var(--ink)}
+.det2-autor{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted);flex-wrap:wrap}
+.det2-dist{display:inline-flex;gap:4px;align-items:center;color:var(--brand-700);font-weight:600}
+.hechos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0}
+.hechos>div{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;display:grid;gap:2px}
+.hechos span{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.hechos b{font-size:.95rem;display:flex;align-items:center;gap:4px}
+.det2-desc{margin:2px 0;color:var(--text);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.det2-desc.abierta{-webkit-line-clamp:unset;display:block}
+.det2-pago{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 12px}
+.det2-pago summary{display:flex;gap:8px;align-items:center;padding:11px 0;cursor:pointer;font-weight:600;font-size:.9rem;color:var(--brand-800);list-style:none}
+.det2-pago summary::-webkit-details-marker{display:none}
+.det2-pago summary::after{content:"›";margin-left:auto;transform:rotate(90deg);color:var(--muted)}
+.det2-pago[open] summary::after{transform:rotate(-90deg)}
+.det2-pago-cuerpo{padding-bottom:10px}
+.det2-bloque{border-top:1px solid var(--line);margin-top:8px;padding-top:12px;display:grid;gap:8px}
+.det2-bloque h3{font-size:.96rem;display:flex;gap:6px;align-items:center;margin:0}
+.det2-acciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;position:sticky;bottom:0;
+  background:linear-gradient(180deg,rgba(255,255,255,0),#fff 45%);padding:10px 0 4px}
+.det2-reportar{font-size:.8rem;color:var(--muted);margin-top:2px}
+.det2-mio{text-align:center;padding:8px 0}
+.radios{display:grid;gap:6px}
+.radio{display:flex;gap:9px;align-items:center;padding:10px 11px;border:1px solid var(--line);
+  border-radius:10px;font-size:.88rem;cursor:pointer;background:var(--surface)}
+.radio.on{border-color:var(--brand-600);background:var(--brand-50);font-weight:600}
+.radio input{accent-color:var(--brand-600);width:16px;height:16px}
+
+/* ---------- conversación ---------- */
+.chat{display:grid;gap:8px}
+.chat-lista{max-height:250px;overflow:auto;display:grid;gap:6px;padding:2px}
+.burbuja{max-width:84%;padding:8px 11px;border-radius:12px;font-size:.88rem;line-height:1.42}
+.burbuja p{margin:0;white-space:pre-wrap;word-break:break-word}
+.burbuja time{display:block;font-size:.67rem;color:var(--muted);margin-top:3px}
+.burbuja.mia{margin-left:auto;background:var(--brand-600);color:#fff;border-bottom-right-radius:4px}
+.burbuja.mia time{color:rgba(255,255,255,.78)}
+.burbuja.suya{background:var(--surface-3);color:var(--text);border-bottom-left-radius:4px}
+.burbuja-autor{display:block;font-size:.68rem;font-weight:700;color:var(--brand-700);margin-bottom:2px}
+.chat-form{display:flex;gap:8px}
+.chat-form input{flex:1;min-width:0}
+
+/* actividad: edición, chat y pasos del trato */
+.fila-edit{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:grid;gap:8px}
+.fila-chat{margin-top:10px;padding:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+.fila-msg{margin:4px 0;font-size:.86rem;color:var(--text)}
+.fila-ok{display:flex;gap:6px;align-items:center;color:var(--brand-700)}
+.pasos-trato{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.pasos-trato span{font-size:.72rem;padding:4px 9px;border-radius:999px;background:var(--surface-3);color:var(--muted)}
+.pasos-trato span.hecho{background:var(--brand-50);color:var(--brand-700);font-weight:600}
+
+/* precio con prefijo y sector libre */
+.precio-fila{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.precio-fila .prefijo{font-weight:700;color:var(--muted)}
+.precio-fila input[type=number]{flex:1 1 120px;min-width:0}
+.check.inline{display:inline-flex;gap:6px;align-items:center;font-size:.86rem;white-space:nowrap}
+.sector-libre{display:grid;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:10px;background:var(--surface-2)}
+.sector-libre .btn{justify-self:start}
+
+/* entrada: panel de beneficios (da vida a la columna izquierda) */
+.beneficios{list-style:none;display:grid;gap:12px;margin:18px 0 4px;padding:0}
+.beneficios li{display:flex;gap:11px;align-items:flex-start}
+.ben-ico{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--surface);color:var(--brand-700);border:1px solid var(--brand-100);box-shadow:var(--sombra)}
+.beneficios b{font-size:.94rem;color:var(--ink)}
+.beneficios p{margin:2px 0 0;font-size:.85rem;color:var(--muted);line-height:1.45}
+@media (min-width:900px){
+  .entrada-cuerpo{grid-template-columns:1fr 430px;gap:40px;padding:44px 28px 56px;align-items:start}
+  .entrada-intro{background:var(--brand-50);border:1px solid var(--brand-100);border-radius:18px;padding:26px 24px}
+  .entrada-intro h1{font-size:2rem;margin-top:0}
+}
+
+/* avisos: lista con scroll y sin choque con la X */
+.avisos-lista{max-height:56vh;overflow:auto;margin:6px -4px 0;padding:0 4px}
+.avisos-lista .aviso{display:block;width:100%;text-align:left;border:0;background:transparent;cursor:pointer;
+  padding:11px 4px;border-bottom:1px solid var(--line)}
+.avisos-lista .aviso:hover{background:var(--surface-2)}
+.avisos-lista .aviso.nueva{background:var(--brand-50)}
+.campana{color:var(--brand-fixed)}
+
+/* escritorio: beneficios + ubicación a la izquierda, formulario a la derecha */
+@media (min-width:900px){
+  .entrada-cuerpo{grid-template-columns:1fr 430px;
+    grid-template-areas:"intro form" "ubic form";align-items:start;align-content:start}
+  .entrada-intro{grid-area:intro}
+  .entrada-card{grid-area:form}
+  .ubic-card,.ubic-ok{grid-area:ubic}
+  .entrada-cuerpo.solo-codigo{grid-template-columns:1fr;grid-template-areas:none}
+  .solo-codigo .entrada-card{grid-area:auto}
+}

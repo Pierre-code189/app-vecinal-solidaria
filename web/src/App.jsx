@@ -13,7 +13,7 @@ import { sincronizarCola } from "./lib/api";
 import Local from "./screens/Local";
 import Favores from "./screens/Favores";
 import Emergencia from "./screens/Emergencia";
-import Actividad from "./screens/Actividad";
+import MiActividad from "./screens/MiActividad";
 import Perfil from "./screens/Perfil";
 import Tutorial from "./screens/Tutorial";
 import Moderacion from "./screens/Moderacion";
@@ -86,7 +86,7 @@ function Contenido() {
         <Route path="/" element={<Local />} />
         <Route path="/favores" element={<Favores />} />
         <Route path="/emergencia" element={<Emergencia />} />
-        <Route path="/actividad" element={<Actividad />} />
+        <Route path="/actividad" element={<MiActividad />} />
         <Route path="/perfil" element={<Perfil />} />
         <Route path="/tutorial" element={<Tutorial />} />
         <Route path="/recuperar" element={<Recuperar />} />

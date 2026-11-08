@@ -5,7 +5,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import { useZona } from "../context/Zona";
 import { Icon } from "../lib/icons";
-import { Btn, Field, Select, Avatar, useToast, Segmented } from "../components/ui";
+import { Btn, Field, Select, Avatar, useToast, Segmented, Sheet } from "../components/ui";
 
 export default function Perfil() {
   const { usuario, entrar, registrar, salir, recargar } = useAuth();
@@ -18,6 +18,9 @@ export default function Perfil() {
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   const [editando, setEditando] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pin, setPin] = useState({ actual: "", nuevo: "" });
+  const [pinError, setPinError] = useState("");
 
   const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: () => api.get("/api/salud"), enabled: Boolean(usuario) });
 
@@ -107,18 +110,44 @@ export default function Perfil() {
   const guardar = async (e) => {
     e.preventDefault();
     try {
-      await api.put("/api/perfil", {
+      const r = await api.put("/api/perfil", {
         nombre: f.nombre ?? usuario.nombre, telefono: f.telefono ?? usuario.telefono,
         zona: f.zona ?? usuario.zona, yape: f.yape ?? usuario.yape, plin: f.plin ?? usuario.plin,
       });
       await recargar();
-      toast("Datos guardados"); setEditando(false);
+      const n = r?.publicaciones_actualizadas || 0;
+      toast(n ? `Datos guardados. Actualizamos ${n} publicación(es) activa(s).` : "Datos guardados");
+      setEditando(false);
     } catch (err) { toast(err.message, "err"); }
   };
 
   return (
     <section className="view on">
       <h1>Mi perfil</h1>
+
+      <Sheet open={pinOpen} onClose={() => { setPinOpen(false); setPinError(""); setPin({ actual: "", nuevo: "" }); }}
+        titulo="Cambiar mi PIN" ancho={400}>
+        <h2 className="sheet-title"><Icon name="lock" /> Cambiar mi PIN</h2>
+        <p className="hint">Por seguridad pedimos tu PIN actual. Si lo olvidaste, sal y usa «Olvidé mi PIN» con un código al teléfono.</p>
+        <Field label="PIN actual" id="pin-actual">
+          <input id="pin-actual" type="password" inputMode="numeric" maxLength={6} className="pin"
+            value={pin.actual} onChange={(e) => setPin({ ...pin, actual: e.target.value.replace(/\D/g, "") })} />
+        </Field>
+        <Field label="PIN nuevo (6 dígitos)" id="pin-nuevo">
+          <input id="pin-nuevo" type="password" inputMode="numeric" maxLength={6} className="pin"
+            value={pin.nuevo} onChange={(e) => setPin({ ...pin, nuevo: e.target.value.replace(/\D/g, "") })} />
+        </Field>
+        {pinError && <p className="error">{pinError}</p>}
+        <Btn variant="primary" className="wide" icon="check"
+          disabled={pin.actual.length !== 6 || pin.nuevo.length !== 6}
+          onClick={async () => {
+            setPinError("");
+            try {
+              await api.post("/api/perfil/pin", { pin_actual: pin.actual, pin_nuevo: pin.nuevo });
+              toast("PIN actualizado"); setPinOpen(false); setPin({ actual: "", nuevo: "" });
+            } catch (e) { setPinError(e.message); }
+          }}>Guardar PIN</Btn>
+      </Sheet>
       <div className="perfil-card">
         <Avatar nombre={usuario.nombre} cls="grande" />
         <div>
@@ -145,8 +174,8 @@ export default function Perfil() {
           <div className="pubs-actions">
             <Btn icon="user" onClick={() => { setEditando(true); setF({}); }}>Editar mis datos</Btn>
             <Btn icon="clipboard" onClick={() => nav("/actividad")}>Mi actividad</Btn>
-            <Btn icon="lock" onClick={() => nav("/recuperar")}>Cambiar mi PIN</Btn>
-            <Btn icon="logout" onClick={async () => { await salir(); toast("Sesión cerrada"); nav("/"); }}>Salir</Btn>
+            <Btn icon="lock" onClick={() => setPinOpen(true)}>Cambiar mi PIN</Btn>
+            <Btn variant="danger" icon="logout" onClick={async () => { await salir(); toast("Sesión cerrada"); nav("/"); }}>Salir</Btn>
           </div>
         </>
       ) : (
@@ -161,7 +190,8 @@ export default function Perfil() {
             <Field label="Yape" id="p-yape"><input id="p-yape" maxLength={9} defaultValue={usuario.yape || ""} onChange={(e) => set("yape", e.target.value.replace(/\D/g, ""))} /></Field>
             <Field label="Plin" id="p-plin"><input id="p-plin" maxLength={9} defaultValue={usuario.plin || ""} onChange={(e) => set("plin", e.target.value.replace(/\D/g, ""))} /></Field>
           </div>
-          <p className="hint">Cambiar tu Yape o Plin aquí <b>no</b> reescribe tus publicaciones anteriores: cada una conserva el número con el que se creó.</p>
+          <p className="hint">Al guardar, tu Yape y Plin se actualizan también en tus publicaciones activas,
+            para que nadie pague a un número viejo. Los tratos ya cerrados conservan el original.</p>
           <div className="pubs-actions">
             <Btn onClick={() => setEditando(false)}>Cancelar</Btn>
             <Btn type="submit" variant="primary" icon="check">Guardar</Btn>

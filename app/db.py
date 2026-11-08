@@ -49,6 +49,10 @@ CREATE TABLE IF NOT EXISTS codigos_telefono(
     telefono TEXT PRIMARY KEY, codigo TEXT NOT NULL, proposito TEXT NOT NULL,
     expira INTEGER NOT NULL, intentos INTEGER DEFAULT 0, creado INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS mensajes(
+    id TEXT PRIMARY KEY, contexto TEXT NOT NULL, ref_id TEXT NOT NULL,
+    de_id TEXT NOT NULL, texto TEXT NOT NULL, creado INTEGER NOT NULL, leido INTEGER DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS sesiones(
     token TEXT PRIMARY KEY, usuario_id TEXT NOT NULL,
     creado INTEGER NOT NULL, expira INTEGER NOT NULL,
@@ -160,6 +164,19 @@ CREATE INDEX IF NOT EXISTS ix_accesos_pub ON accesos_contacto(publicacion_id, cr
 
 # Columnas añadidas después de la primera versión (migración aditiva)
 MIGRATIONS = {
+    "tratos": {
+        "pago_comprador": "INTEGER DEFAULT 0",
+        "pago_vendedor": "INTEGER DEFAULT 0",
+        "confirmado": "INTEGER DEFAULT 0",
+        "cotizacion_id": "TEXT DEFAULT ''",
+    },
+    "cotizaciones": {
+        "trato_id": "TEXT DEFAULT ''",
+        "respuesta": "TEXT DEFAULT ''",
+    },
+    "vistos": {
+        "trato_id": "TEXT DEFAULT ''",
+    },
     "usuarios": {
         "descripcion": "TEXT DEFAULT ''",
         "oficios": "TEXT DEFAULT ''",
@@ -174,6 +191,8 @@ MIGRATIONS = {
         "bloqueado_hasta": "INTEGER",
         "pin_hash": "TEXT DEFAULT ''",
         "pin_salt": "TEXT DEFAULT ''",
+        "zona_lat": "REAL",
+        "zona_lng": "REAL",
     },
     "publicaciones": {
         "subtipo_favor": "TEXT",

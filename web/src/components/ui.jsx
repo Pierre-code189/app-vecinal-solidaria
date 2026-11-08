@@ -240,7 +240,8 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
             {dist
               ? <span className="dist"><Icon name="pin" />{dist}</span>
               : p.distancia_km != null
-                ? <span className="dist"><Icon name="pin" />{`a ${p.distancia_km < 1 ? Math.round(p.distancia_km * 1000) + " m" : p.distancia_km.toFixed(1).replace(".", ",") + " km"}`}</span>
+                ? <span className="dist"><Icon name="pin" />{p.distancia_km < 0.05 ? "en tu sector"
+                    : `a ${p.distancia_km < 1 ? Math.round(p.distancia_km * 1000) + " m" : p.distancia_km.toFixed(1).replace(".", ",") + " km"}`}</span>
                 : null}
             <span className="visto" title={nv ? `${nv} vistos buenos` : "Sin visto bueno"}><Icon name="thumb" />{nv}</span>
           </div>
@@ -323,8 +324,8 @@ export function MiniMapa({ lat, lng, nombre }) {
       </div>
       <p className="hint">
         Ubicación aproximada (±400 m). El punto exacto se coordina por WhatsApp.{" "}
-        <a href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`}
-          target="_blank" rel="noopener noreferrer">Ver el sector en el mapa</a>.
+        <a href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+          target="_blank" rel="noopener noreferrer">Abrir en Google Maps</a>.
       </p>
     </>
   );

@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useZona } from "../context/Zona";
 import { Btn, Segmented, Select, Tarjeta, Empty } from "../components/ui";
-import { Detalle } from "../components/Detalle";
-import { Publicar } from "../components/Publicar";
+import DetallePub from "../components/DetallePub";
+import PublicarNuevo from "../components/PublicarNuevo";
 
 const TIPOS_FAVOR = [
   { value: "", label: "Todos los tipos" },
@@ -64,8 +64,8 @@ export default function Favores() {
         ))}
       </div>
 
-      {detalle && <Detalle id={detalle} onClose={() => setDetalle(null)} />}
-      <Publicar open={publicar} inicial={nuevoTipo} onClose={() => setPublicar(false)} onPublicado={refetch} />
+      {detalle && <DetallePub id={detalle} onClose={() => setDetalle(null)} />}
+      <PublicarNuevo open={publicar} inicial={nuevoTipo} onClose={() => setPublicar(false)} onPublicado={refetch} />
     </section>
   );
 }

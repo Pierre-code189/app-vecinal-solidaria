@@ -147,20 +147,27 @@ export function Shell({ children }) {
 
       {/* ---- avisos ---- */}
       <Sheet open={avisosOpen} onClose={() => setAvisosOpen(false)} titulo="Avisos" ancho={420}>
-        <div className="sheet-head">
-          <h2 className="sheet-title"><Icon name="bell" /> Avisos</h2>
-          <Btn size="small" onClick={marcarLeidos}>Marcar leídos</Btn>
+        <h2 className="sheet-title"><Icon name="bell" /> Avisos</h2>
+        {(avisos?.items || []).length === 0 && <p className="hint">Sin avisos por ahora. Aquí llegan las respuestas a tus cotizaciones y los tratos.</p>}
+        <div className="avisos-lista">
+          {(avisos?.items || []).map((n) => (
+            <button key={n.id} type="button" className={`aviso ${n.leida ? "" : "nueva"}`}
+              onClick={() => {
+                marcarLeidos();
+                setAvisosOpen(false);
+                const e = n.enlace || "";
+                if (e.includes("tab=cotiz") || e.includes("mias")) nav("/actividad");
+                else if (e.includes("emergencia")) nav("/emergencia");
+                else nav("/");
+              }}>
+              <strong>{n.titulo}</strong>
+              <p>{n.cuerpo}</p>
+              <small>{hace(n.creado)}</small>
+            </button>
+          ))}
         </div>
-        {(avisos?.items || []).length === 0 && <p className="hint">Sin avisos.</p>}
-        {(avisos?.items || []).map((n) => (
-          <div key={n.id} className={`aviso ${n.leida ? "" : "nueva"}`}>
-            <strong>{n.titulo}</strong>
-            <p>{n.cuerpo}</p>
-            <small>{hace(n.creado)}</small>
-          </div>
-        ))}
         <div className="pubs-actions">
-          <Btn className="wide" onClick={() => { marcarLeidos(); setAvisosOpen(false); }}>Cerrar</Btn>
+          <Btn className="wide" onClick={marcarLeidos}>Marcar todos como leídos</Btn>
         </div>
       </Sheet>
     </>
