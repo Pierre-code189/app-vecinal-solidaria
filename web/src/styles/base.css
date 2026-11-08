@@ -951,3 +951,8 @@ main{max-width:1240px;margin:0 auto;padding:24px 20px 60px}
 .tour-card{display:flex;flex-direction:column}
 .tour-acciones{margin-top:auto}
 @media (min-width:760px){.tour-card{min-height:206px}}
+
+/* mapas: mosaicos nativos de 256 px, alineados por píxel (antes se deformaban) */
+.minimapa .tiles{position:absolute;inset:0;display:block}
+.minimapa .tiles img{position:absolute;width:256px;height:256px;max-width:none;object-fit:fill;
+  filter:saturate(.95)}

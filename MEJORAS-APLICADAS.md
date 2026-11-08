@@ -565,3 +565,17 @@ solapamientos con lo resaltado y el botón «Siguiente» siempre a la misma altu
 
 Para que no se confunda con el elemento resaltado —los dos son blancos— la tarjeta lleva filo
 verde arriba y el foco un anillo más marcado.
+
+
+## v4.5.4 — un solo desplegable y el mapa alineado
+
+**Selectores.** El botón del selector detenía la propagación del clic (`stopPropagation`), así que
+al abrir un segundo desplegable el primero no se enteraba y quedaban dos paneles superpuestos.
+Ahora el clic se propaga, cada selector avisa por un evento propio (`vecinal:select-open`) y los
+demás se cierran. Probado: categoría → orden → distancia, siempre un solo panel abierto.
+
+**Mapa.** Los nueve mosaicos se metían en una rejilla de celdas rectangulares (120 × 77 px) con
+`object-fit: cover`, así que cada mosaico se recortaba distinto y las calles no empalmaban: se
+veía un rompecabezas. Ahora cada mosaico se coloca en píxeles a su tamaño nativo de 256 px,
+centrado en la coordenada exacta del punto, con el alfiler justo en el centro. Se añadió un
+tercer proveedor de respaldo (`tile.openstreetmap.de`).

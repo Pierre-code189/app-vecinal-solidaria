@@ -42,6 +42,7 @@ export function Select({ id, value, onChange, options, ariaLabel, className = ""
   const [pos, setPos] = useState({});
   const btn = useRef(null);
   const panel = useRef(null);
+  const idRef = useRef(`sel-${Math.random().toString(36).slice(2)}`);
 
   const actual = options.find((o) => String(o.value) === String(value)) || options[0];
 
@@ -72,7 +73,17 @@ export function Select({ id, value, onChange, options, ariaLabel, className = ""
     if (abrir) setAbierto(true);
   };
 
-  const abrir = () => colocar(true);
+  const abrir = () => {
+    colocar(true);
+    // avisa a los demás selectores para que se cierren
+    document.dispatchEvent(new CustomEvent("vecinal:select-open", { detail: idRef.current }));
+  };
+
+  useEffect(() => {
+    const alAbrirOtro = (e) => { if (e.detail !== idRef.current) setAbierto(false); };
+    document.addEventListener("vecinal:select-open", alAbrirOtro);
+    return () => document.removeEventListener("vecinal:select-open", alAbrirOtro);
+  }, []);
 
   useEffect(() => {
     if (!abierto) return;
@@ -106,7 +117,7 @@ export function Select({ id, value, onChange, options, ariaLabel, className = ""
     <div className={`sel ${className}`}>
       <button ref={btn} id={id} type="button" className="sel-btn" aria-haspopup="listbox"
         aria-expanded={abierto} aria-label={`${ariaLabel || "Opción"}: ${actual?.label || ""}`}
-        onClick={(e) => { e.stopPropagation(); abierto ? setAbierto(false) : abrir(); }}>
+        onClick={() => { abierto ? setAbierto(false) : abrir(); }}>
         <span className="sel-txt">{actual?.label}</span>
         <Icon name="chevron" className="sel-chev" />
       </button>
@@ -247,35 +258,63 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
 }
 
 /* ---------------------------------------------------------------- mapa */
+const TILE = 256;
+
 export function MiniMapa({ lat, lng, nombre }) {
+  const caja = useRef(null);
+  const [dim, setDim] = useState({ w: 360, h: 230 });
+
+  useEffect(() => {
+    const el = caja.current;
+    if (!el) return;
+    const medir = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0) setDim({ w: r.width, h: r.height });
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, [lat, lng]);
+
+  /* Mosaico 3×3 de mosaicos de 256 px, colocados por píxel: el punto queda
+     justo en el centro y las calles siguen de un mosaico al siguiente. */
   const celdas = useMemo(() => {
-    const n = 2 ** 16;
     if (lat == null || lng == null) return [];
-    const xt = Math.floor(((lng + 180) / 360) * n);
-    const yt = Math.floor(((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * n);
+    const z = 16;
+    const n = 2 ** z;
+    const xf = ((lng + 180) / 360) * n;
+    const yf = ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * n;
+    const xt = Math.floor(xf), yt = Math.floor(yf);
+    const fx = xf - xt, fy = yf - yt;
     const out = [];
     for (let dx = -1; dx <= 1; dx++) {
       for (let dy = -1; dy <= 1; dy++) {
         const x = ((xt + dx) % n + n) % n;
-        out.push({ x, y: yt + dy, sub: "abc"[(xt + yt) % 3] });
+        const y = yt + dy;
+        out.push({
+          key: `${x}-${y}`, x, y, z, sub: "abc"[(xt + yt) % 3],
+          left: Math.round(dim.w / 2 - fx * TILE + dx * TILE),
+          top: Math.round(dim.h / 2 - fy * TILE + dy * TILE),
+        });
       }
     }
     return out;
-  }, [lat, lng]);
+  }, [lat, lng, dim]);
 
   if (!celdas.length) return null;
   return (
     <>
-      <div className="minimapa" role="img" aria-label={`Ubicación aproximada de ${nombre || "la publicación"}`}>
+      <div className="minimapa" ref={caja} role="img" aria-label={`Ubicación aproximada de ${nombre || "la publicación"}`}>
         <div className="tiles">
           {celdas.map((c) => (
-            <img key={`${c.x}-${c.y}`} alt="" loading="lazy"
-              src={`https://${c.sub}.tile.openstreetmap.fr/osmfr/16/${c.x}/${c.y}.png`}
+            <img key={c.key} alt="" loading="lazy" width={TILE} height={TILE}
+              style={{ left: c.left, top: c.top }}
+              src={`https://${c.sub}.tile.openstreetmap.fr/osmfr/${c.z}/${c.x}/${c.y}.png`}
               onError={(e) => {
                 const img = e.currentTarget;
-                if (img.dataset.alt) { img.style.visibility = "hidden"; return; }
-                img.dataset.alt = "1";
-                img.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/16/${c.y}/${c.x}`;
+                if (img.dataset.paso === "2") { img.style.visibility = "hidden"; return; }
+                img.dataset.paso = "2";
+                img.src = `https://tile.openstreetmap.de/${c.z}/${c.x}/${c.y}.png`;
               }} />
           ))}
         </div>
