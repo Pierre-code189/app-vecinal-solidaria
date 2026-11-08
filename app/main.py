@@ -16,6 +16,7 @@ import json
 import math
 import re
 import secrets
+import gc
 import time
 import uuid
 from pathlib import Path
@@ -28,7 +29,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.19.2"
+APP_VERSION = "4.20.0"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -99,6 +100,17 @@ app = FastAPI(
     description="Directorio vecinal, favores solidarios y tablero de emergencia.",
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+# Una petición que falla a mitad de una escritura puede dejar su conexión con
+# la transacción abierta y bloquear la base para el resto. Al cerrar con error
+# se fuerza la recolección: la conexión huérfana se finaliza y suelta el bloqueo.
+@app.middleware("http")
+async def _soltar_bloqueos(request, call_next):
+    respuesta = await call_next(request)
+    if respuesta.status_code >= 400:
+        gc.collect()
+    return respuesta
 
 MIGRATIONS_APPLIED = init_db()
 
@@ -1723,6 +1735,15 @@ def confirmar_trato(tid: str, request: Request):
     if tr["estado"] != "pendiente":
         con.close()
         raise HTTPException(400, "Este trato ya fue confirmado")
+    # Un cobro sin confirmar frena los tratos nuevos del vendedor.
+    pendiente = con.execute(
+        "SELECT id FROM tratos WHERE vendedor_id=? AND id!=? AND pago_comprador=1"
+        " AND pago_vendedor=0 AND estado IN ('acordado','pagado') LIMIT 1",
+        (user["id"], tid)).fetchone()
+    if pendiente:
+        con.close()
+        raise HTTPException(
+            400, "Antes de seguir, confirma si te abonaron el trato anterior.")
     con.execute("UPDATE tratos SET estado='acordado', confirmado=1, actualizado=? WHERE id=?",
                 (int(time.time()), tid))
     notificar(con, tr["comprador_id"], "trato", "Trato confirmado",

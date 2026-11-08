@@ -6,6 +6,7 @@ import { Icon } from "../lib/icons";
 import { Avatar, Badge, Empty } from "../components/ui";
 import Conversacion from "../components/Conversacion";
 import HiloAcciones from "../components/HiloAcciones";
+import AvisoCobro from "../components/AvisoCobro";
 import { hace, etiqueta } from "../lib/format";
 
 /* Bandeja de la vista web: lista de conversaciones a la izquierda y el hilo a la derecha. */
@@ -35,6 +36,7 @@ export default function Mensajes() {
 
       <div className={`msj ${activo ? "con-hilo" : ""}`}>
         <aside className="msj-lista">
+          <AvisoCobro onIr={(h) => nav(`/mensajes/${h.contexto}/${h.ref_id}`)} />
           {isLoading && <div className="skeleton tall" />}
           {!isLoading && items.length === 0 && (
             <Empty icon="chat" titulo="Sin conversaciones"

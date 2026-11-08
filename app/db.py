@@ -20,7 +20,8 @@ def connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
     con.row_factory = sqlite3.Row
-    con.execute("PRAGMA journal_mode=WAL")
+    # WAL ya está en el archivo: volver a pedirlo en cada conexión toma un
+    # bloqueo exclusivo y con varias peticiones a la vez deja la base "locked".
     con.execute("PRAGMA busy_timeout=30000")
     con.execute("PRAGMA foreign_keys=ON")
     return con

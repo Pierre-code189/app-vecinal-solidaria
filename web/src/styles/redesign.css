@@ -276,7 +276,10 @@ h1,h2,.hero h1,.det2-titulo,.sheet-title{font-family:Georgia,"Times New Roman",s
 .grid{width:100%;margin:0;padding:0;gap:12px}
 .pub{width:100%;max-width:100%;min-width:0;margin:0;box-sizing:border-box}
 main{padding-left:16px;padding-right:16px;box-sizing:border-box}
-.toolbar select,.toolbar .sel,.toolbar .sel-toolbar,.toolbar .sel-btn,.orden select,.orden .sel,.orden .sel-btn,.orden-ctl{display:none!important}
+.toolbar select,.toolbar .sel,.toolbar .sel-toolbar,.toolbar .sel-btn{display:none!important}
+/* En móvil los filtros se reducen a los dos chips; el orden queda en escritorio. */
+@media (max-width:719px){ .orden-ctl{display:none!important} }
+.orden .sel{min-width:150px}
 @media (max-width:719px){ .topbar .cuenta{display:none} }
 .dos-filtros{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .dos-filtros .chip{justify-content:center;height:38px;width:100%}
@@ -680,3 +683,9 @@ body.chat-abierto .fab-msg{background:var(--brand-600);color:#fff}
 /* El chat cubre también la barra inferior: solo queda el borde de la pantalla */
 .chatflotante{bottom:8px}
 @media(max-width:719px){.chatflotante{bottom:8px}}
+
+/* Aviso de cobro pendiente (vendedor) */
+.aviso-cobro{display:flex;align-items:center;gap:8px;margin:8px 6px 4px;padding:9px 10px;
+  background:#fff6e8;border:1px solid #f2ddb4;border-radius:10px;font-size:.78rem;color:#7a5200}
+.aviso-cobro span{flex:1;min-width:0;line-height:1.35}
+.aviso-cobro b{color:#5f4000}

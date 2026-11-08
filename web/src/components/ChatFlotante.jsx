@@ -5,6 +5,7 @@ import { Icon } from "../lib/icons";
 import { Avatar, Badge, Empty } from "./ui";
 import Conversacion from "./Conversacion";
 import HiloAcciones from "./HiloAcciones";
+import AvisoCobro from "./AvisoCobro";
 import { hace, etiqueta } from "../lib/format";
 
 /*
@@ -48,6 +49,8 @@ export default function ChatFlotante({ abierto, onCerrar, inicial = null }) {
       </header>
 
       {!activo && (
+        <>
+        <AvisoCobro onIr={setHilo} />
         <div className="chatflotante-lista">
           {items.length === 0 && (
             <Empty icon="chat" titulo="Sin conversaciones"
@@ -66,6 +69,7 @@ export default function ChatFlotante({ abierto, onCerrar, inicial = null }) {
             </button>
           ))}
         </div>
+        </>
       )}
 
       {activo && (
