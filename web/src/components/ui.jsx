@@ -225,7 +225,10 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
       aria-label={`Ver detalle de ${p.titulo}`}
       onClick={() => onOpen(p)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen(p)}>
       <div className="pub-top">
-        {foto && <img className="thumb" src={foto} alt="" loading="lazy" />}
+        {foto
+          ? <img className="thumb" src={foto} alt="" loading="lazy" />
+          : <span className={`cover cat-${(p.categoria || "otros").replace(/[^a-z]/g, "")}`} aria-hidden="true">
+              <Icon name={cat} size="2.05em" /></span>}
         <div className="pub-info">
           <div className="catrow">
             <span className="cat"><Icon name={cat} />{cap(p.categoria)}</span>
@@ -246,7 +249,7 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
               <Icon name="thumb" />{nv ? `${nv} visto${nv === 1 ? "" : "s"}` : "Nuevo"}
             </span>
           </div>
-          <div className="precio">{p.precio || "A convenir"}</div>
+          <div className={`precio ${String(p.precio || "").length > 14 ? "largo" : ""}`}>{p.precio || "A convenir"}</div>
           {p.stock === 0 && <span className="badge agotado-badge">Agotado</span>}
           <div className="badges">
             {String(p.medios_pago || "").split(",").filter(Boolean).map((m) => (

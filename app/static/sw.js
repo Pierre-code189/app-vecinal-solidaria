@@ -2,7 +2,7 @@
    Navegación: red primero, con la copia guardada si no hay señal.
    Archivos con hash: caché primero (nunca cambian).
    Mosaicos del mapa: se guardan para que el mapa siga visible sin datos. */
-const CACHE = "vecinal-react-v1";
+const CACHE = "vecinal-react-v2";
 const TILES = "vecinal-react-mosaicos";
 
 self.addEventListener("install", (event) => {

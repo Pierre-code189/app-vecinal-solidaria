@@ -153,6 +153,17 @@ export function Shell({ children }) {
 
       <main>{children}</main>
 
+      <nav className="tabbar" aria-label="Secciones principales">
+        {NAV.map((n) => (
+          <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => (isActive ? "on" : "")}>
+            <Icon name={n.icon} /><span>{n.label === "Economía Local" ? "Local" : n.label}</span>
+          </NavLink>
+        ))}
+        <NavLink to="/perfil" className={({ isActive }) => (isActive ? "on" : "")}>
+          <Icon name="user" /><span>{usuario ? "Mi cuenta" : "Entrar"}</span>
+        </NavLink>
+      </nav>
+
       {/* ---- sector ---- */}
       <Sheet open={locOpen} onClose={() => setLocOpen(false)} titulo="Elegir sector" ancho={440}>
         <h2 className="sheet-title"><Icon name="pin" /> ¿En qué sector estás?</h2>

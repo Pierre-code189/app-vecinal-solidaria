@@ -736,3 +736,18 @@ El detalle separa dos orígenes con una fila de acciones 67 / 33:
 Backend: `publicaciones.origen` (nativo | scraping), `url_origen`, `fuente` y
 `telefono_externo` (este último solo se entrega con sesión, igual que el resto de contactos).
 Dos ejemplos cargados: una de Facebook y una de Instagram.
+
+## v4.10.0 — rediseño de interfaz (primera pasada)
+
+Base: patrones de Material 3 y guías móviles (barra inferior de 3–5 destinos con icono y
+etiqueta, acciones en zona del pulgar, tarjetas para contenido comparable).
+
+- Tokens nuevos: escala de espaciado (4–48), radios (10/14/20), tres sombras, anillo de foco.
+- Cabecera con degradado, marca en cápsula y navegación en píldoras con estado activo claro.
+- **Barra inferior en móvil** (Local · Favores · Emergencia · Mi cuenta) con safe-area; en
+  escritorio se oculta y queda la navegación superior.
+- Tarjetas: elevación al pasar, precio jerárquico (con variante para textos largos), portada
+  con color por categoría cuando no hay foto, etiquetas de pago legibles.
+- Chips y segmentados con estados hover/activo coherentes; estados vacíos con icono y borde
+  punteado; animación de entrada breve y desactivada con «reducir movimiento».
+- `sw.js` a `vecinal-react-v2` para no servir el shell anterior.
