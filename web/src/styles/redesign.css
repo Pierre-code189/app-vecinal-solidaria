@@ -486,3 +486,39 @@ main{padding-left:16px;padding-right:16px;box-sizing:border-box}
 .pub-pie .visto.si{font-size:.8rem}
 @media (max-width:719px){.pub-foto{aspect-ratio:16/10}.pub-foto.sin-foto{height:112px}}
 .pub-pie .visto.nuevo{color:var(--muted);font-weight:500}
+
+/* ---------- Barra inferior v4.15: color por sección + botón central ---------- */
+.tabbar a{color:var(--muted)}
+.tabbar a svg{stroke:currentColor}
+.tabbar a[data-sec="local"].on{color:#0f7a3d;background:#eaf5ee}
+.tabbar a[data-sec="favores"].on{color:#1d4f8c;background:#e9f1fb}
+.tabbar a[data-sec="emergencia"].on{color:#b3261e;background:#fdecea}
+.tabbar a[data-sec="perfil"].on{color:var(--ink);background:var(--surface-2)}
+.tab-publicar{flex:0 0 auto;width:52px;height:52px;margin:-20px 4px 0;border-radius:50%;
+  background:var(--brand-600);color:#fff;border:0;display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 8px 18px rgba(14,61,33,.3);transition:transform .12s var(--ease),background .15s}
+.tab-publicar:hover{background:var(--brand-700)}
+.tab-publicar:active{transform:translateY(1px)}
+.tab-publicar svg{stroke:currentColor}
+
+/* Publicar desde la cabecera (escritorio; la barra inferior no existe allí) */
+.publicar-top{display:none}
+@media (min-width:720px){
+  .publicar-top{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px}
+}
+
+/* Hoja «¿Qué quieres publicar?» */
+.pub-opciones{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.pub-opcion{display:flex;align-items:center;gap:12px;text-align:left;padding:12px;
+  border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);cursor:pointer;
+  font:inherit;color:inherit;transition:border-color .15s,transform .12s var(--ease),box-shadow .15s}
+.pub-opcion:hover{border-color:var(--line-strong);transform:translateY(-1px);box-shadow:var(--shadow-1)}
+.pub-opcion-ico{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;color:#fff;flex:0 0 auto}
+.pub-opcion-ico svg{stroke:currentColor}
+.pub-opcion-ico.verde{background:#0f7a3d}
+.pub-opcion-ico.azul{background:#1d4f8c}
+.pub-opcion-ico.rojo{background:#b3261e}
+.pub-opcion-txt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.pub-opcion-txt b{font-size:.95rem;color:var(--ink)}
+.pub-opcion-txt em{font-style:normal;font-size:.8rem;color:var(--muted)}
+.pub-opcion > svg{color:var(--muted);flex:0 0 auto}

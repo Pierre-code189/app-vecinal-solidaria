@@ -69,7 +69,11 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
   const [guardando, setGuardando] = useState(false);
   const [otroSector, setOtroSector] = useState(false);
 
-  const tipo = f.tipo || inicial;
+  /* Si el vecino entra pidiendo un favor (o un servicio), el borrador de otra
+     familia no debe cambiarle el formulario. */
+  const guardado = f.tipo || "";
+  const tipo = guardado && (guardado.startsWith("favor") === inicial.startsWith("favor"))
+    ? guardado : inicial;
   const esFavor = tipo.startsWith("favor");
   const esMovilidad = esFavor && (f.subtipo || "prestamo") === "movilidad";
 

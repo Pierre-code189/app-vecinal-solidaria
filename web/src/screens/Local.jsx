@@ -6,7 +6,7 @@ import { useAuth } from "../context/Auth";
 import { Icon } from "../lib/icons";
 import { Btn, Segmented, Select, Tarjeta, Empty, useToast } from "../components/ui";
 import Detalle from "../components/detalle";
-import PublicarNuevo from "../components/PublicarNuevo";
+import { abrirPublicar } from "../lib/publicar";
 
 const CATS = ["", "gasfitería", "carpintería", "electricidad", "cerrajería", "clases", "alimentos",
   "paseo de mascotas", "herramientas", "movilidad", "préstamo", "otros"];
@@ -34,7 +34,6 @@ export default function Local() {
   const [radio, setRadio] = useState("0");
   const [q, setQ] = useState("");
   const [detalle, setDetalle] = useState(null);
-  const [publicar, setPublicar] = useState(false);
   const [escuchando, setEscuchando] = useState(false);
   const [rapidos, setRapidos] = useState({ cerca: false, top: false });
 
@@ -100,7 +99,6 @@ export default function Local() {
         </div>
         <Select ariaLabel="Categoría" value={cat} onChange={setCat} className="sel-toolbar"
           options={CATS.map((c) => ({ value: c, label: c || "Todas" }))} />
-        <Btn variant="primary" icon="plus" onClick={() => setPublicar(true)} className="btn-publicar" data-tour="publicar">Publicar</Btn>
       </div>
 
       <div className="chips-filtro dos-filtros">
@@ -128,7 +126,7 @@ export default function Local() {
       {!isLoading && items.length === 0 && (
         <Empty icon="search" titulo={`No hay ${etiqueta} con ese filtro`}
           texto="Prueba con otra categoría o publica tú el primero."
-          accion={<Btn variant="primary" icon="plus" onClick={() => setPublicar(true)}>Publicar</Btn>} />
+          accion={<Btn variant="primary" icon="plus" onClick={() => abrirPublicar("servicio")}>Publicar</Btn>} />
       )}
 
       <div className="grid">
@@ -138,9 +136,6 @@ export default function Local() {
       </div>
 
       {detalle && <Detalle id={detalle} onClose={() => setDetalle(null)} />}
-      <PublicarNuevo open={publicar} inicial="servicio" onClose={() => setPublicar(false)} onPublicado={refetch} />
-
-      {usuario && <button type="button" className="fab" aria-label="Publicar" onClick={() => setPublicar(true)}><Icon name="plus" size="1.6em" /></button>}
     </section>
   );
 }

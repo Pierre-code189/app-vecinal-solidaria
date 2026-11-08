@@ -5,13 +5,17 @@ import { api } from "../lib/api";
 import { useAuth } from "../context/Auth";
 import { useZona } from "../context/Zona";
 import { Icon } from "../lib/icons";
-import { Sheet, Select, Btn } from "./ui";
+import { Sheet, Select, Btn, useToast } from "./ui";
+import PublicarNuevo from "./PublicarNuevo";
+import PublicarEmergencia from "./PublicarEmergencia";
+import { useQueryClient } from "@tanstack/react-query";
+import { abrirPublicar } from "../lib/publicar";
 import { useTour } from "./Tour";
 import { hace } from "../lib/format";
 
 const NAV = [
   { to: "/", icon: "store", label: "Economía Local", end: true, tour: "local" },
-  { to: "/favores", icon: "heart", label: "Favores", tour: "favores" },
+  { to: "/favores", icon: "handshake", label: "Favores", tour: "favores" },
   { to: "/emergencia", icon: "alert", label: "Emergencia", tour: "emergencia" },
 ];
 
@@ -22,12 +26,22 @@ export function Shell({ children }) {
   const [locOpen, setLocOpen] = useState(false);
   const [locSel, setLocSel] = useState(zona);
   const [avisosOpen, setAvisosOpen] = useState(false);
+  const [pubMenu, setPubMenu] = useState(false);
+  const [pubForm, setPubForm] = useState(null); // servicio | favor | emergencia
+  const qc = useQueryClient();
+  const toast = useToast();
   const [menu, setMenu] = useState(false);
   const [grande, setGrande] = useState(() => localStorage.getItem("vecinal-letra") === "grande");
   const [contraste, setContraste] = useState(() => localStorage.getItem("vecinal-contraste") === "1");
   const [menosMov, setMenosMov] = useState(() => localStorage.getItem("vecinal-movimiento") === "0");
   const nav = useNavigate();
   const loc = useLocation();
+  const publicado = () => {
+    qc.invalidateQueries({ queryKey: ["lista"] });
+    qc.invalidateQueries({ queryKey: ["recursos"] });
+    qc.invalidateQueries({ queryKey: ["recursos-todos"] });
+    qc.invalidateQueries({ queryKey: ["mis-pubs"] });
+  };
   const cuenta = useRef(null);
 
   useEffect(() => {
@@ -44,6 +58,17 @@ export function Shell({ children }) {
     document.documentElement.classList.toggle("menos-movimiento", menosMov);
     localStorage.setItem("vecinal-movimiento", menosMov ? "0" : "1");
   }, [menosMov]);
+
+  /* el botón central (y cualquier pantalla) piden publicar */
+  useEffect(() => {
+    const pedir = (e) => {
+      const tipo = e.detail || "";
+      if (tipo === "servicio" || tipo === "favor" || tipo === "emergencia") { setPubMenu(false); setPubForm(tipo); }
+      else setPubMenu(true);
+    };
+    window.addEventListener("vecinal:publicar", pedir);
+    return () => window.removeEventListener("vecinal:publicar", pedir);
+  }, []);
 
   /* primer ingreso: recorrido guiado */
   useEffect(() => {
@@ -150,6 +175,9 @@ export function Shell({ children }) {
               {avisos?.sin_leer > 0 && <span className="campana-badge">{avisos.sin_leer > 99 ? "99+" : avisos.sin_leer}</span>}
             </button>
           )}
+          <button type="button" className="btn primary publicar-top" onClick={() => setPubMenu(true)}>
+            <Icon name="plus" /> Publicar
+          </button>
           <div className="cuenta" ref={cuenta}>
             <button type="button" className={`avatar-btn ${usuario ? "" : "invitado"}`} data-tour="cuenta"
               aria-haspopup={usuario ? "menu" : undefined} aria-expanded={usuario ? menu : undefined}
@@ -202,12 +230,19 @@ export function Shell({ children }) {
       <main>{children}</main>
 
       <nav className="tabbar" aria-label="Secciones principales">
-        {NAV.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => (isActive ? "on" : "")}>
-            <Icon name={n.icon} /><span>{n.label === "Economía Local" ? "Local" : n.label}</span>
+        {NAV.slice(0, 2).map((n, i) => (
+          <NavLink key={n.to} to={n.to} end={n.end} data-sec={i === 0 ? "local" : "favores"}
+            className={({ isActive }) => (isActive ? "on" : "")}>
+            <Icon name={n.icon} /><span>{i === 0 ? "Local" : n.label}</span>
           </NavLink>
         ))}
-        <NavLink to="/perfil" className={({ isActive }) => (isActive ? "on" : "")}>
+        <button type="button" className="tab-publicar" aria-label="Publicar" onClick={() => setPubMenu(true)}>
+          <Icon name="plus" size="1.5em" />
+        </button>
+        <NavLink to="/emergencia" end data-sec="emergencia" className={({ isActive }) => (isActive ? "on" : "")}>
+          <Icon name="alert" /><span>Emergencia</span>
+        </NavLink>
+        <NavLink to="/perfil" data-sec="perfil" className={({ isActive }) => (isActive ? "on" : "")}>
           <Icon name="user" /><span>{usuario ? "Perfil" : "Entrar"}</span>
         </NavLink>
       </nav>
@@ -277,6 +312,32 @@ export function Shell({ children }) {
           <Btn className="wide" onClick={marcarLeidos}>Marcar todos como leídos</Btn>
         </div>
       </Sheet>
+
+      {/* ---- publicar: elegir el tipo y abrir su formulario ---- */}
+      <Sheet open={pubMenu} onClose={() => setPubMenu(false)} titulo="Publicar" ancho={460}>
+        <h2 className="sheet-title">¿Qué quieres publicar?</h2>
+        <p className="hint">Elige el tipo y te llevo al formulario.</p>
+        <div className="pub-opciones">
+          {[
+            { tipo: "servicio", ico: "store", tono: "verde", t: "Ofrecer un servicio o producto", d: "Lo que sabes hacer o lo que vendes" },
+            { tipo: "favor", ico: "handshake", tono: "azul", t: "Pedir u ofrecer ayuda", d: "Un favor entre vecinos, sin dinero" },
+            { tipo: "emergencia", ico: "alert", tono: "rojo", t: "Aviso de emergencia", d: "Agua, comida, techo o traslado urgente" },
+          ].map((o) => (
+            <button key={o.tipo} type="button" className="pub-opcion"
+              onClick={() => { setPubMenu(false); setPubForm(o.tipo); }}>
+              <span className={`pub-opcion-ico ${o.tono}`}><Icon name={o.ico} /></span>
+              <span className="pub-opcion-txt"><b>{o.t}</b><em>{o.d}</em></span>
+              <Icon name="chevron" />
+            </button>
+          ))}
+        </div>
+      </Sheet>
+
+      <PublicarNuevo key={`serv-${pubForm}`} open={pubForm === "servicio" || pubForm === "favor"}
+        inicial={pubForm === "favor" ? "favor_solicitado" : "servicio"}
+        onClose={() => setPubForm(null)} onPublicado={publicado} />
+      <PublicarEmergencia open={pubForm === "emergencia"} modo="necesito"
+        onClose={() => setPubForm(null)} onPublicado={publicado} />
     </>
   );
 }
