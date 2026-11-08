@@ -36,8 +36,12 @@ export function ZonaProvider({ children }) {
     localStorage.removeItem("vecinal-lng");
   };
 
-  const usarGPS = () =>
-    new Promise((resolve, reject) => {
+  const usarGPS = async () => {
+    let lista = zonas;
+    if (!lista.length) {
+      try { lista = await api.get("/api/zonas"); setZonas(lista); } catch { lista = []; }
+    }
+    return new Promise((resolve, reject) => {
       if (!navigator.geolocation) return reject(new Error("Este navegador no tiene GPS"));
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -46,7 +50,7 @@ export function ZonaProvider({ children }) {
           localStorage.setItem("vecinal-lat", String(p.lat));
           localStorage.setItem("vecinal-lng", String(p.lng));
           let mejor = null, mejorD = Infinity;
-          zonas.forEach((z) => {
+          lista.forEach((z) => {
             const d = Math.hypot(z.lat - p.lat, z.lng - p.lng);
             if (d < mejorD) { mejorD = d; mejor = z; }
           });
@@ -57,6 +61,7 @@ export function ZonaProvider({ children }) {
         { timeout: 8000, maximumAge: 600000 },
       );
     });
+  };
 
   const ref = useMemo(() => {
     if (gps) return [gps.lat, gps.lng];

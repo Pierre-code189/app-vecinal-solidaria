@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/Auth";
 import { useZona } from "../context/Zona";
 import { Icon } from "../lib/icons";
@@ -7,13 +7,40 @@ import { Btn, Field, Select, Segmented, useToast } from "./ui";
 /* Pantalla de entrada obligatoria: sin cuenta no se ve el barrio. */
 export default function AuthGate() {
   const { entrar, registrar } = useAuth();
-  const { zonas, setZona } = useZona();
+  const { zonas, setZona, usarGPS } = useZona();
   const toast = useToast();
   const [modo, setModo] = useState("entrar");
   const [f, setF] = useState({ zona: "Piura Centro" });
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   const [verPass, setVerPass] = useState(false);
+  const [ubic, setUbic] = useState(() => localStorage.getItem("vecinal-ubicacion") || "pendiente");
+  const [ubicCargando, setUbicCargando] = useState(false);
+
+  const detectar = async (silencioso = false) => {
+    setUbicCargando(true);
+    try {
+      const z = await usarGPS();
+      if (!z) throw new Error("No pudimos ubicarte en un sector. Elígelo a mano.");
+      set("zona", z);
+      setUbic("detectado");
+      localStorage.setItem("vecinal-ubicacion", "detectado");
+      if (!silencioso) toast(`Estás cerca de ${z}`);
+    } catch (e) {
+      setUbic("manual");
+      localStorage.setItem("vecinal-ubicacion", "manual");
+      if (!silencioso) toast(e.message, "warn");
+    } finally { setUbicCargando(false); }
+  };
+
+  /* si el navegador ya tiene permiso concedido, se detecta sin preguntar */
+  useEffect(() => {
+    if (localStorage.getItem("vecinal-ubicacion")) return;
+    if (!navigator.permissions?.query) return;
+    navigator.permissions.query({ name: "geolocation" })
+      .then((r) => { if (r.state === "granted") detectar(true); })
+      .catch(() => {});
+  }, []);
 
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
@@ -42,7 +69,7 @@ export default function AuthGate() {
           acepta_privacidad: true,
         });
       }
-      if (u?.zona) setZona(u.zona);
+      if (u?.zona) setZona(u.zona, false);
       toast(modo === "entrar" ? `Hola, ${u?.nombre?.split(" ")[0] || "vecino"}` : "Cuenta creada. Ya estás dentro.");
     } catch (err) {
       setError(err.message || "No pudimos entrar. Intenta de nuevo.");
@@ -71,6 +98,30 @@ export default function AuthGate() {
             Tu sector se muestra solo de forma aproximada.
           </p>
         </div>
+
+        {ubic === "pendiente" ? (
+          <div className="ubic-card">
+            <span className="ubic-icono"><Icon name="pin" size="1.2em" /></span>
+            <div className="ubic-txt">
+              <b>¿Usamos tu ubicación?</b>
+              <p>Sirve solo para elegir tu sector automáticamente. No mostramos tu dirección a nadie.</p>
+            </div>
+            <div className="ubic-acciones">
+              <Btn variant="primary" icon="pin" disabled={ubicCargando} onClick={() => detectar()}>
+                {ubicCargando ? "Buscando…" : "Detectar mi sector"}
+              </Btn>
+              <Btn onClick={() => { setUbic("manual"); localStorage.setItem("vecinal-ubicacion", "manual"); }}>
+                Elegir a mano
+              </Btn>
+            </div>
+          </div>
+        ) : ubic === "detectado" ? (
+          <p className="ubic-ok"><Icon name="check" /> Sector detectado: <b>{f.zona}</b>
+            <button type="button" className="linkbtn" onClick={() => { setUbic("manual"); localStorage.setItem("vecinal-ubicacion", "manual"); }}>
+              cambiarlo a mano
+            </button>
+          </p>
+        ) : null}
 
         <div className="entrada-card">
           <Segmented value={modo} onChange={(v) => { setModo(v); setError(""); }} options={[
@@ -142,11 +193,13 @@ export default function AuthGate() {
             </Btn>
           </form>
 
-          <div className="entrada-pie">
-            <button type="button" className="linkbtn" onClick={() => { location.hash = "#/recuperar"; }}>
-              Olvidé mi contraseña
-            </button>
-          </div>
+          {modo === "entrar" && (
+            <div className="entrada-pie">
+              <button type="button" className="linkbtn" onClick={() => { location.hash = "#/recuperar"; }}>
+                Olvidé mi contraseña
+              </button>
+            </div>
+          )}
         </div>
 
       </main>

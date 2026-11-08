@@ -778,3 +778,18 @@ main{padding-bottom:104px}
 .volver{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);
   color:var(--text);font:inherit;font-size:.84rem;padding:7px 12px;border-radius:999px;cursor:pointer;margin-bottom:10px}
 .volver:hover{border-color:var(--brand-600);color:var(--brand-700)}
+
+/* aviso de ubicación en la puerta de entrada */
+.ubic-card{display:grid;grid-template-columns:auto 1fr;gap:10px 12px;align-items:start;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radio);padding:14px;
+  box-shadow:var(--sombra)}
+.ubic-icono{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:var(--brand-50);color:var(--brand-700)}
+.ubic-txt b{display:block;font-size:.95rem;color:var(--ink)}
+.ubic-txt p{margin:2px 0 0;font-size:.84rem;color:var(--muted);line-height:1.45}
+.ubic-acciones{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.ubic-acciones .btn{flex:1 1 auto;justify-content:center}
+.ubic-ok{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0;padding:10px 12px;
+  background:var(--brand-50);border:1px solid var(--brand-100);border-radius:10px;
+  font-size:.86rem;color:var(--brand-800)}
+.ubic-ok .linkbtn{margin-left:auto;font-size:.8rem}

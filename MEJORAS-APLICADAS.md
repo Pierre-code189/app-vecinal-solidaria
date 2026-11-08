@@ -429,3 +429,19 @@ página en fase de captura, incluido el de su propia lista. Ahora:
 
 Aplica a todos los selectores del proyecto (entrada, publicar, sector, categoría y orden):
 todos usan el mismo componente, y se probaron uno por uno.
+
+
+## v4.2.0 — ubicación al abrir y enlace coherente
+
+**Ubicación al entrar.** La puerta pregunta «¿Usamos tu ubicación?» con dos botones:
+*Detectar mi sector* y *Elegir a mano*. Si se concede, se busca el sector más cercano de los
+ocho de Piura (Haversine), se preselecciona en el registro y se avisa: «Sector detectado:
+Catacaos Centro · cambiarlo a mano». Si el navegador ya tenía el permiso concedido, la
+detección ocurre sola al abrir. La decisión se recuerda: no vuelve a preguntar en cada visita.
+Solo se guarda el sector, no la dirección; las coordenadas quedan en el dispositivo.
+
+**«Olvidé mi contraseña».** Ahora aparece únicamente en la pestaña *Entrar*. En *Crear cuenta*
+no tiene sentido y se ocultó.
+
+Verificado con geolocalización simulada: coordenadas de Catacaos → sector «Catacaos Centro»,
+con el formulario ya preseleccionado. 103 comprobaciones del API en verde.
