@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.8.0"
+APP_VERSION = "4.9.0"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -245,6 +245,7 @@ class PublicacionIn(BaseModel):
     punto_encuentro: Optional[str] = ""
     franja_horaria: Optional[str] = ""
     cupo: Optional[int] = None
+    stock: Optional[int] = Field(default=None, ge=0, le=9999)
     checklist_ok: bool = False
     es_emergencia: bool = False
     recurso_critico: bool = False
@@ -1088,8 +1089,8 @@ def crear_publicacion(body: PublicacionIn, request: Request):
         "INSERT INTO publicaciones(id,autor_id,tipo,categoria,subtipo_favor,titulo,descripcion,"
         "precio,medios_pago,qr_yape,politica_pago,zona,lat,lng,punto_encuentro,franja_horaria,cupo,"
         "checklist_ok,estado,es_emergencia,recurso_critico,expira_en,creado,actualizado,client_id,"
-        "yape_snapshot,plin_snapshot,mostrar_contacto,fotos,necesidad)"
-        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'activa',?,?,?,?,?,?,?,?,?,?,?)",
+        "yape_snapshot,plin_snapshot,mostrar_contacto,fotos,necesidad,stock)"
+        " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'activa',?,?,?,?,?,?,?,?,?,?,?,?)",
         (pid, user["id"], body.tipo, cat, body.subtipo_favor, titulo, desc,
          clean_txt(body.precio, 40), ",".join(medios), body.qr_yape or "",
          body.politica_pago, zona, lat, lng,
@@ -1098,7 +1099,8 @@ def crear_publicacion(body: PublicacionIn, request: Request):
          1 if body.es_emergencia else 0,
          1 if (body.recurso_critico and body.es_emergencia) else 0,
          now + 30 * 86400, now, now, cid,
-         yape_pub, plin_pub, 1 if body.mostrar_contacto else 0, fotos_json, necesidad),
+         yape_pub, plin_pub, 1 if body.mostrar_contacto else 0, fotos_json, necesidad,
+         body.stock if str(body.tipo) == "producto" else None),
     )
     historial(con, "publicacion", pid, None, "activa", user["id"], "creación")
     log_evento(con, "publicacion_creada", pid, user["id"], body.tipo)
@@ -1388,6 +1390,25 @@ def metricas(request: Request):
 
 
 # ----------------------------------------------------------------- cotizaciones
+def sin_stock(pub) -> bool:
+    """Un producto con stock declarado y en cero no se puede cotizar."""
+    try:
+        return str(pub["tipo"]) == "producto" and pub["stock"] is not None and int(pub["stock"]) <= 0
+    except Exception:
+        return False
+
+
+def descontar_stock(con, tr):
+    """Al cerrar un trato de producto se descuenta una unidad (una sola vez)."""
+    if tr["stock_descontado"]:
+        return
+    pub = con.execute("SELECT tipo, stock FROM publicaciones WHERE id=?", (tr["publicacion_id"],)).fetchone()
+    if pub and str(pub["tipo"]) == "producto" and pub["stock"] is not None:
+        con.execute("UPDATE publicaciones SET stock=? WHERE id=?",
+                    (max(0, int(pub["stock"]) - 1), tr["publicacion_id"]))
+        con.execute("UPDATE tratos SET stock_descontado=1 WHERE id=?", (tr["id"],))
+
+
 @app.post("/api/cotizaciones")
 def crear_cotizacion(body: CotizacionIn, request: Request):
     rate_limit(request, "/api/cotizaciones")
@@ -1401,6 +1422,9 @@ def crear_cotizacion(body: CotizacionIn, request: Request):
     if pub["autor_id"] == user["id"]:
         con.close()
         raise HTTPException(400, "No puedes cotizar tu propia publicación")
+    if sin_stock(pub):
+        con.close()
+        raise HTTPException(400, "Se agotó por ahora. Escríbele al vecino para que reponga.")
     repetida = con.execute(
         "SELECT 1 FROM cotizaciones WHERE publicacion_id=? AND comprador_id=? AND estado='enviada'",
         (body.publicacion_id, user["id"])).fetchone()
@@ -1714,6 +1738,7 @@ def cerrar_trato(tid: str, request: Request):
     if nuevo["marca_comprador"] and nuevo["marca_vendedor"]:
         con.execute("UPDATE tratos SET estado='cerrado', cerrado_en=? WHERE id=?",
                     (int(time.time()), tid))
+        descontar_stock(con, nuevo)
         for quien in (tr["comprador_id"], tr["vendedor_id"]):
             notificar(con, quien, "trato_cerrado", "Trato cerrado",
                       "Ya pueden dejar su visto bueno.", "/?v=mias&tab=tratos")
@@ -1995,8 +2020,11 @@ def crear_trato(body: TratoIn, request: Request):
     if pub["tipo"].startswith("favor"):
         con.close()
         raise HTTPException(400, "En favores se usa el botón de intercambio, no el trato comercial")
+    if sin_stock(pub):
+        con.close()
+        raise HTTPException(400, "Se agotó por ahora. Escríbele al vecino para que reponga.")
     existente = con.execute(
-        "SELECT * FROM tratos WHERE publicacion_id=? AND comprador_id=? AND estado!='cancelado'",
+        "SELECT * FROM tratos WHERE publicacion_id=? AND comprador_id=? AND estado NOT IN ('cancelado','cerrado')",
         (body.publicacion_id, user["id"])).fetchone()
     if existente:
         con.close()
@@ -2048,8 +2076,16 @@ def marcar_trato(tid: str, body: TratoEstadoIn, request: Request):
     if user["id"] not in (tr["comprador_id"], tr["vendedor_id"]):
         con.close()
         raise HTTPException(403, "No participas en este trato")
+    if tr["estado"] in {"cerrado", "cancelado"}:
+        con.close()
+        raise HTTPException(400, "Ese trato ya terminó")
     now = int(time.time())
     if body.estado == "cancelado":
+        if tr["stock_descontado"]:
+            pub = con.execute("SELECT stock FROM publicaciones WHERE id=?", (tr["publicacion_id"],)).fetchone()
+            if pub and pub["stock"] is not None:
+                con.execute("UPDATE publicaciones SET stock=? WHERE id=?",
+                            (int(pub["stock"]) + 1, tr["publicacion_id"]))
         con.execute("UPDATE tratos SET estado='cancelado', actualizado=? WHERE id=?", (now, tid))
     else:
         campo = "marca_comprador" if user["id"] == tr["comprador_id"] else "marca_vendedor"
@@ -2057,6 +2093,7 @@ def marcar_trato(tid: str, body: TratoEstadoIn, request: Request):
         nuevo = con.execute("SELECT * FROM tratos WHERE id=?", (tid,)).fetchone()
         if nuevo["marca_comprador"] and nuevo["marca_vendedor"]:
             con.execute("UPDATE tratos SET estado='cerrado', cerrado_en=? WHERE id=?", (now, tid))
+            descontar_stock(con, nuevo)
             notificar(con, tr["comprador_id"], "trato_cerrado", "Trato cerrado",
                       "Ya puedes dejar tu visto bueno a quien te atendió.", "/?v=mias")
         else:

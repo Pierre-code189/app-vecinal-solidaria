@@ -678,3 +678,26 @@ ambas partes en el trato, antes de que se confirme el pago. Ya no es solo una pa
 **Chat propio.** Además de la conversación de cotización y trato, el detalle ofrece
 «Solo preguntar»: abre un hilo dentro de la app sin pedir precio. WhatsApp queda como
 alternativa en los datos de pago, no como camino obligado.
+
+
+## v4.9.0 — inventario de productos y pruebas por regla
+
+Adaptado del backend de referencia (`backendMVP`, rama `dev`) **solo lo que hacía falta**:
+
+**Inventario (stock).** Los productos ahora declaran cuántas unidades hay (`stock`, 0–9999) y
+ese número se descuenta **una vez** al cerrarse el trato (doble confirmación). Si llega a cero,
+la publicación muestra «Agotado», no acepta cotizaciones ni tratos nuevos, y el detalle lo dice
+con claridad. Si un trato se cancela después de haber descontado, la unidad se repone.
+
+**Pruebas de reglas con pytest** (`tests/test_reglas.py`, 11 casos, base temporal):
+privacidad del contacto sin sesión, PIN incorrecto, moderación sin rol, publicación sin sesión,
+título corto, cotizar lo propio, reporte duplicado, visto bueno sin trato cerrado, doble
+confirmación y descuento de stock. Corren en menos de un segundo y no tocan producción.
+
+**Lo que NO se adaptó, y por qué.** Alembic y Docker Compose quedan para cuando migremos a
+PostgreSQL; hoy la base es SQLite con `data/app.db` y migraciones idempotentes propias, y montar
+Alembic sin ese cambio añadiría complejidad sin beneficio. El mecanismo de migraciones actual
+sigue siendo el que aplica columnas nuevas al arrancar (`init_db()`), ahora también para
+`publicaciones.stock` y `tratos.stock_descontado`.
+
+Dependencias de desarrollo: `requirements-dev.txt` (pytest, httpx).

@@ -216,6 +216,11 @@ MIGRATIONS = {
         "mostrar_contacto": "INTEGER DEFAULT 1",
         "fotos": "TEXT DEFAULT ''",
         "necesidad": "TEXT DEFAULT ''",
+        "stock": "INTEGER",
+    },
+    "tratos": {
+        "stock_descontado": "INTEGER DEFAULT 0",
+        "comprobante": "TEXT DEFAULT ''",
     },
     "sesiones": {"expira": "INTEGER DEFAULT 0"},
     "reportes": {

@@ -247,6 +247,7 @@ export function Tarjeta({ p, onOpen, zona, dataTour }) {
             </span>
           </div>
           <div className="precio">{p.precio || "A convenir"}</div>
+          {p.stock === 0 && <span className="badge agotado-badge">Agotado</span>}
           <div className="badges">
             {String(p.medios_pago || "").split(",").filter(Boolean).map((m) => (
               <span key={m} className="badge">{{ yape: "Yape", plin: "Plin", efectivo: "Efectivo", transferencia: "Transferencia", intercambio: "Intercambio" }[m] || m}</span>

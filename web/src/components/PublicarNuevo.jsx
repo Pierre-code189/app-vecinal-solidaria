@@ -135,6 +135,7 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
         titulo: f.titulo.trim(),
         descripcion: f.descripcion.trim(),
         precio,
+        stock: tipo === "producto" ? (f.stock === "" ? null : Number(f.stock)) : null,
         medios_pago: esFavor ? "intercambio" : (f.pagos || "yape,efectivo"),
         politica_pago: f.politica || "contra_entrega",
         zona: zonaActual,
@@ -250,6 +251,12 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
                   A convenir
                 </label>
               </div>
+              {tipo === "producto" && (
+                <Field label="Disponibles" id="p-stock" hint="Cuántas unidades tienes. Se descuenta al cerrar cada trato.">
+                  <input id="p-stock" type="number" inputMode="numeric" min="0" max="9999" placeholder="1"
+                    value={f.stock ?? ""} onChange={(e) => set("stock", e.target.value.replace(/\D/g, ""))} />
+                </Field>
+              )}
               <Field label="Formas de pago" id="p-pagos">
                 <Select id="p-pagos" ariaLabel="Formas de pago" value={f.pagos || "yape,efectivo"}
                   onChange={(v) => set("pagos", v)} options={PAGOS} />
