@@ -185,3 +185,30 @@ html.menos-movimiento .grid > .pub{ animation:none; }
 .pub .precio.largo{font-size:.98rem;font-weight:700;line-height:1.3}
 .pub .badges .badge{font-size:.72rem;font-weight:600;color:var(--text);border-color:var(--line-strong);padding:2px 8px}
 .pub .cover svg{opacity:.92}
+
+/* pestañas y filas de actividad */
+.segmented{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+.segmented::-webkit-scrollbar{display:none}
+@media (max-width:719px){
+  .segmented{flex-wrap:wrap;overflow:visible}
+  .tabbar{padding-bottom:calc(8px + max(env(safe-area-inset-bottom), 6px))}
+}
+.fila-top{gap:10px;align-items:flex-start}
+.fila-top b{line-height:1.35}
+
+/* cabecera: el sector no se corta; marca blanca legible */
+.brand, .brand strong, .brand .brand-full, .brand .brand-mini{color:#fff}
+.chip-zona span{max-width:min(52vw,220px)}
+@media (max-width:430px){
+  .chip-zona span{max-width:min(58vw,220px)}
+}
+/* filtros: nunca cortar un chip */
+.chips-filtro{flex-wrap:wrap;row-gap:8px}
+/* estado de emergencia más compacto para que las llamadas ganen peso */
+.estado-emergencia, .banner-estado{padding:12px 14px}
+
+/* pestañas de actividad: envuelven en móvil, no se cortan */
+@media (max-width:719px){
+  .tabs{flex-wrap:wrap;overflow:visible;padding:10px}
+  .tabs button{flex:0 0 auto}
+}

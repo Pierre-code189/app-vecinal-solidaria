@@ -182,7 +182,7 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
   return (
     <Sheet open onClose={onClose} titulo={TIPO_TITULO}>
       <div className="steps">
-        {["1. Qué publicas", "2. Datos", "3. Revisar"].map((t, i) => (
+        {["1. Qué publicas", "2. Datos y publicación"].map((t, i) => (
           <span key={t} className={`step ${paso === i + 1 ? "on" : ""}`}>{t}</span>
         ))}
       </div>
@@ -328,28 +328,11 @@ export default function PublicarNuevo({ open, inicial = "servicio", onClose, onP
           {error && <p className="error">{error}</p>}
           <div className="pubs-actions">
             <Btn icon="back" onClick={() => setPaso(1)}>Atrás</Btn>
-            <Btn variant="primary" onClick={() => { const err = validar(); if (err) return setError(err); setError(""); setPaso(3); }}>Siguiente →</Btn>
-          </div>
-        </div>
-      )}
-
-      {paso === 3 && (
-        <div className="paso">
-          <div className="resumen">
-            <p className="hint">{TIPO_TITULO}{esFavor ? ` · ${SUBTIPOS.find((s) => s.value === (f.subtipo || "prestamo"))?.label}` : ""}</p>
-            <h3>{f.titulo}</h3>
-            <p>{f.descripcion}</p>
-            <p><b>Precio:</b> {esFavor ? "Gratis / intercambio" : (f.sinPrecio ? "A convenir" : `S/ ${Number(f.precioNum || 0).toFixed(2)}`)}</p>
-            <p><b>Sector:</b> {zonaActual}</p>
-            {fotos.length > 0 && <div className="fotos-prev">{fotos.map((x) => <img key={x} src={x} alt="" />)}</div>}
-          </div>
-          {error && <p className="error">{error}</p>}
-          <div className="pubs-actions">
-            <Btn icon="back" onClick={() => setPaso(2)}>Atrás</Btn>
             <Btn variant="primary" icon="check" onClick={publicar} disabled={guardando}>{guardando ? "Publicando…" : "Publicar"}</Btn>
           </div>
         </div>
       )}
+
     </Sheet>
   );
 }

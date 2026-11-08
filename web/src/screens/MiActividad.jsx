@@ -107,7 +107,7 @@ function Publicaciones() {
         return (
           <div className="fila" key={p.id}>
             <div className="fila-top"><b>{p.titulo}</b><Badge tono={tono}>{txt}</Badge></div>
-            <p className="hint">{cap(p.categoria)} · {p.zona} · {hace(p.creado)} · {p.vistos ? `${p.vistos} vistos` : "sin vistos"} · {p.precio || "a convenir"}</p>
+            <p className="hint">{cap(p.categoria)} · {p.zona} · {hace(p.creado)} · {p.vistos ? `${p.vistos} visto${p.vistos === 1 ? "" : "s"}` : "sin vistos"} · {p.precio || "a convenir"}</p>
 
             {edit?.id === p.id ? (
               <div className="fila-edit">
@@ -128,9 +128,9 @@ function Publicaciones() {
               </div>
             ) : (
               <div className="fila-acc">
-                <Btn size="small" icon="text" onClick={() => { setEdit(p); setF({}); }}>Editar</Btn>
+                <Btn size="small" icon="tool" onClick={() => { setEdit(p); setF({}); }}>Editar</Btn>
                 {p.estado === "activa"
-                  ? <Btn size="small" onClick={() => estado(p, "pausada")}>Pausar</Btn>
+                  ? <Btn size="small" icon="clock" onClick={() => estado(p, "pausada")}>Pausar</Btn>
                   : <Btn size="small" onClick={() => estado(p, "activa")}>Reactivar</Btn>}
                 <Btn size="small" icon="trash" variant="danger" onClick={() => borrar(p)}>Eliminar</Btn>
               </div>

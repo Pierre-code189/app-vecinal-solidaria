@@ -94,7 +94,7 @@ export function Shell({ children }) {
         </nav>
 
         <div className="topbar-actions">
-          <button type="button" className="chip-zona" data-tour="zona" onClick={() => { setLocSel(zona); setLocOpen(true); }}>
+          <button type="button" className="chip-zona" data-tour="zona" title={zona} onClick={() => { setLocSel(zona); setLocOpen(true); }}>
             <Icon name="pin" /><span>{zona}</span>
           </button>
           {usuario && (
