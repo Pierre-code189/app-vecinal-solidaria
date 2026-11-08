@@ -56,10 +56,13 @@ export function Select({ id, value, onChange, options, ariaLabel, className = ""
     const abajo = window.innerHeight - r.bottom - margen * 2;
     const arriba = r.top - margen * 2;
     const haciaArriba = abajo < 200 && arriba > abajo;
-    const alto = Math.max(150, Math.min(320, haciaArriba ? arriba : abajo));
+    // el alto se calcula en filas completas: nunca se ve una opción partida
+    const FILA = 42, RELLENO = 16; // fila + relleno + borde del panel
+    const disponible = haciaArriba ? arriba : abajo;
+    const filas = Math.min(8, Math.max(3, Math.floor((disponible - RELLENO) / FILA)));
+    const alto = Math.min(disponible, filas * FILA + RELLENO);
     setPos({
       width: ancho,
-      height: alto,
       maxHeight: alto,
       left: Math.max(margen, Math.min(r.left, window.innerWidth - ancho - margen)),
       ...(haciaArriba

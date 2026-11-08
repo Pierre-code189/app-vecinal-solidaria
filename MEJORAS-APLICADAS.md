@@ -445,3 +445,12 @@ no tiene sentido y se ocultó.
 
 Verificado con geolocalización simulada: coordenadas de Catacaos → sector «Catacaos Centro»,
 con el formulario ya preseleccionado. 103 comprobaciones del API en verde.
+
+
+## v4.2.1 — el desplegable termina en fila completa
+
+El panel se dimensionaba con un alto fijo, así que la última opción quedaba partida por la
+mitad y el borde inferior desaparecía: se veía como un cuadro cortado. Ahora el alto se calcula
+en múltiplos de la fila (42 px) más el relleno y el borde, con un máximo de ocho filas visibles.
+Cada opción se ve entera y el panel siempre cierra con su borde y su sombra, se abra hacia
+arriba o hacia abajo.
