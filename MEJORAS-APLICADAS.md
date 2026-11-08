@@ -454,3 +454,27 @@ mitad y el borde inferior desaparecía: se veía como un cuadro cortado. Ahora e
 en múltiplos de la fila (42 px) más el relleno y el borde, con un máximo de ocho filas visibles.
 Cada opción se ve entera y el panel siempre cierra con su borde y su sombra, se abra hacia
 arriba o hacia abajo.
+
+
+## v4.3.0 — acceso con teléfono, código por SMS y PIN de 6 dígitos
+
+**Fuera el correo.** La cuenta se identifica por el teléfono. El registro pide nombre,
+sector, teléfono, un código de 6 dígitos y un PIN de 6 dígitos. El correo ya no se pide ni
+se muestra en ninguna pantalla; en la base queda un marcador interno porque la columna es
+obligatoria.
+
+**Verificación del teléfono.** `POST /api/telefono/solicitar` genera un código de 6 dígitos
+válido 10 minutos, con límite de intentos y de peticiones (8 cada 5 minutos).
+`POST /api/registro_pin` crea la cuenta solo si el código coincide. Sin proveedor de SMS el
+código vuelve en la respuesta y la app lo muestra como «código de demostración»; con un
+proveedor real se envía al teléfono y deja de mostrarse.
+
+**Entrada.** `POST /api/login_pin` con teléfono + PIN, con bloqueo de 15 minutos a los cinco
+intentos. El PIN se guarda con sal, igual que antes la contraseña. «Olvidé mi PIN» pide código
+al teléfono y permite definir uno nuevo (`POST /api/pin/confirmar`).
+
+**Compatibilidad.** Se mantienen `/api/registro` y `/api/login` (correo y contraseña) para no
+romper las comprobaciones automáticas ni las cuentas antiguas; la interfaz ya no los usa.
+
+**Cuentas de demostración.** Se les asignó PIN `123456` para poder probar el acceso por
+teléfono. En producción cada persona define el suyo al verificar su número.

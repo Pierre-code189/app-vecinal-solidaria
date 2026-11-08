@@ -123,7 +123,7 @@ export default function Perfil() {
         <Avatar nombre={usuario.nombre} cls="grande" />
         <div>
           <b>{usuario.nombre}</b>
-          <p className="hint">{usuario.email} · {usuario.zona}</p>
+          <p className="hint">{usuario.telefono} · {usuario.zona}</p>
           {usuario.rol === "moderador" && <span className="badge verde"><Icon name="shield" />Moderador</span>}
         </div>
       </div>
@@ -145,6 +145,7 @@ export default function Perfil() {
           <div className="pubs-actions">
             <Btn icon="user" onClick={() => { setEditando(true); setF({}); }}>Editar mis datos</Btn>
             <Btn icon="clipboard" onClick={() => nav("/actividad")}>Mi actividad</Btn>
+            <Btn icon="lock" onClick={() => nav("/recuperar")}>Cambiar mi PIN</Btn>
             <Btn icon="logout" onClick={async () => { await salir(); toast("Sesión cerrada"); nav("/"); }}>Salir</Btn>
           </div>
         </>

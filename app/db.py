@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
+import uuid
 import time
 import uuid
 from pathlib import Path
@@ -43,6 +44,10 @@ CREATE TABLE IF NOT EXISTS usuarios(
     yape TEXT, descripcion TEXT DEFAULT '', oficios TEXT DEFAULT '',
     telefono_verificado INTEGER DEFAULT 0, acepta_privacidad INTEGER DEFAULT 0,
     creado INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS codigos_telefono(
+    telefono TEXT PRIMARY KEY, codigo TEXT NOT NULL, proposito TEXT NOT NULL,
+    expira INTEGER NOT NULL, intentos INTEGER DEFAULT 0, creado INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS sesiones(
     token TEXT PRIMARY KEY, usuario_id TEXT NOT NULL,
@@ -167,6 +172,8 @@ MIGRATIONS = {
         "reset_expira": "INTEGER",
         "intentos_fallidos": "INTEGER DEFAULT 0",
         "bloqueado_hasta": "INTEGER",
+        "pin_hash": "TEXT DEFAULT ''",
+        "pin_salt": "TEXT DEFAULT ''",
     },
     "publicaciones": {
         "subtipo_favor": "TEXT",
@@ -220,6 +227,8 @@ def migrate(con: sqlite3.Connection) -> list[str]:
     con.commit()
     return applied
 
+
+DEMO_PIN = "123456"
 
 SEED_USERS = [
     ("u-mod", "María Panta", "Piura Centro", "999000001", "mod@app.local", "mod123", "moderador", "999000001"),
@@ -402,6 +411,16 @@ def seed(con: sqlite3.Connection) -> None:
             " VALUES(?,?,?,?,?,?,?,?,?,1,1)",
             (uid, nombre, zona, tel, email, hash_pw(pw), rol, yape, now),
         )
+    # Las cuentas de demostración entran con teléfono y PIN (6 dígitos).
+    # En producción cada persona define el suyo al verificar su número.
+    for uid, *_ in SEED_USERS:
+        fila = con.execute("SELECT pin_salt FROM usuarios WHERE id=?", (uid,)).fetchone()
+        if fila is not None and not (fila["pin_salt"] or ""):
+            sal = uuid.uuid4().hex[:16]
+            con.execute("UPDATE usuarios SET pin_hash=?, pin_salt=? WHERE id=?",
+                        (hash_pw_salted(DEMO_PIN, sal), sal, uid))
+    con.commit()
+
     for pid, autor, tipo, cat, sub, tit, desc, precio, medios, zona, lat, lng, em in SEED_PUBS:
         # Separar las ofertas del centro exacto del sector (~150-400 m), para que
         # la lista no muestre todo a la misma distancia: el barrio no es un punto.

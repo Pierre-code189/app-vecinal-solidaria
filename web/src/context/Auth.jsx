@@ -32,13 +32,28 @@ export function AuthProvider({ children }) {
     return entrar(datos.email, datos.password);
   };
 
+  const entrarPin = async (telefono, pin) => {
+    const d = await api.post("/api/login_pin", { telefono, pin }, { queue: false });
+    setToken(d.token);
+    setUsuario(d.usuario);
+    return d.usuario;
+  };
+
+  const registrarPin = async (datos) => {
+    const d = await api.post("/api/registro_pin", datos, { queue: false });
+    setToken(d.token);
+    setUsuario(d.usuario);
+    return d.usuario;
+  };
+
   const salir = async () => {
     try { await api.post("/api/logout", {}, { queue: false }); } catch { /* da igual */ }
     setToken(""); setUsuario(null);
   };
 
   const valor = useMemo(
-    () => ({ usuario, cargando, entrar, registrar, salir, recargar: cargar, esModerador: usuario?.rol === "moderador" }),
+    () => ({ usuario, cargando, entrar, registrar, entrarPin, registrarPin, salir, recargar: cargar,
+      esModerador: usuario?.rol === "moderador" }),
     [usuario, cargando],
   );
 

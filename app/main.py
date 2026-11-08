@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.2.1"
+APP_VERSION = "4.3.0"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -125,6 +125,8 @@ RL_RULES = {  # ruta: (máximo, ventana en segundos)
     "/api/login": (30, 60), "/api/registro": (12, 300),
     "/api/publicaciones": (30, 60), "/api/cotizaciones": (20, 60),
     "/api/vistos": (40, 60), "/api/reportes": (10, 300),
+    "/api/telefono/solicitar": (8, 300), "/api/login_pin": (30, 60),
+    "/api/registro_pin": (12, 300), "/api/pin/confirmar": (15, 300),
 }
 
 
@@ -158,6 +160,34 @@ class RegistroIn(BaseModel):
 class LoginIn(BaseModel):
     email: str = Field(min_length=3)
     password: str = Field(min_length=1)
+
+
+# --- acceso por teléfono con código y PIN de 6 dígitos (v4.3) ---
+class TelefonoIn(BaseModel):
+    telefono: str
+    proposito: str = "registro"  # registro | acceso | pin
+
+
+class RegistroPinIn(BaseModel):
+    telefono: str
+    codigo: str
+    pin: str
+    nombre: str = Field(min_length=2, max_length=80)
+    zona: str
+    yape: Optional[str] = ""
+    plin: Optional[str] = ""
+    acepta_privacidad: bool = True
+
+
+class LoginPinIn(BaseModel):
+    telefono: str
+    pin: str
+
+
+class ResetPinIn(BaseModel):
+    telefono: str
+    codigo: str
+    pin: str
 
 
 class PerfilIn(BaseModel):
@@ -549,6 +579,170 @@ def login(body: LoginIn, request: Request):
     con.commit()
     con.close()
     return {"token": token, "usuario": public_user(dict(row))}
+
+
+
+# ------------------------------------------- acceso por teléfono, código y PIN
+def _tel_ok(t: str) -> bool:
+    return bool(re.fullmatch(r"9\d{8}", (t or "").strip()))
+
+
+def _pin_ok(p: str) -> bool:
+    return bool(re.fullmatch(r"\d{6}", (p or "").strip()))
+
+
+def _crear_sesion(con, uid: str) -> str:
+    token = uuid.uuid4().hex
+    now = int(time.time())
+    con.execute("INSERT INTO sesiones(token,usuario_id,creado,expira) VALUES(?,?,?,?)",
+                (token, uid, now, now + SESSION_TTL))
+    con.commit()
+    return token
+
+
+def _pedir_codigo(con, telefono: str, proposito: str) -> str:
+    """Genera un código de 6 dígitos válido 10 minutos y lo guarda (uno por teléfono)."""
+    codigo = f"{uuid.uuid4().int % 1000000:06d}"
+    ahora = int(time.time())
+    con.execute(
+        "INSERT INTO codigos_telefono(telefono,codigo,proposito,expira,intentos,creado)"
+        " VALUES(?,?,?,?,0,?) ON CONFLICT(telefono) DO UPDATE SET codigo=excluded.codigo,"
+        " proposito=excluded.proposito, expira=excluded.expira, intentos=0, creado=excluded.creado",
+        (telefono, codigo, proposito, ahora + 600, ahora))
+    con.commit()
+    return codigo
+
+
+def _verificar_codigo(con, telefono: str, codigo: str, proposito: str) -> None:
+    row = con.execute("SELECT * FROM codigos_telefono WHERE telefono=?", (telefono,)).fetchone()
+    if not row or row["proposito"] != proposito:
+        raise HTTPException(400, "Pide un código nuevo.")
+    if row["expira"] < time.time():
+        raise HTTPException(400, "El código venció. Pide otro.")
+    if row["intentos"] >= 5:
+        raise HTTPException(429, "Demasiados intentos con este código. Pide otro.")
+    if row["codigo"] != (codigo or "").strip():
+        con.execute("UPDATE codigos_telefono SET intentos=intentos+1 WHERE telefono=?", (telefono,))
+        con.commit()
+        raise HTTPException(400, "El código no es correcto.")
+    con.execute("DELETE FROM codigos_telefono WHERE telefono=?", (telefono,))
+    con.commit()
+
+
+@app.post("/api/telefono/solicitar")
+def solicitar_codigo(body: TelefonoIn, request: Request):
+    """Manda (en la demo, muestra) un código de 6 dígitos al teléfono."""
+    rate_limit(request, "/api/telefono/solicitar")
+    tel = (body.telefono or "").strip()
+    if not _tel_ok(tel):
+        raise HTTPException(400, "El teléfono debe tener 9 dígitos y empezar por 9.")
+    proposito = body.proposito if body.proposito in {"registro", "acceso", "pin"} else "registro"
+    con = connect()
+    existe = con.execute("SELECT id FROM usuarios WHERE telefono=?", (tel,)).fetchone()
+    if proposito == "registro" and existe:
+        con.close()
+        raise HTTPException(400, "Ese número ya tiene cuenta. Entra con tu PIN.")
+    if proposito in {"acceso", "pin"} and not existe:
+        # No revelamos si el número está registrado.
+        con.close()
+        return {"ok": True, "mensaje": "Si el número tiene cuenta, el código llegará en un momento."}
+    codigo = _pedir_codigo(con, tel, proposito)
+    con.close()
+    # Sin proveedor de SMS el código vuelve en la respuesta. Con Twilio/Meta se envía y no se muestra.
+    return {"ok": True, "codigo_demo": codigo, "expira_segundos": 600,
+            "mensaje": "Código válido 10 minutos. En la demo se muestra aquí; en producción llega por SMS."}
+
+
+@app.post("/api/registro_pin")
+def registro_pin(body: RegistroPinIn, request: Request):
+    """Crea la cuenta con teléfono verificado y PIN de 6 dígitos. Sin correo."""
+    rate_limit(request, "/api/registro")
+    tel = (body.telefono or "").strip()
+    if not _tel_ok(tel):
+        raise HTTPException(400, "El teléfono debe tener 9 dígitos y empezar por 9.")
+    if not _pin_ok(body.pin):
+        raise HTTPException(400, "El PIN debe tener exactamente 6 dígitos.")
+    if body.zona not in ZONAS:
+        raise HTTPException(400, "Elige un sector de la lista")
+    if not body.acepta_privacidad:
+        raise HTTPException(400, "Debes aceptar el aviso de privacidad")
+    for numero, nombre in ((body.yape, "Yape"), (body.plin, "Plin")):
+        if (numero or "").strip() and not re.fullmatch(r"\d{9}", numero.strip()):
+            raise HTTPException(400, f"El número de {nombre} debe tener 9 dígitos")
+    con = connect()
+    if con.execute("SELECT 1 FROM usuarios WHERE telefono=?", (tel,)).fetchone():
+        con.close()
+        raise HTTPException(400, "Ese número ya tiene cuenta. Entra con tu PIN.")
+    _verificar_codigo(con, tel, body.codigo, "registro")
+    uid = str(uuid.uuid4())
+    sal = uuid.uuid4().hex[:16]
+    pin_sal = uuid.uuid4().hex[:16]
+    # El correo queda como marcador interno (la columna es obligatoria) pero no se usa ni se muestra.
+    email_interno = f"{tel}@tel.vecinal"
+    con.execute(
+        "INSERT INTO usuarios(id,nombre,zona,telefono,email,pass,rol,yape,plin,creado,"
+        "telefono_verificado,acepta_privacidad,salt,pin_hash,pin_salt)"
+        " VALUES(?,?,?,?,?,?,'vecino',?,?,?,1,1,?,?,?)",
+        (uid, clean_txt(body.nombre, 80), body.zona, tel, email_interno,
+         hash_pw_salted(uuid.uuid4().hex, sal), (body.yape or "").strip() or None,
+         (body.plin or "").strip() or None, int(time.time()), sal,
+         hash_pw_salted(body.pin, pin_sal), pin_sal))
+    con.commit()
+    token = _crear_sesion(con, uid)
+    fila = con.execute("SELECT * FROM usuarios WHERE id=?", (uid,)).fetchone()
+    con.close()
+    return {"ok": True, "token": token, "usuario": public_user(dict(fila))}
+
+
+@app.post("/api/login_pin")
+def login_pin(body: LoginPinIn, request: Request):
+    """Entra con teléfono y PIN de 6 dígitos."""
+    rate_limit(request, "/api/login")
+    tel = (body.telefono or "").strip()
+    if not _tel_ok(tel) or not _pin_ok(body.pin):
+        raise HTTPException(400, "Revisa el teléfono y el PIN de 6 dígitos.")
+    con = connect()
+    row = con.execute("SELECT * FROM usuarios WHERE telefono=?", (tel,)).fetchone()
+    if row and row["bloqueado_hasta"] and row["bloqueado_hasta"] > time.time():
+        restante = int((row["bloqueado_hasta"] - time.time()) / 60) + 1
+        con.close()
+        raise HTTPException(429, f"Demasiados intentos. Prueba en {restante} minutos.")
+    sal = row["pin_salt"] if row and row["pin_salt"] else ""
+    ok = bool(row and sal and row["pin_hash"] == hash_pw_salted(body.pin, sal))
+    if not ok:
+        if row:
+            fallos = (row["intentos_fallidos"] or 0) + 1
+            bloqueo = int(time.time()) + 15 * 60 if fallos >= 5 else None
+            con.execute("UPDATE usuarios SET intentos_fallidos=?, bloqueado_hasta=? WHERE id=?",
+                        (fallos, bloqueo, row["id"]))
+            con.commit()
+        con.close()
+        raise HTTPException(401, "Teléfono o PIN incorrectos.")
+    con.execute("UPDATE usuarios SET intentos_fallidos=0, bloqueado_hasta=NULL WHERE id=?", (row["id"],))
+    token = _crear_sesion(con, row["id"])
+    con.close()
+    return {"token": token, "usuario": public_user(dict(row))}
+
+
+@app.post("/api/pin/confirmar")
+def confirmar_pin(body: ResetPinIn, request: Request):
+    """Cambia el PIN con un código de 6 dígitos enviado al teléfono."""
+    rate_limit(request, "/api/login")
+    tel = (body.telefono or "").strip()
+    if not _tel_ok(tel) or not _pin_ok(body.pin):
+        raise HTTPException(400, "Revisa el teléfono y el PIN de 6 dígitos.")
+    con = connect()
+    row = con.execute("SELECT * FROM usuarios WHERE telefono=?", (tel,)).fetchone()
+    if not row:
+        con.close()
+        raise HTTPException(400, "No pudimos cambiar el PIN.")
+    _verificar_codigo(con, tel, body.codigo, "pin")
+    pin_sal = uuid.uuid4().hex[:16]
+    con.execute("UPDATE usuarios SET pin_hash=?, pin_salt=?, intentos_fallidos=0, bloqueado_hasta=NULL"
+                " WHERE id=?", (hash_pw_salted(body.pin, pin_sal), pin_sal, row["id"]))
+    con.commit()
+    con.close()
+    return {"ok": True, "mensaje": "PIN actualizado. Entra con el nuevo."}
 
 
 @app.post("/api/logout")
