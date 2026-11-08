@@ -478,3 +478,21 @@ romper las comprobaciones automáticas ni las cuentas antiguas; la interfaz ya n
 
 **Cuentas de demostración.** Se les asignó PIN `123456` para poder probar el acceso por
 teléfono. En producción cada persona define el suyo al verificar su número.
+
+
+## v4.4.0 — código aleatorio y único, y confirmación en dos pasos
+
+**Los códigos son aleatorios.** Se generan con `secrets.randbelow(1_000_000)` y se formatean a
+seis dígitos (`000123` es válido). No siguen ninguna secuencia ni se derivan del teléfono.
+
+**Son únicos.** Antes de guardar, el servidor comprueba que ese código no esté vigente en otro
+teléfono; si coincide, genera otro (hasta 40 intentos). Un teléfono tiene un solo código activo,
+y al usarlo se borra: no se puede reutilizar.
+
+**Registro en dos pasos.** El formulario ya no muestra el campo del código. Primero se llenan
+todos los datos (nombre, sector, teléfono, PIN, Yape/Plin, aviso de privacidad) y se pulsa
+*Continuar*: eso pide el código y pasa a una pantalla donde solo están el número y las seis
+casillas. En la demo, a los 3 segundos el código se rellena solo; se pulsa *Confirmar y crear
+cuenta* y recién ahí se crea la cuenta. Con SMS real, las casillas se llenan al escribir.
+
+La misma pantalla de seis casillas se usa en «Olvidé mi PIN».

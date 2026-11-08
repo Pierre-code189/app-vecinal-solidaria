@@ -15,6 +15,7 @@ import base64
 import json
 import math
 import re
+import secrets
 import time
 import uuid
 from pathlib import Path
@@ -27,7 +28,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.3.1"
+APP_VERSION = "4.4.0"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -601,9 +602,20 @@ def _crear_sesion(con, uid: str) -> str:
 
 
 def _pedir_codigo(con, telefono: str, proposito: str) -> str:
-    """Genera un código de 6 dígitos válido 10 minutos y lo guarda (uno por teléfono)."""
-    codigo = f"{uuid.uuid4().int % 1000000:06d}"
+    """Genera un código de 6 dígitos aleatorio, válido 10 minutos y único entre los activos."""
     ahora = int(time.time())
+    codigo = ""
+    for _ in range(40):
+        candidato = f"{secrets.randbelow(1000000):06d}"
+        # Un código no puede repetirse mientras siga vigente en otro teléfono.
+        ocupado = con.execute(
+            "SELECT 1 FROM codigos_telefono WHERE codigo=? AND telefono!=? AND expira>?",
+            (candidato, telefono, ahora)).fetchone()
+        if not ocupado:
+            codigo = candidato
+            break
+    if not codigo:
+        raise HTTPException(503, "No pudimos generar un código. Intenta de nuevo.")
     con.execute(
         "INSERT INTO codigos_telefono(telefono,codigo,proposito,expira,intentos,creado)"
         " VALUES(?,?,?,?,0,?) ON CONFLICT(telefono) DO UPDATE SET codigo=excluded.codigo,"

@@ -4,6 +4,7 @@ import { useZona } from "../context/Zona";
 import { api } from "../lib/api";
 import { Icon } from "../lib/icons";
 import { Btn, Field, Select, Segmented, useToast } from "./ui";
+import CodigoSeis from "./CodigoSeis";
 
 /* Pantalla de entrada obligatoria: sin cuenta no se ve el barrio.
    Se entra con teléfono + PIN de 6 dígitos; el teléfono se confirma por código. */
@@ -17,6 +18,8 @@ export default function AuthGate() {
   const [cargando, setCargando] = useState(false);
   const [verPin, setVerPin] = useState(false);
   const [codigoDemo, setCodigoDemo] = useState("");
+  const [pasoReg, setPasoReg] = useState("datos"); // datos | codigo
+  const [rellenando, setRellenando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [espera, setEspera] = useState(0);
   const [ubic, setUbic] = useState(() => localStorage.getItem("vecinal-ubicacion") || "pendiente");
@@ -59,46 +62,68 @@ export default function AuthGate() {
       const r = await api.post("/api/telefono/solicitar",
         { telefono: f.telefono, proposito: "registro" }, { queue: false });
       setCodigoDemo(r.codigo_demo || "");
-      toast("Código generado. Vence en 10 minutos.");
+      toast("Código enviado al " + f.telefono);
       setEspera(45);
       clearInterval(timer.current);
       timer.current = setInterval(() => setEspera((s) => {
         if (s <= 1) { clearInterval(timer.current); return 0; }
         return s - 1;
       }), 1000);
-    } catch (e) { setError(e.message); }
+      // En la demo no hay SMS: a los 3 segundos el código se rellena solo.
+      if (r.codigo_demo) {
+        setRellenando(true);
+        setTimeout(() => { set("codigo", r.codigo_demo); setRellenando(false); toast("Código recibido"); }, 3000);
+      }
+      return true;
+    } catch (e) { setError(e.message); return false; }
     finally { setEnviando(false); }
+  };
+
+  /* Paso 1: datos completos. Al continuar se pide el código y se pasa al paso 2. */
+  const continuarRegistro = async () => {
+    setError("");
+    if ((f.nombre || "").trim().length < 3) return setError("Escribe tu nombre y apellido.");
+    if (!/^\d{9}$/.test(f.telefono || "")) return setError("El teléfono debe tener 9 dígitos.");
+    if (!/^\d{6}$/.test(f.pin || "")) return setError("El PIN debe tener 6 dígitos.");
+    if (!f.acepta) return setError("Necesitamos que aceptes el aviso de privacidad.");
+    const ok = await pedirCodigo();
+    if (ok) { setPasoReg("codigo"); setCargando(false); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  };
+
+  /* Paso 2: solo el número y las seis casillas. Aquí recién se crea la cuenta. */
+  const crearCuenta = async () => {
+    setError("");
+    if (!/^\d{6}$/.test(f.codigo || "")) return setError("Escribe el código de 6 dígitos.");
+    setCargando(true);
+    try {
+      const u = await registrarPin({
+        nombre: f.nombre.trim(),
+        telefono: f.telefono,
+        codigo: f.codigo,
+        pin: f.pin,
+        zona: f.zona || "Piura Centro",
+        yape: f.yape || "",
+        plin: f.plin || "",
+        acepta_privacidad: true,
+      });
+      if (u?.zona) setZona(u.zona, false);
+      toast("Cuenta creada. Ya estás dentro.");
+    } catch (err) {
+      setError(err.message || "No pudimos crear la cuenta.");
+    } finally { setCargando(false); }
   };
 
   const enviar = async (e) => {
     e.preventDefault();
     setError("");
+    if (modo === "registro") return continuarRegistro();
     setCargando(true);
     try {
-      let u;
-      if (modo === "entrar") {
-        if (!/^\d{9}$/.test(f.telefono || "")) throw new Error("Escribe tu teléfono de 9 dígitos.");
-        if (!/^\d{6}$/.test(f.pin || "")) throw new Error("El PIN son 6 dígitos.");
-        u = await entrarPin(f.telefono, f.pin);
-      } else {
-        if ((f.nombre || "").trim().length < 3) throw new Error("Escribe tu nombre y apellido.");
-        if (!/^\d{9}$/.test(f.telefono || "")) throw new Error("El teléfono debe tener 9 dígitos.");
-        if (!/^\d{6}$/.test(f.codigo || "")) throw new Error("Escribe el código de 6 dígitos que te enviamos.");
-        if (!/^\d{6}$/.test(f.pin || "")) throw new Error("El PIN debe tener 6 dígitos.");
-        if (!f.acepta) throw new Error("Necesitamos que aceptes el aviso de privacidad.");
-        u = await registrarPin({
-          nombre: f.nombre.trim(),
-          telefono: f.telefono,
-          codigo: f.codigo,
-          pin: f.pin,
-          zona: f.zona || "Piura Centro",
-          yape: f.yape || "",
-          plin: f.plin || "",
-          acepta_privacidad: true,
-        });
-      }
+      if (!/^\d{9}$/.test(f.telefono || "")) throw new Error("Escribe tu teléfono de 9 dígitos.");
+      if (!/^\d{6}$/.test(f.pin || "")) throw new Error("El PIN son 6 dígitos.");
+      const u = await entrarPin(f.telefono, f.pin);
       if (u?.zona) setZona(u.zona, false);
-      toast(modo === "entrar" ? `Hola, ${u?.nombre?.split(" ")[0] || "vecino"}` : "Cuenta creada. Ya estás dentro.");
+      toast(`Hola, ${u?.nombre?.split(" ")[0] || "vecino"}`);
     } catch (err) {
       setError(err.message || "No pudimos entrar. Intenta de nuevo.");
     } finally {
@@ -113,7 +138,7 @@ export default function AuthGate() {
         <span className="entrada-ciudad">Piura</span>
       </header>
 
-      <main className="entrada-cuerpo">
+      <main className={`entrada-cuerpo ${modo === "registro" && pasoReg === "codigo" ? "solo-codigo" : ""}`}>
         <div className="entrada-intro">
           <h1>El barrio, entre vecinos</h1>
           <p>
@@ -152,11 +177,53 @@ export default function AuthGate() {
         ) : null}
 
         <div className="entrada-card">
-          <Segmented value={modo} onChange={(v) => { setModo(v); setError(""); setCodigoDemo(""); }} options={[
-            { value: "entrar", label: "Entrar" },
-            { value: "registro", label: "Crear cuenta" },
-          ]} />
+          {!(modo === "registro" && pasoReg === "codigo") && (
+            <Segmented value={modo} onChange={(v) => { setModo(v); setError(""); setCodigoDemo(""); setPasoReg("datos"); }} options={[
+              { value: "entrar", label: "Entrar" },
+              { value: "registro", label: "Crear cuenta" },
+            ]} />
+          )}
 
+          {modo === "registro" && pasoReg === "codigo" ? (
+            <div className="paso-codigo">
+              <button type="button" className="volver" onClick={() => { setPasoReg("datos"); setError(""); }}>
+                <Icon name="back" /> Volver a mis datos
+              </button>
+              <h2 className="codigo-titulo">Confirma tu número</h2>
+              <p className="codigo-sub">
+                Enviamos un código de 6 dígitos al <b>{f.telefono?.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}</b>.
+              </p>
+
+              <CodigoSeis valor={f.codigo || ""} onChange={(v) => set("codigo", v)} autoFocus />
+
+              <p className={`hint codigo-estado ${rellenando ? "esperando" : ""}`}>
+                {rellenando
+                  ? "Esperando el mensaje…"
+                  : codigoDemo
+                    ? "En la demo el código se rellena solo a los 3 segundos."
+                    : "Escríbelo tal como llegó."}
+              </p>
+
+              {codigoDemo && (
+                <div className="codigo-demo">
+                  <Icon name="chat" /> Código de demostración: <b>{codigoDemo}</b>
+                </div>
+              )}
+
+              {error && <p className="error" role="alert">{error}</p>}
+
+              <Btn variant="primary" className="wide" icon="check" disabled={cargando || (f.codigo || "").length < 6}
+                onClick={crearCuenta}>
+                {cargando ? "Creando…" : "Confirmar y crear cuenta"}
+              </Btn>
+
+              <div className="entrada-pie">
+                {espera > 0
+                  ? <span className="hint">Puedes pedir otro código en {espera} s.</span>
+                  : <button type="button" className="linkbtn" onClick={pedirCodigo}>Reenviar código</button>}
+              </div>
+            </div>
+          ) : (
           <form onSubmit={enviar} noValidate>
             {modo === "registro" && (
               <>
@@ -172,28 +239,10 @@ export default function AuthGate() {
 
             <Field label="Teléfono (9 dígitos)" id="g-tel"
               hint={modo === "registro" ? "Te enviaremos un código para confirmar que es tuyo." : "El número con el que te registraste."}>
-              <div className="telwrap">
-                <input id="g-tel" type="tel" inputMode="numeric" maxLength={9} placeholder="Ej.: 987654321"
-                  autoComplete="tel" value={f.telefono || ""}
-                  onChange={(e) => set("telefono", e.target.value.replace(/\D/g, ""))} />
-                {modo === "registro" && (
-                  <Btn size="small" onClick={pedirCodigo} disabled={enviando || espera > 0 || (f.telefono || "").length !== 9}>
-                    {enviando ? "Enviando…" : espera > 0 ? `Reenviar en ${espera}s` : "Enviar código"}
-                  </Btn>
-                )}
-              </div>
+              <input id="g-tel" type="tel" inputMode="numeric" maxLength={9} placeholder="Ej.: 987654321"
+                autoComplete="tel" value={f.telefono || ""}
+                onChange={(e) => set("telefono", e.target.value.replace(/\D/g, ""))} />
             </Field>
-
-            {modo === "registro" && (
-              <>
-                <Field label="Código del SMS" id="g-cod"
-                  hint="Seis dígitos, válido 10 minutos.">
-                  <input id="g-cod" inputMode="numeric" maxLength={6} value={f.codigo || ""}
-                    onChange={(e) => set("codigo", e.target.value.replace(/\D/g, ""))} />
-                </Field>
-                {codigoDemo && <div className="codigo-demo"><Icon name="chat" /> Código de demostración: <b>{codigoDemo}</b></div>}
-              </>
-            )}
 
             <Field label="PIN de 6 dígitos" id="g-pin"
               hint={modo === "registro" ? "Con esto entras la próxima vez. No lo compartas." : undefined}>
@@ -231,10 +280,13 @@ export default function AuthGate() {
 
             {error && <p className="error" role="alert">{error}</p>}
 
-            <Btn type="submit" variant="primary" className="wide" disabled={cargando}>
-              {cargando ? "Un momento…" : modo === "entrar" ? "Entrar al barrio" : "Crear mi cuenta"}
+            <Btn type="submit" variant="primary" className="wide" disabled={cargando || enviando}>
+              {cargando || enviando
+                ? "Un momento…"
+                : modo === "entrar" ? "Entrar al barrio" : "Continuar"}
             </Btn>
           </form>
+          )}
 
           {modo === "entrar" && (
             <div className="entrada-pie">
