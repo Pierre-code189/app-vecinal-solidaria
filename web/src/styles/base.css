@@ -687,3 +687,12 @@ html.letra-grande .btn,html.letra-grande .sel-btn,html.letra-grande input,html.l
 main{padding-bottom:104px}
 @media (min-width:760px){main{padding-bottom:40px}}
 .fab{bottom:calc(78px + env(safe-area-inset-bottom))}
+
+/* la hoja del selector debe quedar por encima del modal que la contiene */
+.sel-panel{z-index:1100}
+.modal{z-index:900}
+.toasts{z-index:1300}
+
+/* hoja inferior del selector: posición propia, sin depender de estilos en línea */
+.sel-panel.hoja{position:fixed;left:8px;right:8px;bottom:0;top:auto;width:auto;
+  max-height:min(74vh,560px);overflow:auto}
