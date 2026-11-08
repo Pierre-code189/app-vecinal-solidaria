@@ -6,8 +6,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f2f5f7",
-  "theme_color": "#0b6e4f",
+  "background_color": "#f9f9ff",
+  "theme_color": "#006b2c",
   "lang": "es-PE",
   "icons": [
     {
@@ -24,7 +24,13 @@
     }
   ],
   "shortcuts": [
-    { "name": "Publicar", "url": "./?accion=publicar" },
-    { "name": "Emergencia", "url": "./?accion=emergencia" }
+    {
+      "name": "Publicar",
+      "url": "./?accion=publicar"
+    },
+    {
+      "name": "Emergencia",
+      "url": "./?accion=emergencia"
+    }
   ]
 }

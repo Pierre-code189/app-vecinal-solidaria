@@ -41,7 +41,7 @@ function AvisoSinConexion() {
   }, []);
   if (!offline) return null;
   return (
-    <div style={{ background: "var(--warn-50)", color: "var(--warn)", padding: "8px 14px", fontSize: ".84rem", textAlign: "center" }}>
+    <div style={{ background: "var(--info-50)", color: "var(--info)", padding: "8px 14px", fontSize: ".84rem", textAlign: "center" }}>
       Sin conexión. Puedes seguir mirando lo ya cargado; lo que publiques se enviará al volver.
     </div>
   );

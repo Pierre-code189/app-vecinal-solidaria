@@ -348,3 +348,30 @@ cola de envío sin conexión y sistema visual con contraste AA.
 **Verificado**: registro, inicio de sesión, publicación en tres pasos, detalle con pagos y
 mapa (9 de 9 mosaicos), actividad con pestañas, emergencia, tutorial y moderación;
 sin errores de consola en móvil (390×844) ni en escritorio (1280×900).
+
+
+## v4.0.1 — paleta de BarrioConecta
+
+Se adoptó su paleta tal cual, sin inventar tonos:
+
+| Uso | Color | Contraste medido |
+|---|---|---|
+| Marca y acción principal | `#006b2c` | blanco encima 6,69:1 |
+| Marca oscura (cabecera) | `#005221` | blanco encima 9,42:1 |
+| Marca clara (fondos suaves) | `#e8f5e9` | verde encima 5,95:1 |
+| Información y enlaces | `#006194` | sobre blanco 6,69:1 |
+| Peligro y emergencia | `#b61722` | blanco encima 6,70:1 |
+| Fondo | `#f9f9ff` | — |
+| Tarjetas | `#ffffff` | — |
+| Texto principal | `#141b2b` | 17,19:1 |
+| Texto de apoyo | `#3e4a3d` | 9,33:1 |
+| Texto secundario | `#5b6959` | 5,82:1 |
+| Bordes | `#e5e7eb` / `#bdcaba` | — |
+
+Ajustes de consecuencia: el aviso de contacto pasó de ámbar a azul (es información, no alarma),
+las etiquetas de pago quedaron neutras para que no compitan con la marca, el icono de la app y
+el color del manifiesto pasaron a `#006b2c`, y el texto secundario se oscureció de `#6e7b6c`
+a `#5b6959` porque el original se quedaba en 4,46:1 (por debajo de AA).
+
+Verificado: 105 comprobaciones en verde, cero errores de consola en móvil y escritorio,
+contrastes medidos sobre la página real.

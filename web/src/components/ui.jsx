@@ -198,7 +198,7 @@ export function Tarjeta({ p, onOpen, zona }) {
           <div className="catrow">
             <span className="cat"><Icon name={cat} />{cap(p.categoria)}</span>
             <span className="catrow-right">
-              {p.es_emergencia && <span className="badge rojo"><Icon name="alert" />Emergencia</span>}
+              {Boolean(p.es_emergencia) && <span className="badge rojo"><Icon name="alert" />Emergencia</span>}
               <span className="ver-mas" aria-hidden="true"><Icon name="back" /></span>
             </span>
           </div>

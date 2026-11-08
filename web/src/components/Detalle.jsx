@@ -61,7 +61,7 @@ export function Detalle({ id, onClose, onPublicarFavor }) {
       {p && (
         <div className="detalle">
           <div className="cat"><Icon name={p.categoria ? "dots" : "dots"} />{cap(p.categoria)}
-            {p.es_emergencia && <span className="badge rojo"><Icon name="alert" />Emergencia</span>}
+            {Boolean(p.es_emergencia) && <span className="badge rojo"><Icon name="alert" />Emergencia</span>}
           </div>
           <h2>{p.titulo}</h2>
           <p className="quien">
