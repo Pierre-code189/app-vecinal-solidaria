@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.0.1"
+APP_VERSION = "4.1.0"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}

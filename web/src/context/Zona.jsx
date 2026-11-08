@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useAuth } from "./Auth";
 
 const Ctx = createContext(null);
 
 export function ZonaProvider({ children }) {
+  const { usuario } = useAuth();
   const [zonas, setZonas] = useState([]);
   const [zona, setZonaState] = useState(() => localStorage.getItem("vecinal-zona") || "Piura Centro");
   const [gps, setGps] = useState(() => {
@@ -11,9 +13,18 @@ export function ZonaProvider({ children }) {
     return lat && lng ? { lat, lng } : null;
   });
 
-  const setZona = (z) => {
+  // el sector de la cuenta manda, salvo que la persona lo haya cambiado a mano
+  useEffect(() => {
+    if (usuario?.zona && !localStorage.getItem("vecinal-zona-manual")) {
+      setZonaState(usuario.zona);
+      localStorage.setItem("vecinal-zona", usuario.zona);
+    }
+  }, [usuario?.zona]);
+
+  const setZona = (z, manual = true) => {
     setZonaState(z);
     localStorage.setItem("vecinal-zona", z);
+    if (manual) localStorage.setItem("vecinal-zona-manual", "1");
     setGps(null);
     localStorage.removeItem("vecinal-lat");
     localStorage.removeItem("vecinal-lng");

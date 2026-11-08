@@ -375,3 +375,24 @@ a `#5b6959` porque el original se quedaba en 4,46:1 (por debajo de AA).
 
 Verificado: 105 comprobaciones en verde, cero errores de consola en móvil y escritorio,
 contrastes medidos sobre la página real.
+
+
+## v4.1.0 — entrada obligatoria
+
+La app ya no se puede mirar sin cuenta. Al abrir, si no hay sesión guardada aparece una
+pantalla de entrada (móvil y escritorio) con dos caminos: **Entrar** o **Crear cuenta**.
+No se renderiza la barra, ni las listas, ni los contactos hasta que haya sesión.
+
+- La sesión se guarda en el dispositivo: al volver, entra directo.
+- Cualquier ruta escrita a mano (`#/emergencia`, `#/actividad`…) cae en la misma puerta.
+- Al cerrar sesión se vuelve a la puerta y se borra el token.
+- Al entrar, el sector de la cuenta manda sobre el guardado antes; si la persona lo cambia
+  a mano en el selector, se respeta su elección.
+- La recuperación de contraseña sigue disponible desde la puerta (`#/recuperar`).
+
+Consecuencia de privacidad: como ya no hay invitados, el teléfono y Yape de una publicación
+solo los ve alguien con sesión, y queda registrado quién consultó el contacto.
+
+Verificado en navegador: puerta visible sin sesión, ruta directa bloqueada, registro entra,
+recarga mantiene la sesión, cerrar sesión devuelve a la puerta; 105 comprobaciones del API
+siguen en verde.

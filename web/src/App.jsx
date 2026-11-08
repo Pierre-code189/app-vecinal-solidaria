@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "./context/Auth";
+import { AuthProvider, useAuth } from "./context/Auth";
 import { ZonaProvider } from "./context/Zona";
 import { ToastProvider } from "./components/ui";
 import { Shell } from "./components/Shell";
+import AuthGate from "./components/AuthGate";
+import { Icon } from "./lib/icons";
 import { sincronizarCola } from "./lib/api";
 
 import Local from "./screens/Local";
@@ -28,12 +30,8 @@ function AlTop() {
 
 function AvisoSinConexion() {
   const [offline, setOffline] = useState(!navigator.onLine);
-  const [pendientes, setPendientes] = useState(0);
   useEffect(() => {
-    const on = () => {
-      setOffline(false);
-      sincronizarCola().then((n) => n && setPendientes(0)).catch(() => {});
-    };
+    const on = () => { setOffline(false); sincronizarCola().catch(() => {}); };
     const off = () => setOffline(true);
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
@@ -47,6 +45,56 @@ function AvisoSinConexion() {
   );
 }
 
+function Cargando() {
+  return (
+    <div className="cargando" role="status" aria-live="polite">
+      <Icon name="home" size="1.9em" />
+      <b>Vecinal Solidaria</b>
+      <span>Abriendo el barrio…</span>
+    </div>
+  );
+}
+
+/* Sin sesión no hay app: se pide entrar o crear cuenta. */
+function Contenido() {
+  const { usuario, cargando } = useAuth();
+  const loc = useLocation();
+
+  if (cargando) return <Cargando />;
+
+  if (!usuario) {
+    if (loc.pathname === "/recuperar") {
+      return (
+        <div className="entrada">
+          <header className="entrada-head">
+            <span className="entrada-marca"><Icon name="home" size="1.15em" /> Vecinal Solidaria</span>
+            <span className="entrada-ciudad">Piura</span>
+          </header>
+          <main className="entrada-cuerpo"><Recuperar /></main>
+        </div>
+      );
+    }
+    return <AuthGate />;
+  }
+
+  return (
+    <Shell>
+      <AvisoSinConexion />
+      <Routes>
+        <Route path="/" element={<Local />} />
+        <Route path="/favores" element={<Favores />} />
+        <Route path="/emergencia" element={<Emergencia />} />
+        <Route path="/actividad" element={<Actividad />} />
+        <Route path="/perfil" element={<Perfil />} />
+        <Route path="/tutorial" element={<Tutorial />} />
+        <Route path="/recuperar" element={<Recuperar />} />
+        <Route path="/moderacion" element={<Moderacion />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Shell>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={qc}>
@@ -55,20 +103,7 @@ export default function App() {
           <ToastProvider>
             <HashRouter>
               <AlTop />
-              <Shell>
-                <AvisoSinConexion />
-                <Routes>
-                  <Route path="/" element={<Local />} />
-                  <Route path="/favores" element={<Favores />} />
-                  <Route path="/emergencia" element={<Emergencia />} />
-                  <Route path="/actividad" element={<Actividad />} />
-                  <Route path="/perfil" element={<Perfil />} />
-                  <Route path="/tutorial" element={<Tutorial />} />
-                  <Route path="/recuperar" element={<Recuperar />} />
-                  <Route path="/moderacion" element={<Moderacion />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Shell>
+              <Contenido />
             </HashRouter>
           </ToastProvider>
         </ZonaProvider>
