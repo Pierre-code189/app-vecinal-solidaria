@@ -30,6 +30,11 @@ export default function Emergencia() {
     queryKey: ["recursos", zona],
     queryFn: () => api.get(`/api/publicaciones?emergencia=true&limit=20&zona=${encodeURIComponent(zona)}`),
   });
+  const { data: otros } = useQuery({
+    queryKey: ["recursos-todos"],
+    queryFn: () => api.get("/api/publicaciones?emergencia=true&limit=20"),
+    enabled: (recursos?.items || []).length === 0,
+  });
 
   const activar = useMutation({
     mutationFn: (activo) => api.post("/api/emergencia/activar", { activo, motivo: activo ? "Activado por moderación" : "Desactivado" }),
@@ -89,7 +94,11 @@ export default function Emergencia() {
         <Empty icon="box" titulo="Aún no hay recursos marcados aquí" texto="Si tienes agua, bidones o víveres, publícalo y marca «también disponible en emergencias»." />
       )}
       <div className="grid">
-        {(recursos?.items || []).filter((r) => !necesidad || r.necesidad === necesidad).map((r) => (
+        {(recursos?.items || []).length === 0 && (otros?.items || []).length > 0 && (
+          <p className="nota">No hay recursos en {zona}. Estos son de otros sectores del distrito.</p>
+        )}
+        {((recursos?.items?.length ? recursos.items : otros?.items) || [])
+          .filter((r) => !necesidad || r.necesidad === necesidad).map((r) => (
           <article className="card recurso" key={r.id} role="button" tabIndex={0}
             onClick={() => setDetalle(r.id)}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setDetalle(r.id)}>

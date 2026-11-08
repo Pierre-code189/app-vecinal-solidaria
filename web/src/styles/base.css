@@ -1102,3 +1102,8 @@ html.menos-movimiento *,html.menos-movimiento *::before,html.menos-movimiento *:
 .agotado-badge{position:absolute;top:10px;right:10px;background:var(--danger,#b61722);color:#fff;
   font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px}
 .pub{position:relative}
+
+/* QA: rellenar la fila cuando los datos son impares */
+.hechos>div:last-child:nth-child(odd){grid-column:1/-1}
+/* QA: objetivos táctiles cómodos en cabecera y navegación */
+.chip-zona,.avatar-btn,.campana,.mainnav a,.mainnav button,.volver,.segmented button{min-height:38px}

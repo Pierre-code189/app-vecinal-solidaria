@@ -701,3 +701,23 @@ sigue siendo el que aplica columnas nuevas al arrancar (`init_db()`), ahora tamb
 `publicaciones.stock` y `tratos.stock_descontado`.
 
 Dependencias de desarrollo: `requirements-dev.txt` (pytest, httpx).
+
+## v4.9.1 — MVP listo para pruebas (QA)
+
+**Guía para testers:** `GUIA-DE-PRUEBAS.md` — URL, 7 cuentas con PIN, 12 recorridos con
+resultado esperado, plantilla de reporte y límites conocidos (SMS demo, SQLite, mosaicos).
+
+**Recorrido automático de QA:** `scripts/qa-recorrido.mjs` mide en cada vista (móvil 390×844 y
+escritorio 1280×900) desborde horizontal, elementos fuera de pantalla, objetivos táctiles
+menores de 38 px, errores de consola y respuestas HTTP ≥ 400.
+
+Hallazgos y correcciones:
+
+| Defecto | Dónde | Gravedad | Estado |
+|---|---|---|---|
+| Emergencias quedaba vacía si tu sector no tenía recursos | Emergencia | alta | corregido: muestra otros sectores con aviso |
+| La rejilla de datos dejaba un hueco cuando eran impares | Detalle | baja | corregido: la última ocupa la fila |
+| Botones de cabecera y navegación por debajo de 38 px | Global | baja | corregido: mínimo 38 px |
+
+Resultado del recorrido: **0 desbordes, 0 errores de consola, 0 respuestas 4xx** en las 12
+vistas medidas (invitado y con sesión, móvil y escritorio). Suite: 105/105 y 11/11.
