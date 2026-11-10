@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
-import uuid
 import time
 import uuid
 from pathlib import Path
@@ -165,12 +164,15 @@ CREATE INDEX IF NOT EXISTS ix_accesos_pub ON accesos_contacto(publicacion_id, cr
 
 # Columnas añadidas después de la primera versión (migración aditiva)
 MIGRATIONS = {
+    # OJO: una sola clave por tabla. Con dos entradas "tratos" la segunda pisa
+    # a la primera y las columnas de pago/confirmación nunca se migran.
     "tratos": {
         "pago_comprador": "INTEGER DEFAULT 0",
         "pago_vendedor": "INTEGER DEFAULT 0",
         "confirmado": "INTEGER DEFAULT 0",
         "cotizacion_id": "TEXT DEFAULT ''",
         "comprobante": "TEXT DEFAULT ''",
+        "stock_descontado": "INTEGER DEFAULT 0",
     },
     "cotizaciones": {
         "trato_id": "TEXT DEFAULT ''",
@@ -223,10 +225,6 @@ MIGRATIONS = {
         "url_origen": "TEXT DEFAULT ''",
         "fuente": "TEXT DEFAULT ''",
         "telefono_externo": "TEXT DEFAULT ''",
-    },
-    "tratos": {
-        "stock_descontado": "INTEGER DEFAULT 0",
-        "comprobante": "TEXT DEFAULT ''",
     },
     "sesiones": {"expira": "INTEGER DEFAULT 0"},
     "reportes": {

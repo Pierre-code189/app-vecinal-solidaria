@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field
 
 from .db import connect, hash_pw, hash_pw_salted, init_db
 
-APP_VERSION = "4.21.1"
+APP_VERSION = "4.21.2"
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 días
 
 TIPOS = {"producto", "servicio", "favor_solicitado", "favor_ofrecido"}
@@ -1535,9 +1535,11 @@ def responder_cotizacion(cid: str, body: CotizacionRespIn, request: Request):
     log_evento(con, "cotizacion_respondida", cot["publicacion_id"], user["id"], body.respuesta)
     titulo_pub = con.execute("SELECT titulo FROM publicaciones WHERE id=?",
                              (cot["publicacion_id"],)).fetchone()
+    referencia = f"«{titulo_pub['titulo']}» · " if titulo_pub and titulo_pub["titulo"] else ""
     notificar(con, cot["comprador_id"], "cotizacion_respuesta",
               "Respondieron tu cotización",
-              f"{user['nombre']}: {body.respuesta.replace('_', ' ')}"
+              referencia
+              + f"{user['nombre']}: {body.respuesta.replace('_', ' ')}"
               + (f" ({body.precio_respuesta})" if body.precio_respuesta else ""),
               "/?v=mias")
     con.commit()
